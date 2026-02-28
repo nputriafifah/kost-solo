@@ -214,4 +214,4 @@ const KostIllustration = () => (
   </svg>
 );
 
-export default KostAuth;
+export default KostAuth; 
