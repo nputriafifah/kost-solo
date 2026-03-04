@@ -125,17 +125,26 @@ const KostAuth = () => {
                 <p className="text-sm text-slate-400 mb-8">Pilih peran Anda agar Kost Solo dapat memberikan pengalaman terbaik untuk kebutuhan anda.</p>
                 <div className="space-y-3">
                   <RoleButton
-                    title="Pencari Kost"
-                    desc="Temukan kost ideal di Surakarta"
-                    icon={<Search size={22} className="text-blue-600" />}
-                    onClick={() => { setRole("pencari"); setView("form"); }}
-                  />
-                  <RoleButton
-                    title="Pemilik Kost"
-                    desc="Kelola & pasarkan properti Anda"
-                    icon={<Home size={22} className="text-blue-600" />}
-                    onClick={() => { setRole("pemilik"); setView("form"); }}
-                  />
+  title="Pencari Kost"
+  desc="Temukan kost ideal di Surakarta"
+  icon={<Search size={22} className="text-blue-600" />}
+  onClick={() => { 
+    setRole("pencari"); 
+    setIsLogin(true);      // ⬅ tambahkan ini
+    setView("form"); 
+  }}
+/>
+
+<RoleButton
+  title="Pemilik Kost"
+  desc="Kelola & pasarkan properti Anda"
+  icon={<Home size={22} className="text-blue-600" />}
+  onClick={() => { 
+    setRole("pemilik"); 
+    setIsLogin(true);      // ⬅ tambahkan ini
+    setView("form"); 
+  }}
+/>
                 </div>
                 
               </div>
