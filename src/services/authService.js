@@ -56,7 +56,7 @@ export async function loginAdmin(payload) {
 
 export async function verifyOtp(payload) {
   // Ubah endpoint-nya dari /verify-otp menjadi /verify-email
-  return request("/auth/user/verify-email", { 
+  return request("/auth/user/verify-email", {
     method: "POST",
     body: JSON.stringify(payload),
   });
