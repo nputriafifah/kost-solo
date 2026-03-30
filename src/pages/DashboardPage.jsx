@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Search, Bell, Filter, Home, SearchX } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import KostCard from "../components/auth/KostCard";
 import BottomNav from "../components/auth/BottomNav";
 
@@ -10,10 +11,30 @@ const INITIAL_DATA = [
 ];
 
 export default function DashboardPage() {
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const userName = user.fullname || "User";
+  const navigate = useNavigate();
 
-  // Ambil inisial dari nama
+  // 1. Ambil Data User
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const userName = user.name || "User";
+
+  // 2. Fitur Like (Persistent di LocalStorage)
+  const [favorites, setFavorites] = useState(() => {
+    const saved = localStorage.getItem("atap_favorites");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem("atap_favorites", JSON.stringify(favorites));
+  }, [favorites]);
+
+  const handleToggleLike = (id, e) => {
+    e.stopPropagation(); // Biar klik Love tidak memicu buka halaman Detail
+    setFavorites((prev) =>
+      prev.includes(id) ? prev.filter((favId) => favId !== id) : [...prev, id]
+    );
+  };
+
+  // 3. Inisial Nama untuk Avatar
   const initials = userName
     .split(" ")
     .map((n) => n[0])
@@ -25,10 +46,13 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const categories = ["Semua", "Kost", "Rumah Sewa", "Apartemen"];
 
+  // 4. Logika Filter & Search
   const filteredData = useMemo(() => {
     return INITIAL_DATA.filter((item) => {
       const matchesTab = activeTab === "Semua" || item.category === activeTab;
-      const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || item.location.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch =
+        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.location.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesTab && matchesSearch;
     });
   }, [activeTab, searchQuery]);
@@ -44,7 +68,9 @@ export default function DashboardPage() {
           <button className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 border border-slate-100">
             <Bell size={20} />
           </button>
-          <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-lg">{initials}</div>
+          <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-lg">
+            {initials}
+          </div>
         </div>
       </div>
 
@@ -79,7 +105,11 @@ export default function DashboardPage() {
           <button
             key={cat}
             onClick={() => setActiveTab(cat)}
-            className={`px-6 py-2.5 rounded-full text-sm font-semibold border transition-all whitespace-nowrap ${activeTab === cat ? "bg-indigo-50 border-indigo-600 text-indigo-600" : "bg-white border-slate-100 text-slate-400"}`}
+            className={`px-6 py-2.5 rounded-full text-sm font-semibold border transition-all whitespace-nowrap ${
+              activeTab === cat
+                ? "bg-indigo-50 border-indigo-600 text-indigo-600"
+                : "bg-white border-slate-100 text-slate-400"
+            }`}
           >
             {cat === "Semua" && <Home size={14} className="inline mr-2 -mt-1" />}
             {cat}
@@ -89,13 +119,24 @@ export default function DashboardPage() {
 
       {/* LISTING */}
       <div className="px-6 mb-6 flex justify-between items-center">
-        <h3 className="text-xl font-bold text-slate-900">{searchQuery ? "Hasil Pencarian" : "Unggulan"}</h3>
+        <h3 className="text-xl font-bold text-slate-900">
+          {searchQuery ? "Hasil Pencarian" : "Unggulan"}
+        </h3>
         <span className="text-xs font-bold text-slate-400">{filteredData.length} Ditemukan</span>
       </div>
 
+      {/* Kost Cards Container */}
       <div className="flex gap-6 overflow-x-auto hide-scrollbar px-6 min-h-[300px]">
         {filteredData.length > 0 ? (
-          filteredData.map((item) => <KostCard key={item.id} item={item} onClick={(kost) => console.log(kost)} />)
+          filteredData.map((item) => (
+            <KostCard
+              key={item.id}
+              item={item}
+              isLiked={favorites.includes(item.id)}
+              onLike={(e) => handleToggleLike(item.id, e)}
+              onClick={() => navigate(`/detail/${item.id}`)}
+            />
+          ))
         ) : (
           <div className="w-full flex flex-col items-center justify-center py-10 text-slate-300">
             <SearchX size={48} className="mb-2 opacity-20" />

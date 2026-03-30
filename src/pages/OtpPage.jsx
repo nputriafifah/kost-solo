@@ -30,7 +30,7 @@ const OtpPage = () => {
       
       setTimeout(() => {
         // 2. Ubah tujuannya dari '/dashboard' menjadi rute login kamu
-        navigate('/auth'); 
+        navigate('/dashboard'); 
       }, 1500);
 
     } catch (err) {
