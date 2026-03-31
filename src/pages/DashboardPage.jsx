@@ -3,6 +3,8 @@ import { Search, Bell, Filter, Home, SearchX } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import KostCard from "../components/auth/KostCard";
 import BottomNav from "../components/auth/BottomNav";
+import NotificationPanel from "../components/auth/NotificationPanel";
+import KampusSection from "../components/auth/KampusSection";
 
 const INITIAL_DATA = [
   { id: 1, name: "Kost Melati Indah", type: "Putri", category: "Kost", price: "850k", location: "Kentingan, Surakarta", image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=600" },
@@ -28,10 +30,8 @@ export default function DashboardPage() {
   }, [favorites]);
 
   const handleToggleLike = (id, e) => {
-    e.stopPropagation(); // Biar klik Love tidak memicu buka halaman Detail
-    setFavorites((prev) =>
-      prev.includes(id) ? prev.filter((favId) => favId !== id) : [...prev, id]
-    );
+    e.stopPropagation();
+    setFavorites((prev) => (prev.includes(id) ? prev.filter((favId) => favId !== id) : [...prev, id]));
   };
 
   // 3. Inisial Nama untuk Avatar
@@ -46,13 +46,15 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const categories = ["Semua", "Kost", "Rumah Sewa", "Apartemen"];
 
-  // 4. Logika Filter & Search
+  // 4. State Notifikasi
+  const [showNotif, setShowNotif] = useState(false);
+  const UNREAD_COUNT = 2;
+
+  // 5. Logika Filter & Search
   const filteredData = useMemo(() => {
     return INITIAL_DATA.filter((item) => {
       const matchesTab = activeTab === "Semua" || item.category === activeTab;
-      const matchesSearch =
-        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.location.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || item.location.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesTab && matchesSearch;
     });
   }, [activeTab, searchQuery]);
@@ -65,12 +67,11 @@ export default function DashboardPage() {
           Atap<span className="text-indigo-600">.</span>
         </h1>
         <div className="flex gap-3">
-          <button className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 border border-slate-100">
+          <button onClick={() => setShowNotif(true)} className="relative w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 border border-slate-100 active:scale-95 transition-transform">
             <Bell size={20} />
+            {UNREAD_COUNT > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />}
           </button>
-          <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-lg">
-            {initials}
-          </div>
+          <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-lg">{initials}</div>
         </div>
       </div>
 
@@ -105,11 +106,7 @@ export default function DashboardPage() {
           <button
             key={cat}
             onClick={() => setActiveTab(cat)}
-            className={`px-6 py-2.5 rounded-full text-sm font-semibold border transition-all whitespace-nowrap ${
-              activeTab === cat
-                ? "bg-indigo-50 border-indigo-600 text-indigo-600"
-                : "bg-white border-slate-100 text-slate-400"
-            }`}
+            className={`px-6 py-2.5 rounded-full text-sm font-semibold border transition-all whitespace-nowrap ${activeTab === cat ? "bg-indigo-50 border-indigo-600 text-indigo-600" : "bg-white border-slate-100 text-slate-400"}`}
           >
             {cat === "Semua" && <Home size={14} className="inline mr-2 -mt-1" />}
             {cat}
@@ -117,26 +114,16 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* LISTING */}
+      {/* LISTING UNGGULAN */}
       <div className="px-6 mb-6 flex justify-between items-center">
-        <h3 className="text-xl font-bold text-slate-900">
-          {searchQuery ? "Hasil Pencarian" : "Unggulan"}
-        </h3>
+        <h3 className="text-xl font-bold text-slate-900">{searchQuery ? "Hasil Pencarian" : "Unggulan"}</h3>
         <span className="text-xs font-bold text-slate-400">{filteredData.length} Ditemukan</span>
       </div>
 
       {/* Kost Cards Container */}
-      <div className="flex gap-6 overflow-x-auto hide-scrollbar px-6 min-h-[300px]">
+      <div className="flex gap-6 overflow-x-auto hide-scrollbar px-6 min-h-[300px] mb-8">
         {filteredData.length > 0 ? (
-          filteredData.map((item) => (
-            <KostCard
-              key={item.id}
-              item={item}
-              isLiked={favorites.includes(item.id)}
-              onLike={(e) => handleToggleLike(item.id, e)}
-              onClick={() => navigate(`/detail/${item.id}`)}
-            />
-          ))
+          filteredData.map((item) => <KostCard key={item.id} item={item} isLiked={favorites.includes(item.id)} onLike={(e) => handleToggleLike(item.id, e)} onClick={() => navigate(`/detail/${item.id}`)} />)
         ) : (
           <div className="w-full flex flex-col items-center justify-center py-10 text-slate-300">
             <SearchX size={48} className="mb-2 opacity-20" />
@@ -144,6 +131,12 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* KAMPUS SECTION — di bawah Unggulan */}
+      <KampusSection onKampusClick={(kampus) => console.log("Cari kos dekat:", kampus.nama)} />
+
+      {/* NOTIFICATION PANEL */}
+      {showNotif && <NotificationPanel onClose={() => setShowNotif(false)} />}
 
       <BottomNav />
     </div>
