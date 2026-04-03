@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { X, Bell, CheckCheck, Tag, Info, Star } from "lucide-react";
 
-const NOTIFICATIONS = [
+const INITIAL_NOTIFICATIONS = [
   {
     id: 1,
     icon: Star,
@@ -44,37 +44,57 @@ const NOTIFICATIONS = [
   },
 ];
 
-export default function NotificationPanel({ onClose }) {
+export default function NotificationPanel({ onClose, onUnreadChange }) {
+  const [notifs, setNotifs] = useState(INITIAL_NOTIFICATIONS);
+
+  const unreadCount = notifs.filter((n) => n.unread).length;
+
+  const handleRead = (id) => {
+    setNotifs((prev) => {
+      const updated = prev.map((n) => (n.id === id ? { ...n, unread: false } : n));
+      onUnreadChange?.(updated.filter((n) => n.unread).length);
+      return updated;
+    });
+  };
+
+  const handleTandaiSemua = () => {
+    setNotifs((prev) => {
+      const updated = prev.map((n) => ({ ...n, unread: false }));
+      onUnreadChange?.(0);
+      return updated;
+    });
+  };
+
   return (
     <>
-      {/* Backdrop */}
       <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Panel */}
       <div className="fixed top-0 right-0 h-full w-full max-w-sm z-50 bg-white shadow-2xl flex flex-col animate-slide-in-right">
-        {/* Header */}
-        <div className="px-6 pt-6 pb-4 flex items-center justify-between border-b border-slate-100">
+        {/* Header sticky */}
+        <div className="px-6 pt-6 pb-4 flex items-center justify-between border-b border-slate-100 flex-shrink-0">
           <div>
             <h2 className="text-lg font-extrabold text-slate-900">Notifikasi</h2>
-            <p className="text-xs text-slate-400 mt-0.5">{NOTIFICATIONS.filter((n) => n.unread).length} belum dibaca</p>
+            <p className="text-xs text-slate-400 mt-0.5">{unreadCount} belum dibaca</p>
           </div>
           <div className="flex items-center gap-2">
-            <button className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-full">
-              <CheckCheck size={13} />
-              Tandai semua
-            </button>
+            {unreadCount > 0 && (
+              <button onClick={handleTandaiSemua} className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-full active:scale-95 transition-transform">
+                <CheckCheck size={13} />
+                Tandai semua
+              </button>
+            )}
             <button onClick={onClose} className="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 active:scale-95 transition-transform">
               <X size={18} />
             </button>
           </div>
         </div>
 
-        {/* List */}
+        {/* List scrollable */}
         <div className="flex-1 overflow-y-auto py-3">
-          {NOTIFICATIONS.map((notif) => {
+          {notifs.map((notif) => {
             const Icon = notif.icon;
             return (
-              <button key={notif.id} className={`w-full flex items-start gap-4 px-6 py-4 text-left transition-colors active:bg-slate-50 ${notif.unread ? "bg-indigo-50/40" : "bg-white"}`}>
+              <button key={notif.id} onClick={() => handleRead(notif.id)} className={`w-full flex items-start gap-4 px-6 py-4 text-left transition-colors active:bg-slate-50 ${notif.unread ? "bg-indigo-50/40" : "bg-white"}`}>
                 <div className={`w-10 h-10 ${notif.iconBg} rounded-2xl flex items-center justify-center flex-shrink-0 mt-0.5`}>
                   <Icon size={18} className={notif.iconColor} />
                 </div>
@@ -89,6 +109,13 @@ export default function NotificationPanel({ onClose }) {
               </button>
             );
           })}
+
+          {notifs.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-20 text-slate-300">
+              <Bell size={40} className="mb-3 opacity-30" />
+              <p className="text-sm font-bold">Tidak ada notifikasi</p>
+            </div>
+          )}
         </div>
       </div>
 

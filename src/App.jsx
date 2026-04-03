@@ -8,8 +8,9 @@ import MapPage from "./pages/MapPage";
 import ChatPage from "./pages/ChatPage";
 import LikePage from "./pages/LikePage";
 import ProfilPage from "./pages/ProfilPage";
-import DetailPage from "./pages/DetailPage"; 
+import DetailPage from "./pages/DetailPage";
 import ChatDetailPage from "./pages/ChatDetailPage";
+// import NotifikasiPage from "./pages/NotifikasiPage"; // ← aktifkan setelah file ada
 
 // --- IMPORT HALAMAN SETTINGS (Pastikan file-filenya sudah ada) ---
 import AccountSettings from "./pages/AccountSettings";
@@ -44,12 +45,14 @@ export default function App() {
         <Route path="/like" element={<LikePage />} />
         <Route path="/profil" element={<ProfilPage />} />
 
+        {/* <Route path="/notifikasi" element={<NotifikasiPage />} /> */}
+        {/* ↑ aktifkan setelah file NotifikasiPage.jsx ada di src/pages/ */}
+
         {/* Settings Sub-Pages */}
         <Route path="/settings/account" element={<AccountSettings />} />
         <Route path="/settings/notifications" element={<NotificationPage />} />
         <Route path="/settings/privacy" element={<PrivacyPage />} />
         <Route path="/settings/faq" element={<FaqPage />} />
-
       </Routes>
     </BrowserRouter>
   );

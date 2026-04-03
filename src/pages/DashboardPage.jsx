@@ -46,9 +46,9 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const categories = ["Semua", "Kost", "Rumah Sewa", "Apartemen"];
 
-  // 4. State Notifikasi
+  // 4. State Notifikasi — unreadCount bisa berubah dari dalam panel
   const [showNotif, setShowNotif] = useState(false);
-  const UNREAD_COUNT = 2;
+  const [unreadCount, setUnreadCount] = useState(2);
 
   // 5. Logika Filter & Search
   const filteredData = useMemo(() => {
@@ -67,9 +67,10 @@ export default function DashboardPage() {
           Atap<span className="text-indigo-600">.</span>
         </h1>
         <div className="flex gap-3">
+          {/* Bell — badge hilang otomatis kalau semua sudah dibaca */}
           <button onClick={() => setShowNotif(true)} className="relative w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 border border-slate-100 active:scale-95 transition-transform">
             <Bell size={20} />
-            {UNREAD_COUNT > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />}
+            {unreadCount > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />}
           </button>
           <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-lg">{initials}</div>
         </div>
@@ -120,7 +121,6 @@ export default function DashboardPage() {
         <span className="text-xs font-bold text-slate-400">{filteredData.length} Ditemukan</span>
       </div>
 
-      {/* Kost Cards Container */}
       <div className="flex gap-6 overflow-x-auto hide-scrollbar px-6 min-h-[300px] mb-8">
         {filteredData.length > 0 ? (
           filteredData.map((item) => <KostCard key={item.id} item={item} isLiked={favorites.includes(item.id)} onLike={(e) => handleToggleLike(item.id, e)} onClick={() => navigate(`/detail/${item.id}`)} />)
@@ -132,11 +132,11 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* KAMPUS SECTION — di bawah Unggulan */}
-      <KampusSection onKampusClick={(kampus) => console.log("Cari kos dekat:", kampus.nama)} />
+      {/* KAMPUS SECTION */}
+      <KampusSection onSelectCabang={(c) => console.log("Cari kos dekat:", c.nama)} />
 
-      {/* NOTIFICATION PANEL */}
-      {showNotif && <NotificationPanel onClose={() => setShowNotif(false)} />}
+      {/* NOTIFICATION PANEL — onUnreadChange sync badge */}
+      {showNotif && <NotificationPanel onClose={() => setShowNotif(false)} onUnreadChange={(count) => setUnreadCount(count)} />}
 
       <BottomNav />
     </div>
