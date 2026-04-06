@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Heart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import KostCard from "../components/auth/KostCard";
-import BottomNav from "../components/auth/BottomNav";
+import KostCard from "../../components/auth/KostCard";
+import BottomNav from "../../components/auth/BottomNav";
 
 const INITIAL_DATA = [
   { id: 1, name: "Kost Melati Indah", type: "Putri", category: "Kost", price: "850k", location: "Kentingan, Surakarta", image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=600" },

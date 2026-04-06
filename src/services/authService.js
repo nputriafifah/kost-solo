@@ -84,3 +84,17 @@ export async function forgotPassword(payload) {
     body: JSON.stringify(payload),
   });
 }
+
+export async function registerOwner(payload) {
+  return request("/auth/owner/register", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function requestOwnerOtp(payload) {
+  return request("/auth/owner/request-otp", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}

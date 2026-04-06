@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { MessageCircle, Search, CheckCheck, Clock, ShieldCheck } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom"; // ← tambah useLocation
-import BottomNav from "../components/auth/BottomNav";
+import BottomNav from "../../components/auth/BottomNav";
 
 // --- DATA DUMMY PERCAKAPAN ---
 const CHAT_SESSIONS = [

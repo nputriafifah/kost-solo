@@ -4,7 +4,7 @@ import {
   Filter, ChevronLeft, SlidersHorizontal, Check 
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import BottomNav from "../components/auth/BottomNav";
+import BottomNav from "../../components/auth/BottomNav";
 
 // --- DATA DUMMY SURAKARTA ---
 const SOLO_KOST_DATA = [

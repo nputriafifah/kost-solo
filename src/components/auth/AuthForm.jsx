@@ -39,17 +39,23 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
     setSuccess("");
 
     try {
-      // 1. Validasi Input
-      if (!form.email || !form.password) {
-        throw new Error("Email dan password wajib diisi");
+      // ===== VALIDASI =====
+      if (!isLogin && role !== "pemilik") {
+        if (!form.email || !form.password) {
+          throw new Error("Email dan password wajib diisi");
+        }
       }
 
       if (!isLogin) {
         if (!form.name) throw new Error("Nama lengkap wajib diisi");
         if (!form.phone) throw new Error("Nomor HP wajib diisi");
-        if (form.password !== form.confirmPassword) {
-          throw new Error("Konfirmasi password tidak cocok");
+
+        if (role !== "pemilik") {
+          if (form.password !== form.confirmPassword) {
+            throw new Error("Konfirmasi password tidak cocok");
+          }
         }
+
         if (!agreed) {
           throw new Error("Anda harus menyetujui syarat dan ketentuan");
         }
@@ -58,49 +64,83 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
       setLoading(true);
       const action = getAuthAction(role, isLogin);
 
-      // 2. Siapkan Payload
+      // ===== PAYLOAD =====
       let payload;
+
       if (isLogin) {
-        payload = {
-          email: form.email,
-          password: form.password,
-        };
-      } else {
-        payload = {
-          name: form.name, // ✅ WAJIB ini
-          email: form.email,
-          phone: form.phone,
-          password: form.password,
-        };
+  if (role === "pemilik") {
+    // OWNER LOGIN → pakai phone + OTP
+    payload = {
+      phone: form.phone,
+      otp: form.password, // input password dipakai untuk isi OTP
+    };
+  } else {
+    // USER LOGIN → email + password
+    payload = {
+      email: form.email,
+      password: form.password,
+    };
+  }
+} else {
+        // ===== USER =====
+        if (role === "pencari") {
+          payload = {
+            name: form.name,
+            email: form.email,
+            password: form.password,
+          };
+        }
+
+        // ===== OWNER =====
+        if (role === "pemilik") {
+          payload = {
+            name: form.name,
+            phone: form.phone,
+            kostName: "Kost Default",
+            location: "Solo",
+            contact: form.phone,
+          };
+        }
       }
 
-      // 3. Eksekusi API
+      // ===== HIT API =====
       const result = await action(payload);
+console.log("RESULT:", result);
 
-      // 4. Tangani Hasil (Simpan ke LocalStorage)
       if (result) {
-        // Simpan Token
         const token = result.token || result.accessToken || result.data?.token;
+
+        console.log("TOKEN:", token);
+        
         if (token) {
           localStorage.setItem("token", token);
         }
 
-        // Ambil data user secara lengkap (mengatasi perbedaan struktur response API)
         const userData = result.user || result.data?.user || result;
         if (userData) {
           localStorage.setItem("user", JSON.stringify(userData));
-          console.log("Auth Success. Data user tersimpan:", userData);
         }
 
         if (isLogin) {
-          setSuccess("Login berhasil! Mengalihkan...");
-          setTimeout(() => {
-            navigate("/dashboard");
-          }, 800);
-        } else {
+  setSuccess("Login berhasil! Mengalihkan...");
+
+  setTimeout(() => {
+    if (role === "pemilik") {
+      navigate("/owner/dashboard"); // OWNER
+    } else {
+      navigate("/dashboard"); // USER
+    }
+  }, 800);
+} else {
           setSuccess(result.message || "Registrasi berhasil, silakan verifikasi OTP...");
           setTimeout(() => {
-            navigate("/verify-otp", { state: { email: form.email } });
+            navigate("/verify-otp", {
+  state: {
+    role: role,
+    email: form.email,
+    phone: form.phone,
+  },
+});
           }, 1200);
         }
       }
@@ -121,18 +161,24 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
         <div className="flex items-center justify-center w-8 h-8 border border-blue-100 bg-blue-50 rounded-xl">
           <Search size={15} className="text-blue-600" />
         </div>
-        <span className="text-[11px] font-bold text-blue-500 uppercase tracking-widest">{role === "pencari" ? "Pencari Kost" : role === "pemilik" ? "Pemilik Kost" : "Admin"} — Kost Solo</span>
+        <span className="text-[11px] font-bold text-blue-500 uppercase tracking-widest">
+          {role === "pencari" ? "Pencari Kost" : role === "pemilik" ? "Pemilik Kost" : "Admin"} — Kost Solo
+        </span>
       </div>
 
-      <h1 className="mt-1 mb-1 text-2xl font-extrabold text-slate-800">{isLogin ? "Masuk ke Akun" : "Buat Akun Baru"}</h1>
+      <h1 className="mt-1 mb-1 text-2xl font-extrabold text-slate-800">
+        {isLogin ? "Masuk ke Akun" : "Buat Akun Baru"}
+      </h1>
 
-      <p className="mb-6 text-sm text-slate-400">{isLogin ? "Selamat datang kembali" : "Gratis selamanya daftar dalam 1 menit"}</p>
+      <p className="mb-6 text-sm text-slate-400">
+        {isLogin ? "Selamat datang kembali" : "Gratis selamanya daftar dalam 1 menit"}
+      </p>
 
       <div className="flex p-1 mb-6 bg-slate-100 rounded-xl">
-        <button type="button" onClick={() => setIsLogin(true)} className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all ${isLogin ? "bg-white shadow-sm" : "text-slate-400 hover:text-slate-600"}`}>
+        <button type="button" onClick={() => setIsLogin(true)} className={`flex-1 py-2.5 text-sm font-semibold rounded-lg ${isLogin ? "bg-white shadow-sm" : "text-slate-400"}`}>
           Masuk
         </button>
-        <button type="button" onClick={() => setIsLogin(false)} className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all ${!isLogin ? "bg-white shadow-sm" : "text-slate-400 hover:text-slate-600"}`}>
+        <button type="button" onClick={() => setIsLogin(false)} className={`flex-1 py-2.5 text-sm font-semibold rounded-lg ${!isLogin ? "bg-white shadow-sm" : "text-slate-400"}`}>
           Daftar Gratis
         </button>
       </div>
@@ -148,11 +194,18 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
           <input name="email" type="email" placeholder="email@kamu.com" className={inputClass} value={form.email} onChange={handleChange} />
         </Field>
 
-        {!isLogin && (
-          <Field label="Nomor HP" icon={<Phone size={15} className="text-slate-400" />}>
-            <input name="phone" type="tel" placeholder="08xx-xxxx-xxxx" className={inputClass} value={form.phone} onChange={handleChange} />
-          </Field>
-        )}
+        {(!isLogin || role === "pemilik") && (
+  <Field label="Nomor HP" icon={<Phone size={15} className="text-slate-400" />}>
+    <input
+      name="phone"
+      type="tel"
+      placeholder="08xx-xxxx-xxxx"
+      className={inputClass}
+      value={form.phone}
+      onChange={handleChange}
+    />
+  </Field>
+)}
 
         <Field
           label="Password"
