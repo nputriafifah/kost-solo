@@ -1,110 +1,119 @@
-import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { Plus, Home, MapPin } from "lucide-react";
+import { Search, Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import OwnerSidebar from "../../components/owner/OwnerSidebar";
+import OwnerCard from "../../components/owner/OwnerCard";
 
 export default function DashboardOwnerPage() {
-  const navigate = useNavigate();
-
-  const [kostList, setKostList] = useState([]);
+  const [listings, setListings] = useState([]);
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
+  const navigate = useNavigate();
+
   const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const ownerName = user.name || "Owner";
+  const token = localStorage.getItem("token");
 
-  // 🔥 Fetch data kost milik owner
+  const initials = user.name
+    ? user.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()
+    : "U";
+
   useEffect(() => {
-    const fetchKost = async () => {
-      try {
-        const res = await fetch("http://localhost:5001/owner/listings");
-        const json = await res.json();
+  const fetchListings = async () => {
+    try {
+      const token = localStorage.getItem("token");
 
-        setKostList(json.data || []);
-      } catch (err) {
-        console.error("Fetch owner kost error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+      const res = await fetch("http://localhost:3000/listings/owner", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-    fetchKost();
-  }, []);
+     const data = await res.json();
+console.log("LISTINGS:", data);
+
+setListings(data.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false); // 🔥 INI YANG KURANG
+    }
+  };
+
+  fetchListings();
+}, []);
+
+  const filtered = listings.filter((item) =>
+    item.name.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
-    <div className="min-h-screen bg-white p-6">
-      {/* HEADER */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-extrabold text-slate-800">
-            Dashboard Owner
-          </h1>
-          <p className="text-sm text-slate-400">
-            Halo, {ownerName}
-          </p>
+    <div className="flex min-h-screen bg-slate-50">
+
+      {/* SIDEBAR */}
+      <OwnerSidebar initials={initials} user={user} />
+
+      {/* MAIN */}
+      <div className="flex-1 p-8">
+
+        {/* HEADER */}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900">
+              Dashboard Owner
+            </h2>
+            <p className="text-sm text-slate-500">
+              Kelola properti kost kamu dengan mudah
+            </p>
+          </div>
+
+          <button
+            onClick={() => navigate("/owner/create")}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 shadow-sm"
+          >
+            <Plus size={16} /> Tambah Kost
+          </button>
         </div>
 
-        <button
-          onClick={() => navigate("/owner/add")}
-          className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow hover:bg-indigo-700 transition"
-        >
-          <Plus size={16} />
-          Tambah Kost
-        </button>
-      </div>
+        {/* SEARCH */}
+        <div className="bg-white p-4 rounded-2xl shadow-sm border mb-8 flex gap-2">
+          <input
+            type="text"
+            placeholder="Cari nama kost..."
+            className="flex-1 px-4 py-2 outline-none"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
 
-      {/* SUMMARY */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className="p-4 rounded-xl bg-indigo-50 border">
-          <p className="text-xs text-slate-500">Total Kost</p>
-          <h2 className="text-xl font-bold text-indigo-600">
-            {kostList.length}
-          </h2>
+          <button className="bg-indigo-600 text-white px-4 py-2 rounded-xl flex items-center gap-1">
+            <Search size={16} /> Cari
+          </button>
         </div>
 
-        <div className="p-4 rounded-xl bg-green-50 border">
-          <p className="text-xs text-slate-500">Aktif</p>
-          <h2 className="text-xl font-bold text-green-600">
-            {kostList.filter(k => k.status === "active").length}
-          </h2>
-        </div>
-      </div>
-
-      {/* LIST KOST */}
-      <div>
-        <h3 className="font-bold mb-4 text-slate-700">
-          Kost Anda
-        </h3>
-
+        {/* LIST */}
         {loading ? (
-          <p className="text-sm text-slate-400">Loading...</p>
-        ) : kostList.length > 0 ? (
-          <div className="space-y-3">
-            {kostList.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => navigate(`/owner/detail/${item.id}`)}
-                className="p-4 rounded-xl border bg-white shadow-sm hover:shadow-md transition cursor-pointer"
-              >
-                <h4 className="font-semibold text-slate-800">
-                  {item.title || item.name}
-                </h4>
-
-                <p className="text-xs text-slate-400 flex items-center gap-1 mt-1">
-                  <MapPin size={12} />
-                  {item.address || item.location}
-                </p>
-
-                <p className="text-sm font-bold text-indigo-600 mt-2">
-                  Rp {item.price}
-                </p>
-              </div>
-            ))}
+          <p>Loading...</p>
+        ) : filtered.length === 0 ? (
+          <div className="bg-white p-10 rounded-2xl text-center shadow-sm border">
+            <p className="text-slate-400 mb-3">
+              Kamu belum punya data kost 😢
+            </p>
+            <button
+              onClick={() => navigate("/owner/create")}
+              className="bg-indigo-600 text-white px-5 py-2 rounded-xl"
+            >
+              Tambah Kost Pertama
+            </button>
           </div>
         ) : (
-          <div className="text-center text-slate-400 py-10">
-            <Home size={40} className="mx-auto mb-2 opacity-30" />
-            <p className="text-sm">
-              Belum ada kost, yuk tambah dulu!
-            </p>
+          <div className="grid grid-cols-2 gap-6">
+            {filtered.map((item) => (
+              <OwnerCard
+                key={item.id}
+                item={item}
+                onEdit={(id) => navigate(`/owner/edit/${id}`)}
+              />
+            ))}
           </div>
         )}
       </div>

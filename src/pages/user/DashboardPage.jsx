@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { Search, Bell, Filter, Home, SearchX } from "lucide-react";
+import { Search, Bell, Filter, SearchX } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import KostCard from "../../components/auth/KostCard";
 import BottomNav from "../../components/auth/BottomNav";
@@ -9,15 +9,12 @@ import KampusSection from "../../components/auth/KampusSection";
 export default function DashboardPage() {
   const navigate = useNavigate();
 
-  // 🔥 DATA BACKEND
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 👤 USER
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const userName = user.name || "User";
 
-  // ❤️ FAVORITE
   const [favorites, setFavorites] = useState(() => {
     const saved = localStorage.getItem("atap_favorites");
     return saved ? JSON.parse(saved) : [];
@@ -36,7 +33,6 @@ export default function DashboardPage() {
     );
   };
 
-  // 🔠 AVATAR
   const initials = userName
     .split(" ")
     .map((n) => n[0])
@@ -48,40 +44,44 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const categories = ["Semua", "Kost", "Rumah Sewa", "Apartemen"];
 
-  // 🔔 NOTIF
   const [showNotif, setShowNotif] = useState(false);
   const [unreadCount, setUnreadCount] = useState(2);
 
-  // 🚀 FETCH BACKEND
-  useEffect(() => {
-    const fetchListings = async () => {
-      try {
-        const res = await fetch("http://localhost:5001/listings");
-        const json = await res.json();
+  // 🔥 FETCH BACKEND
+useEffect(() => {
+  const fetchListings = async () => {
+    try {
+      const res = await fetch("http://localhost:3000/listings");
+      const json = await res.json();
 
-        const mapped = json.data.map((item) => ({
+      console.log("API RESPONSE:", json);
+
+      const mapped = (json.data || []).map((item) => {
+        const room = item.roomTypes?.[0];
+
+        return {
           id: item.id,
-          name: item.title || item.name,
-          price: item.price,
-          location: item.address || item.location,
-          category: item.category || "Kost",
+          name: item.name,
+          price: room?.price || 0,
+          location: item.address,
+          category: "Kost",
           image:
-            item.image ||
-            "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=600",
-        }));
+            room?.photos?.[0]?.url ||
+            "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267",
+        };
+      });
 
-        setData(mapped);
-      } catch (err) {
-        console.error("Fetch error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+      setData(mapped);
+    } catch (err) {
+      console.error("Fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchListings();
-  }, []);
+  fetchListings();
+}, []);
 
-  // 🔍 FILTER
   const filteredData = useMemo(() => {
     return data.filter((item) => {
       const matchesTab =
@@ -97,17 +97,13 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-white pb-28">
-      
       {/* HEADER */}
       <div className="px-6 pt-6 flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+        <h1 className="text-3xl font-extrabold text-slate-900">
           Atap<span className="text-indigo-600">.</span>
         </h1>
         <div className="flex gap-3">
-          <button
-            onClick={() => setShowNotif(true)}
-            className="relative w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 border border-slate-100"
-          >
+          <button onClick={() => setShowNotif(true)} className="relative w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center">
             <Bell size={20} />
             {unreadCount > 0 && (
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
@@ -119,12 +115,10 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* 🔥 SEARCH BANNER (dari UI ke-2) */}
+      {/* SEARCH */}
       <div className="px-6 mb-8">
-        <div className="bg-indigo-600 rounded-[32px] p-8 text-white shadow-xl">
-          <p className="text-indigo-100 text-sm mb-1">
-            Selamat datang, {userName}
-          </p>
+        <div className="bg-indigo-600 rounded-[32px] p-8 text-white">
+          <p className="text-sm mb-1">Selamat datang, {userName}</p>
           <h2 className="text-2xl font-bold mb-6">
             Cari atap yang tepat untukmu.
           </h2>
@@ -144,29 +138,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* CATEGORY */}
-      <div className="flex gap-3 overflow-x-auto px-6 mb-8">
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setActiveTab(cat)}
-            className={`px-4 py-2 rounded-full ${
-              activeTab === cat ? "bg-indigo-600 text-white" : "bg-gray-100"
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
-
       {/* LIST */}
-      <div className="px-6 mb-6 flex justify-between">
-        <h3 className="font-bold">
-          {searchQuery ? "Hasil Pencarian" : "Unggulan"}
-        </h3>
-        <span>{filteredData.length} ditemukan</span>
-      </div>
-
       <div className="px-6">
         {loading ? (
           <p>Loading...</p>

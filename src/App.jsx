@@ -17,6 +17,9 @@ import ProfilPage from "./pages/ProfilPage";
 
 // OWNER
 import DashboardOwnerPage from "./pages/owner/DashboardOwnerPage";
+import CreateListingPage from "./pages/owner/CreateListingPage";
+import EditListingPage from "./pages/owner/EditListingPage";
+
 
 // SETTINGS
 import AccountSettings from "./pages/AccountSettings";
@@ -178,6 +181,42 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+<Route
+  path="/owner/dashboard"
+  element={
+    <ProtectedRoute role="pemilik">
+      <DashboardOwnerPage />
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/owner/create"
+  element={
+    <ProtectedRoute role="pemilik">
+      <CreateListingPage />
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/owner/edit/:id"
+  element={
+    <ProtectedRoute role="pemilik">
+      <EditListingPage />
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/owner/create"
+  element={
+    <ProtectedRoute role="pemilik">
+      <CreateListingPage />
+    </ProtectedRoute>
+  }
+/>
 
         {/* FALLBACK */}
         <Route path="*" element={<Navigate to="/auth" replace />} />

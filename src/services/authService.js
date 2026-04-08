@@ -19,8 +19,15 @@ async function request(endpoint, options = {}) {
   }
 
   if (!response.ok) {
-    throw new Error(data.message || data.error || "Request gagal. Cek koneksi backend.");
-  }
+  const errorMessage =
+    data?.error?.message ||
+    data?.message ||
+    JSON.stringify(data);
+
+  console.log("FULL ERROR BACKEND:", data); // 🔥 buat debug
+
+  throw new Error(errorMessage);
+}
   // === BAGIAN YANG DIUBAH SELESAI ===
 
   return data;

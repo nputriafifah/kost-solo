@@ -1,104 +1,92 @@
-import { useState } from 'react';
-import { useLocation, useNavigate, Navigate } from 'react-router-dom';
-import AuthLayout from '../components/auth/AuthLayout';
-import OtpForm from '../components/auth/OtpForm';
-import { verifyOtp, resendOtp, loginOwner, requestOwnerOtp } from '../services/authService';
+import { useState } from "react";
+import { useLocation, useNavigate, Navigate } from "react-router-dom";
+import AuthLayout from "../components/auth/AuthLayout";
+import OtpForm from "../components/auth/OtpForm";
+import { loginOwner, resendOtp, requestOwnerOtp } from "../services/authService";
 
-const OtpPage = () => {
+function formatPhone(phone) {
+  return phone.startsWith("0") ? "+62" + phone.slice(1) : phone;
+}
+
+export default function OtpPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  // ✅ Ambil data dari navigation state
   const role = location.state?.role;
-  const email = location.state?.email;
   const phone = location.state?.phone;
 
-  // ✅ Proteksi halaman (biar ga bisa akses langsung)
-  if (!role || (!email && !phone)) {
+  if (!role || !phone) {
     return <Navigate to="/auth" replace />;
   }
 
-  // ================= VERIFY OTP =================
-  const handleVerify = async (otpCode) => {
-    setIsLoading(true);
-    setError('');
-    setSuccess('');
-
+  // 🔥 VERIFY OTP
+  const handleVerify = async (otp) => {
     try {
-      // ✅ PENTING: pastikan OTP string & bersih
-      const cleanOtp = String(otpCode).trim();
+      setLoading(true);
+      setError("");
+
+      const cleanOtp = String(otp).trim();
 
       if (cleanOtp.length !== 6) {
-        throw new Error("Kode OTP harus 6 digit");
+        throw new Error("OTP harus 6 digit");
       }
 
       if (role === "pemilik") {
-  await loginOwner({
-    phone: phone,
-    otp: cleanOtp
-  });
-} else {
-        // USER (pakai email)
-        await verifyOtp({
-          email: email,
-          otp: cleanOtp
+        const res = await loginOwner({
+          phone: formatPhone(phone),
+          otp: cleanOtp,
         });
+
+        const token = res?.token || res?.data?.token;
+        if (token) localStorage.setItem("token", token);
+
+        const user = res?.user || res?.data?.user;
+        if (user) localStorage.setItem("user", JSON.stringify(user));
       }
 
-      setSuccess('Verifikasi berhasil! Mengalihkan ke halaman login...');
+      setSuccess("Login berhasil...");
 
       setTimeout(() => {
-  if (role === "pemilik") {
-    navigate('/owner/dashboard'); // ✅ owner route
-  } else {
-    navigate('/auth'); // ✅ user balik login
-  }
-}, 1500);
-
+        navigate("/owner/dashboard");
+      }, 1000);
     } catch (err) {
-      setError(err.message || 'Kode OTP salah atau telah kadaluarsa.');
+      setError(err.message || "OTP salah");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  // ================= RESEND OTP =================
+  // 🔥 RESEND OTP
   const handleResend = async () => {
-    setIsLoading(true);
-    setError('');
-    setSuccess('');
-
     try {
-      if (role === "pemilik") {
-  await requestOwnerOtp({ phone: phone });
-} else {
-  await resendOtp({ email: email });
-}
+      setLoading(true);
 
-      setSuccess('Kode OTP baru berhasil dikirim.');
+      await requestOwnerOtp({
+        phone: formatPhone(phone),
+      });
+
+      setSuccess("OTP baru dikirim");
     } catch (err) {
-      setError(err.message || 'Gagal mengirim ulang OTP.');
+      setError(err.message || "Gagal kirim OTP");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
     <AuthLayout>
-      <OtpForm 
-        email={email || phone} // UI tetap sama
+      <OtpForm
+        email={phone}
         onSubmit={handleVerify}
         onResend={handleResend}
-        isLoading={isLoading}
+        isLoading={loading}
         errorMsg={error}
         successMsg={success}
       />
     </AuthLayout>
   );
-};
-
-export default OtpPage;
+}
