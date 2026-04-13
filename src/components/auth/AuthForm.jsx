@@ -4,15 +4,12 @@ import {
   Search,
   Mail,
   Lock,
-  Eye,
-  EyeOff,
   Phone,
   User,
-  CheckCircle2,
   ChevronLeft,
   Shield,
 } from "lucide-react";
-import Field from "./Field";
+import Field from "../ui/Field";
 import { getAuthAction } from "../../utils/authAction";
 
 export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
@@ -21,6 +18,7 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -79,10 +77,17 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
 
       // ================= LOGIN =================
       if (isLogin) {
-        if (!form.phone) throw new Error("Nomor HP wajib diisi");
+        if (role === "pencari") {
+          if (!form.email) throw new Error("Email wajib diisi");
+          if (!form.password) throw new Error("Password wajib diisi");
 
-        // OWNER LOGIN → OTP ONLY
-        if (role === "pemilik") {
+          payload = {
+            email: form.email,
+            password: form.password,
+          };
+        } else if (role === "pemilik") {
+          if (!form.phone) throw new Error("Nomor HP wajib diisi");
+
           await fetch("http://localhost:3000/auth/owner/request-otp", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -99,8 +104,6 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
 
           return;
         }
-
-        payload = { phone: formattedPhone };
       }
 
       // ================= REGISTER =================
@@ -132,12 +135,15 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
         const userData = result.user || result.data?.user;
 
         if (token) localStorage.setItem("token", token);
-        if (userData) localStorage.setItem("user", JSON.stringify(userData));
+        if (userData)
+          localStorage.setItem("user", JSON.stringify(userData));
 
         setSuccess("Login berhasil! Mengalihkan...");
 
         setTimeout(() => {
-          navigate(role === "pemilik" ? "/owner/dashboard" : "/dashboard");
+          navigate(
+            role === "pemilik" ? "/owner/dashboard" : "/dashboard"
+          );
         }, 800);
       }
 
@@ -158,7 +164,9 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
             });
           }, 900);
         } else {
-          setSuccess("Registrasi berhasil, silakan verifikasi OTP...");
+          setSuccess(
+            "Registrasi berhasil, silakan verifikasi OTP..."
+          );
 
           setTimeout(() => {
             navigate("/verify-otp", {
@@ -207,7 +215,6 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
           : "Gratis selamanya daftar dalam 1 menit"}
       </p>
 
-      {/* SWITCH */}
       <div className="flex p-1 mb-6 bg-slate-100 rounded-xl">
         <button
           type="button"
@@ -241,8 +248,7 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
           </Field>
         )}
 
-        {/* EMAIL (PENCARI ONLY REGISTER) */}
-        {role === "pencari" && !isLogin && (
+        {role === "pencari" && (
           <Field label="Email" icon={<Mail size={15} />}>
             <input
               name="email"
@@ -253,8 +259,7 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
           </Field>
         )}
 
-        {/* PHONE */}
-        {role === "pemilik" || (!isLogin && role === "pencari") ? (
+        {role === "pemilik" && (
           <Field label="Nomor HP" icon={<Phone size={15} />}>
             <input
               name="phone"
@@ -263,9 +268,8 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
               onChange={handleChange}
             />
           </Field>
-        ) : null}
+        )}
 
-        {/* PASSWORD (PENCARI ONLY) */}
         {role === "pencari" && (
           <Field label="Password" icon={<Lock size={15} />}>
             <input
@@ -278,7 +282,6 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
           </Field>
         )}
 
-        {/* CONFIRM PASSWORD */}
         {role === "pencari" && !isLogin && (
           <Field label="Konfirmasi Password" icon={<Lock size={15} />}>
             <input
@@ -291,17 +294,22 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
           </Field>
         )}
 
-        {/* AGREEMENT */}
         {!isLogin && (
-          <div
-            className="flex gap-3 p-3 border rounded-xl cursor-pointer"
-            onClick={() => setAgreed(!agreed)}
-          >
-            <CheckCircle2
-              className={agreed ? "text-blue-600" : "text-slate-300"}
+          <div className="flex items-start gap-3 p-3 border rounded-xl">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={() => setAgreed(!agreed)}
+              className="mt-1 accent-blue-600 cursor-pointer scale-110"
             />
             <p className="text-xs text-slate-500">
-              Saya menyetujui syarat & ketentuan
+              Saya menyetujui{" "}
+              <span
+                onClick={() => setShowTerms(true)}
+                className="text-blue-600 cursor-pointer hover:underline font-medium"
+              >
+                syarat & ketentuan
+              </span>
             </p>
           </div>
         )}
@@ -312,23 +320,44 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
         <button className="w-full py-3 text-white bg-blue-600 rounded-xl">
           {loading ? "Memproses..." : isLogin ? "Masuk" : "Daftar"}
         </button>
-
-        {isLogin && role === "pencari" && (
-  <p className="pt-1 text-xs text-center text-slate-400">
-    <span
-      onClick={() => navigate("/forgot-password")}
-      className="font-medium text-blue-500 cursor-pointer hover:underline"
-    >
-      Lupa password?
-    </span>
-  </p>
-)}
-
       </form>
+
+      {/* MODAL */}
+      {showTerms && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={() => setShowTerms(false)}
+        >
+          <div
+            className="bg-white w-[90%] max-w-md rounded-2xl p-5 shadow-xl animate-fadeIn"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-lg font-bold mb-3">
+              Syarat & Ketentuan
+            </h2>
+
+            <div className="text-sm text-slate-600 space-y-2 max-h-60 overflow-y-auto">
+              <p>1. Data harus valid dan benar.</p>
+              <p>2. Dilarang untuk aktivitas ilegal.</p>
+              <p>3. Data pengguna dijaga dengan aman.</p>
+              <p>4. Pengguna bertanggung jawab atas akun.</p>
+            </div>
+
+            <button
+              onClick={() => setShowTerms(false)}
+              className="mt-4 w-full py-2.5 bg-blue-600 text-white rounded-xl"
+            >
+              Tutup
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="flex items-center justify-center gap-2 pt-4 mt-6">
         <Shield size={12} />
-        <p className="text-xs text-slate-400">Data aman & terenkripsi</p>
+        <p className="text-xs text-slate-400">
+          Data aman & terenkripsi
+        </p>
       </div>
     </div>
   );

@@ -1,4 +1,8 @@
+import { useNavigate } from "react-router-dom";
+
 export default function OwnerCard({ item, onEdit }) {
+  const navigate = useNavigate();
+
   return (
     <div className="bg-white p-5 rounded-2xl shadow-sm border hover:shadow-md transition">
 
@@ -19,7 +23,7 @@ export default function OwnerCard({ item, onEdit }) {
 
       <div className="mt-4 flex gap-4 text-sm">
 
-        {/* 🔥 INI YANG PENTING */}
+        {/* EDIT */}
         <button
           onClick={() => onEdit(item.id)}
           className="text-yellow-500 hover:underline"
@@ -27,10 +31,15 @@ export default function OwnerCard({ item, onEdit }) {
           Edit
         </button>
 
-        <button className="text-indigo-600 hover:underline">
+        {/* 🔥 DETAIL (INI YANG DIPERBAIKI) */}
+        <button
+          onClick={() => navigate(`/owner/listing/${item.id}`)}
+          className="text-indigo-600 hover:underline"
+        >
           Detail
         </button>
 
+        {/* NONAKTIF */}
         <button className="text-red-500 hover:underline">
           Nonaktifkan
         </button>

@@ -1,47 +1,44 @@
-import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
-import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
+import { Routes, Route, Navigate } from "react-router-dom";
 
 // AUTH
-import AuthPage from "./pages/AuthPage";
-import OtpPage from "./pages/OtpPage";
+import AuthPage from "./pages/auth/AuthPage";
+import OtpPage from "./pages/auth/OtpPage";
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 
 // USER
 import DashboardPage from "./pages/user/DashboardPage";
 import DetailPage from "./pages/user/DetailPage";
 import MapPage from "./pages/user/MapPage";
 import ChatPage from "./pages/user/ChatPage";
-import ChatDetailPage from "./pages/ChatDetailPage";
+import ChatDetailPage from "./pages/user/ChatDetailPage";
 import LikePage from "./pages/user/LikePage";
-import ProfilPage from "./pages/ProfilPage";
+import ProfilPage from "./pages/user/ProfilPage";
+import AccountSettings from "./pages/user/AccountSettingsPage";
+import NotificationPage from "./pages/user/NotificationPage";
+import FaqPage from "./pages/user/FaqPage";
+import PrivacyPage from "./pages/user/PrivacyPage";
+import SearchPage from "./pages/user/SearchPage";
 
 // OWNER
 import DashboardOwnerPage from "./pages/owner/DashboardOwnerPage";
 import CreateListingPage from "./pages/owner/CreateListingPage";
 import EditListingPage from "./pages/owner/EditListingPage";
+import DetailListingPage from "./pages/owner/DetailListingPage";
 
+// ADMIN
+import AdminPage from "./pages/admin/AdminPage";
 
-// SETTINGS
-import AccountSettings from "./pages/AccountSettings";
-import NotificationPage from "./pages/NotificationPage";
-import PrivacyPage from "./pages/PrivacyPage";
-import FaqPage from "./pages/FaqPage";
+// COMPONENT
+import ProtectedRoute from "./components/common/ProtectedRoute";
 
-// PROTECTED ROUTE
-import ProtectedRoute from "./components/ProtectedRoute";
-
-
-// 🔥 TAMBAHKAN INI
 function QueryRedirect() {
   const params = new URLSearchParams(window.location.search);
   const page = params.get("page");
 
   if (page === "reset-password") {
     return (
-      <Navigate
-        to={`/reset-password${window.location.search}`}
-        replace
-      />
+      <Navigate to={`/reset-password${window.location.search}`} replace />
     );
   }
 
@@ -52,16 +49,12 @@ function QueryRedirect() {
   return null;
 }
 
-
 export default function App() {
   return (
-    <HashRouter>
-
-      {/* 🔥 TAMBAHKAN INI */}
+    <>
       <QueryRedirect />
 
       <Routes>
-
         {/* ROOT */}
         <Route path="/" element={<Navigate to="/auth" replace />} />
 
@@ -135,6 +128,15 @@ export default function App() {
           }
         />
 
+        <Route
+  path="/search"
+  element={
+    <ProtectedRoute role="pencari">
+      <SearchPage />
+    </ProtectedRoute>
+  }
+/>
+
         {/* OWNER */}
         <Route
           path="/owner/dashboard"
@@ -144,6 +146,33 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/owner/create"
+          element={
+            <ProtectedRoute role="pemilik">
+              <CreateListingPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/owner/edit/:id"
+          element={
+            <ProtectedRoute role="pemilik">
+              <EditListingPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+  path="/owner/listing/:id"
+  element={
+    <ProtectedRoute role="pemilik">
+      <DetailListingPage />
+    </ProtectedRoute>
+  }
+/>
 
         {/* SETTINGS */}
         <Route
@@ -182,46 +211,12 @@ export default function App() {
           }
         />
 
-<Route
-  path="/owner/dashboard"
-  element={
-    <ProtectedRoute role="pemilik">
-      <DashboardOwnerPage />
-    </ProtectedRoute>
-  }
-/>
-
-<Route
-  path="/owner/create"
-  element={
-    <ProtectedRoute role="pemilik">
-      <CreateListingPage />
-    </ProtectedRoute>
-  }
-/>
-
-<Route
-  path="/owner/edit/:id"
-  element={
-    <ProtectedRoute role="pemilik">
-      <EditListingPage />
-    </ProtectedRoute>
-  }
-/>
-
-<Route
-  path="/owner/create"
-  element={
-    <ProtectedRoute role="pemilik">
-      <CreateListingPage />
-    </ProtectedRoute>
-  }
-/>
+        {/* ADMIN */}
+        <Route path="/admin" element={<AdminPage />} />
 
         {/* FALLBACK */}
         <Route path="*" element={<Navigate to="/auth" replace />} />
-
       </Routes>
-    </HashRouter>
+    </>
   );
 }

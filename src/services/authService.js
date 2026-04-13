@@ -1,107 +1,64 @@
-const API_BASE_URL = "http://localhost:3000";
+import { request } from "./api";
 
-async function request(endpoint, options = {}) {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-    ...options,
-  });
-
-  // === BAGIAN YANG DIUBAH MULAI DARI SINI ===
-  const text = await response.text(); // Baca response sebagai teks dulu
-  let data;
-
-  try {
-    data = text ? JSON.parse(text) : {}; // Coba ubah teks jadi JSON
-  } catch (err) {
-    data = { message: text }; // Kalau gagal (bukan JSON), jadikan pesan error biasa
-  }
-
-  if (!response.ok) {
-  const errorMessage =
-    data?.error?.message ||
-    data?.message ||
-    JSON.stringify(data);
-
-  console.log("FULL ERROR BACKEND:", data); // 🔥 buat debug
-
-  throw new Error(errorMessage);
-}
-  // === BAGIAN YANG DIUBAH SELESAI ===
-
-  return data;
-}
-
-export async function registerUser(payload) {
-  return request("/auth/user/register", {
+// ===== USER =====
+export const registerUser = (payload) =>
+  request("/auth/user/register", {
     method: "POST",
     body: JSON.stringify(payload),
   });
-}
 
-export async function loginUser(payload) {
-  return request("/auth/user/login", {
+export const loginUser = (payload) =>
+  request("/auth/user/login", {
     method: "POST",
     body: JSON.stringify(payload),
   });
-}
 
-export async function loginOwner(payload) {
-  return request("/auth/owner/login", {
+export const verifyOtp = (payload) =>
+  request("/auth/user/verify-email", {
     method: "POST",
     body: JSON.stringify(payload),
   });
-}
 
-export async function loginAdmin(payload) {
-  return request("/auth/admin/login", {
+export const resendOtp = (payload) =>
+  request("/auth/user/resend-otp", {
     method: "POST",
     body: JSON.stringify(payload),
   });
-}
 
-export async function verifyOtp(payload) {
-  // Ubah endpoint-nya dari /verify-otp menjadi /verify-email
-  return request("/auth/user/verify-email", {
+export const forgotPassword = (payload) =>
+  request("/auth/user/forgot-password", {
     method: "POST",
     body: JSON.stringify(payload),
   });
-}
 
-export async function resendOtp(payload) {
-  return request("/auth/user/resend-otp", {
+export const resetPassword = (payload) =>
+  request("/auth/user/reset-password", {
     method: "POST",
     body: JSON.stringify(payload),
   });
-}
 
-// Tambahkan ini di bagian paling bawah file authService.js
-export async function resetPassword(payload) {
-  return request("/auth/user/reset-password", {
+// ===== OWNER =====
+export const registerOwner = (payload) =>
+  request("/auth/owner/register", {
     method: "POST",
     body: JSON.stringify(payload),
   });
-}
 
-// Pastikan juga fungsi forgotPassword sudah ada
-export async function forgotPassword(payload) {
-  return request("/auth/user/forgot-password", {
+export const loginOwner = (payload) =>
+  request("/auth/owner/login", {
     method: "POST",
     body: JSON.stringify(payload),
   });
-}
 
-export async function registerOwner(payload) {
-  return request("/auth/owner/register", {
+export const requestOwnerOtp = (payload) =>
+  request("/auth/owner/request-otp", {
     method: "POST",
     body: JSON.stringify(payload),
   });
-}
 
-export async function requestOwnerOtp(payload) {
-  return request("/auth/owner/request-otp", {
+// ===== ADMIN =====
+export const loginAdmin = (payload) =>
+  request("/auth/admin/login", {
     method: "POST",
     body: JSON.stringify(payload),
   });
-}

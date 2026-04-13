@@ -1,9 +1,8 @@
 import React, { useState } from "react";
-import { MessageCircle, Search, CheckCheck, Clock, ShieldCheck } from "lucide-react";
-import { useNavigate, useLocation } from "react-router-dom"; // ← tambah useLocation
-import BottomNav from "../../components/auth/BottomNav";
+import { MessageCircle, Search, CheckCheck, Check, ShieldCheck } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import BottomNav from "../../components/ui/BottomNav";
 
-// --- DATA DUMMY PERCAKAPAN ---
 const CHAT_SESSIONS = [
   {
     id: 1,
@@ -14,6 +13,7 @@ const CHAT_SESSIONS = [
     unread: 2,
     avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=150",
     isOnline: true,
+    isRead: false,
   },
   {
     id: 2,
@@ -24,6 +24,7 @@ const CHAT_SESSIONS = [
     unread: 0,
     avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=150",
     isOnline: false,
+    isRead: true,
   },
   {
     id: 3,
@@ -34,130 +35,192 @@ const CHAT_SESSIONS = [
     unread: 0,
     avatar: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=150",
     isOnline: true,
+    isRead: true,
   },
 ];
 
 export default function ChatPage() {
   const navigate = useNavigate();
-  const location = useLocation(); // ← TAMBAHAN
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
 
-  // ── TAMBAHAN: ambil info kost dari DetailPage (kalau ada) ──
   const { kostName, ownerName } = location.state || {};
-  // ──────────────────────────────────────────────────────────
 
-  // Filter chat berdasarkan input pencarian
-  const filteredChats = CHAT_SESSIONS.filter((chat) => chat.name.toLowerCase().includes(searchQuery.toLowerCase()) || chat.kost.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredChats = CHAT_SESSIONS.filter(
+    (chat) =>
+      chat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      chat.kost.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Pisahkan dua kondisi empty state: no chats vs no search result
+  const hasAnyChatAtAll = CHAT_SESSIONS.length > 0;
+  const noSearchResult = hasAnyChatAtAll && filteredChats.length === 0;
 
   return (
-    <div className="min-h-screen bg-[#FDFDFD] pb-32">
-      {/* --- STICKY HEADER --- */}
-      <div className="sticky top-0 bg-white/90 backdrop-blur-xl z-30 px-6 pt-8 pb-4 border-b border-slate-50">
-        <div className="flex justify-between items-center mb-6">
+    <div className="min-h-screen bg-white pb-32">
+
+      {/* HEADER */}
+      <div className="sticky top-0 bg-white/95 backdrop-blur-sm z-30 px-5 pt-8 pb-4 border-b border-slate-100">
+        <div className="flex justify-between items-center mb-5">
           <div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tighter">
-              Pesan<span className="text-indigo-600">.</span>
+            <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+              Pesan<span className="text-blue-600">.</span>
             </h1>
-            <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mt-1">Chat Aktif</p>
+            <p className="text-xs text-slate-400 mt-0.5">
+              {CHAT_SESSIONS.length} percakapan aktif
+            </p>
           </div>
-          <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 border border-indigo-100 shadow-sm">
-            <MessageCircle size={22} />
+          <div className="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 border border-blue-100">
+            <MessageCircle size={19} />
           </div>
         </div>
 
-        {/* Search Input */}
-        <div className="relative group">
-          <Search className="absolute left-4 top-3.5 text-slate-300 group-focus-within:text-indigo-600 transition-colors" size={18} />
+        {/* Search */}
+        <div className="relative">
+          <Search
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+            size={16}
+          />
           <input
             type="text"
             placeholder="Cari pemilik atau nama kos..."
-            className="w-full h-12 pl-12 pr-4 bg-slate-50 rounded-2xl border-none focus:ring-2 focus:ring-indigo-500 font-bold text-sm transition-all"
+            aria-label="Cari percakapan"
+            className="w-full h-11 pl-10 pr-4 bg-slate-50 rounded-2xl border border-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-slate-800 placeholder:text-slate-400 transition-all"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
       </div>
 
-      {/* ── TAMBAHAN: Banner info kost dari DetailPage ── */}
+      {/* BANNER: info kost dari DetailPage */}
       {kostName && (
-        <div className="mx-4 mt-4 p-4 bg-indigo-50 border border-indigo-100 rounded-3xl flex items-center gap-3">
-          <div className="w-10 h-10 bg-indigo-100 rounded-2xl flex items-center justify-center flex-shrink-0">
-            <MessageCircle size={18} className="text-indigo-600" />
+        <div className="mx-4 mt-4 p-4 bg-blue-50 border border-blue-100 rounded-2xl flex items-center gap-3">
+          <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+            <MessageCircle size={17} className="text-blue-600" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Mulai chat dengan</p>
-            <p className="text-sm font-black text-slate-800 truncate">{ownerName}</p>
+            <p className="text-xs text-blue-500 font-semibold mb-0.5">Mulai chat dengan</p>
+            <p className="text-sm font-bold text-slate-800 truncate">{ownerName}</p>
             <p className="text-xs text-slate-400 truncate">Tentang: {kostName}</p>
           </div>
         </div>
       )}
-      {/* ─────────────────────────────────────────────── */}
 
-      {/* --- LIST PERCAKAPAN --- */}
-      <div className="px-4 mt-6 space-y-1">
-        {filteredChats.length > 0 ? (
+      {/* CHAT LIST */}
+      <div className="px-4 mt-4 divide-y divide-slate-50">
+        {!hasAnyChatAtAll ? (
+          // Empty state: belum ada chat sama sekali
+          <div className="flex flex-col items-center justify-center py-20 text-center px-8">
+            <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mb-4">
+              <MessageCircle size={28} className="text-blue-300" />
+            </div>
+            <h3 className="text-sm font-bold text-slate-700 mb-1">Belum ada percakapan</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Mulai chat dengan pemilik kost dari halaman detail listing.
+            </p>
+          </div>
+        ) : noSearchResult ? (
+          // Empty state: search tidak ketemu
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mb-4">
+              <Search size={26} className="text-slate-300" />
+            </div>
+            <h3 className="text-sm font-bold text-slate-700 mb-1">Tidak ditemukan</h3>
+            <p className="text-xs text-slate-400">
+              Coba cari dengan kata kunci lain.
+            </p>
+          </div>
+        ) : (
           filteredChats.map((chat) => (
-            <div key={chat.id} onClick={() => navigate(`/chat/${chat.id}`)} className="flex items-center gap-4 p-4 rounded-[2.5rem] hover:bg-slate-50 active:scale-[0.98] transition-all cursor-pointer group">
-              {/* Avatar & Online Indicator */}
+            <button
+              key={chat.id}
+              onClick={() => navigate(`/chat/${chat.id}`)}
+              aria-label={`Buka chat dengan ${chat.name} tentang ${chat.kost}`}
+              className="w-full flex items-center gap-3 py-4 px-1 hover:bg-slate-50 active:scale-[0.98] transition-all cursor-pointer text-left rounded-2xl"
+            >
+              {/* Avatar */}
               <div className="relative shrink-0">
-                <div className="w-16 h-16 rounded-[1.5rem] overflow-hidden border-2 border-white shadow-sm transition-transform group-hover:scale-105">
-                  <img src={chat.avatar} alt={chat.name} className="w-full h-full object-cover" />
+                <div className="w-14 h-14 rounded-2xl overflow-hidden border border-slate-100">
+                  <img
+                    src={chat.avatar}
+                    alt={`Foto profil ${chat.name}`}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
-                {chat.isOnline && <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 border-4 border-white rounded-full"></div>}
+                {chat.isOnline && (
+                  <div
+                    className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full"
+                    aria-label="Online"
+                  />
+                )}
               </div>
 
-              {/* Chat Text Info */}
+              {/* Info */}
               <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-start mb-0.5">
-                  <h3 className="font-black text-slate-900 truncate tracking-tight text-base">{chat.name}</h3>
-                  <span className="text-[10px] font-bold text-slate-400 mt-1">{chat.time}</span>
+                <div className="flex justify-between items-baseline mb-0.5">
+                  <h3
+                    className={`text-sm truncate ${
+                      chat.unread > 0
+                        ? "font-bold text-slate-900"
+                        : "font-semibold text-slate-800"
+                    }`}
+                  >
+                    {chat.name}
+                  </h3>
+                  <span className="text-xs text-slate-400 ml-2 shrink-0">{chat.time}</span>
                 </div>
-                <div className="flex items-center gap-1.5 mb-1">
-                  <div className="w-1 h-1 rounded-full bg-indigo-400"></div>
-                  <p className="text-[10px] text-indigo-600 font-black uppercase tracking-tighter truncate">{chat.kost}</p>
-                </div>
-                <div className="flex justify-between items-center">
-                  <p className={`text-sm truncate pr-6 ${chat.unread > 0 ? "font-bold text-slate-800" : "font-medium text-slate-400"}`}>{chat.lastMessage}</p>
+
+                <p className="text-xs text-blue-500 font-semibold mb-1 truncate">
+                  {chat.kost}
+                </p>
+
+                <div className="flex items-center justify-between gap-2">
+                  <p
+                    className={`text-xs truncate flex-1 ${
+                      chat.unread > 0
+                        ? "font-semibold text-slate-700"
+                        : "text-slate-400"
+                    }`}
+                  >
+                    {chat.lastMessage}
+                  </p>
 
                   {chat.unread > 0 ? (
-                    <div className="bg-indigo-600 text-white text-[10px] font-black w-6 h-6 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-200 animate-bounce">{chat.unread}</div>
+                    // Badge unread — tanpa animate-bounce
+                    <span className="bg-blue-600 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0">
+                      {chat.unread}
+                    </span>
+                  ) : chat.isRead ? (
+                    // Sudah dibaca — biru
+                    <CheckCheck size={15} className="text-blue-400 shrink-0" />
                   ) : (
-                    <CheckCheck size={16} className="text-slate-300" />
+                    // Terkirim belum dibaca — abu
+                    <Check size={15} className="text-slate-300 shrink-0" />
                   )}
                 </div>
               </div>
-            </div>
+            </button>
           ))
-        ) : (
-          /* Empty Search State */
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-              <Search size={32} className="text-slate-200" />
-            </div>
-            <h3 className="font-bold text-slate-900">Tidak ditemukan</h3>
-            <p className="text-xs text-slate-400 mt-1">Coba cari dengan kata kunci lain.</p>
-          </div>
         )}
       </div>
 
-      {/* --- SAFETY INFO CARD --- */}
-      <div className="mx-6 mt-8 p-6 bg-slate-900 rounded-[2.5rem] relative overflow-hidden shadow-2xl shadow-slate-200">
-        <div className="relative z-10 flex gap-4">
-          <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center shrink-0 border border-white/10">
-            <ShieldCheck className="text-emerald-400" size={24} />
+      {/* SAFETY CARD */}
+      <div className="mx-5 mt-8 p-5 bg-slate-900 rounded-2xl">
+        <div className="flex gap-3 items-start">
+          <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center shrink-0 border border-white/10">
+            <ShieldCheck size={20} className="text-emerald-400" />
           </div>
           <div>
-            <h4 className="text-white font-black text-sm mb-1 uppercase tracking-tight">Bertransaksi Aman</h4>
-            <p className="text-[11px] text-slate-400 leading-relaxed font-medium">
-              Gunakan fitur <span className="text-indigo-400 font-bold">Bayar di Atap</span> untuk perlindungan 100% dari penipuan.
+            <h4 className="text-white font-bold text-sm mb-1">Bertransaksi aman</h4>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Gunakan fitur{" "}
+              <span className="text-blue-400 font-semibold">Bayar di Atap</span>{" "}
+              untuk perlindungan penuh dari penipuan.
             </p>
           </div>
         </div>
-        {/* Background Decorative Graphic */}
-        <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-indigo-600/10 rounded-full blur-3xl"></div>
       </div>
 
-      {/* --- BOTTOM NAV --- */}
       <BottomNav />
     </div>
   );

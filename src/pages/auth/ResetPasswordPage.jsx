@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Lock, ArrowRight, RefreshCw, KeyRound, Eye, EyeOff, Mail } from 'lucide-react';
-import AuthLayout from '../components/auth/AuthLayout';
-import { resetPassword } from '../services/authService';
+import AuthLayout from '../../layouts/AuthLayout';
+import { resetPassword } from '../../services/authService';
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();

@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from "react";
-import { Mail, ArrowRight, RefreshCw, ShieldCheck } from "lucide-react";
+import { Mail, Phone, ArrowRight, RefreshCw, ShieldCheck } from "lucide-react";
 
 export default function OtpForm({
-  email,
+  identifier, // email atau phone
+  type, // "email" | "phone"
   onSubmit,
   onResend,
   isLoading,
@@ -27,16 +28,11 @@ export default function OtpForm({
     inputRefs.current[0]?.focus();
   }, []);
 
-  // 🔥 AUTO SUBMIT saat 6 digit
-  useEffect(() => {
-    if (otp.join("").length === 6) {
-      onSubmit(otp.join(""));
-    }
-  }, [otp]);
+
 
   // ✏️ Input change
   const handleChange = (el, index) => {
-    const value = el.value.replace(/[^0-9]/g, ""); // hanya angka
+    const value = el.value.replace(/[^0-9]/g, "");
 
     const newOtp = [...otp];
     newOtp[index] = value;
@@ -103,11 +99,13 @@ export default function OtpForm({
         Verifikasi Kode OTP
       </h2>
 
+      {/* IDENTIFIER */}
       <p className="text-sm text-center text-slate-500 mb-8">
         Kode dikirim ke
         <br />
-        <span className="font-semibold text-slate-700 flex items-center justify-center gap-1 mt-1">
-          <Mail size={14} /> {email}
+        <span className="font-semibold text-slate-700 flex items-center justify-center gap-1 mt-1 break-all">
+          {type === "email" ? <Mail size={14} /> : <Phone size={14} />}
+          {identifier}
         </span>
       </p>
 

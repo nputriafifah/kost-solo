@@ -5,7 +5,7 @@ import {
   CheckCircle2,
   Building2,
 } from "lucide-react";
-import KostIllustration from "./KostIllustration";
+import KostIllustration from "../components/kost/KostIllustration";
 
 export default function AuthLayout({ children }) {
   return (

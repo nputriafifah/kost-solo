@@ -1,7 +1,7 @@
 import { useState } from "react";
-import AuthLayout from "../components/auth/AuthLayout";
-import RoleSelector from "../components/auth/RoleSelector";
-import AuthForm from "../components/auth/AuthForm";
+import AuthLayout from "../../layouts/AuthLayout";
+import RoleSelector from "../../components/auth/RoleSelector";
+import AuthForm from "../../components/auth/AuthForm";
 
 export default function AuthPage() {
   const [view, setView] = useState("role");

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, ArrowLeft, ArrowRight, KeyRound, RefreshCw } from 'lucide-react';
-import AuthLayout from '../components/auth/AuthLayout';
-import { forgotPassword } from '../services/authService';
+import AuthLayout from '../../layouts/AuthLayout';
+import { forgotPassword } from '../../services/authService';
 
 export default function ForgotPasswordPage() {
   const navigate = useNavigate();
