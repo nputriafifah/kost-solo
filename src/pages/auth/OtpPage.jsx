@@ -18,80 +18,62 @@ export default function OtpPage() {
 
   const role = location.state?.role;
   const phone = location.state?.phone;
+  const email = location.state?.email;
 
-  // 🔒 kalau akses langsung tanpa data
-  if (!role || !phone) {
+  if (!role || (!phone && !email)) {
     return <Navigate to="/auth" replace />;
   }
 
-  // ================= VERIFY OTP =================
   const handleVerify = async (otp) => {
     try {
       setLoading(true);
       setError("");
 
       const cleanOtp = String(otp).trim();
+      if (cleanOtp.length !== 6) throw new Error("OTP harus 6 digit");
 
-      if (cleanOtp.length !== 6) {
-        throw new Error("OTP harus 6 digit");
+      if (role === "pencari") {
+        const res = await fetch("http://localhost:3000/auth/user/verify-email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, otp: cleanOtp }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || data.message || "OTP salah");
+        setSuccess("Email terverifikasi! Silakan login...");
+        setTimeout(() => navigate("/auth"), 1000);
+        return;
       }
 
       if (role === "pemilik") {
         const res = await fetch("http://localhost:3000/auth/owner/login", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    phone: formatPhone(phone),
-    otp: cleanOtp, // <- tetap kirim OTP
-  }),
-});
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: formatPhone(phone), otp: cleanOtp }),
+        });
 
-const text = await res.text();
-
-console.log("RAW RESPONSE:", text); // 🔍 debug
-
-let data;
-try {
-  data = JSON.parse(text);
-} catch {
-  data = { message: text };
-}
-
-if (!res.ok) {
-  throw new Error(data.message || "OTP salah");
-}
-
-        console.log("LOGIN RESPONSE:", res);
-
-        // 🔥 AMAN UNTUK SEMUA FORMAT BACKEND
-        const token =
-  data?.token ||
-  data?.data?.token;
-
-const user =
-  data?.user ||
-  data?.data?.user;
-
-        console.log("TOKEN:", token);
-        console.log("USER:", user);
-
-        if (!token) {
-          throw new Error("Token tidak ditemukan dari backend");
+        const text = await res.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = { message: text };
         }
 
-        // ✅ simpan ke localStorage
+        if (!res.ok) throw new Error(data.error || data.message || "OTP salah");
+
+        const token = data?.token || data?.data?.token;
+        const user = data?.user || data?.data?.user;
+
+        if (!token) throw new Error("Token tidak ditemukan dari backend");
+
         localStorage.setItem("token", token);
         localStorage.setItem("user", JSON.stringify(user));
+
+        setSuccess("Login berhasil...");
+        setTimeout(() => navigate("/owner/dashboard"), 1000);
+        return;
       }
-
-      setSuccess("Login berhasil...");
-
-      // redirect
-      setTimeout(() => {
-        navigate("/owner/dashboard");
-      }, 1000);
 
     } catch (err) {
       setError(err.message || "OTP salah");
@@ -100,17 +82,25 @@ const user =
     }
   };
 
-  // ================= RESEND OTP =================
   const handleResend = async () => {
-  console.log("RESEND DIKLIK"); // 👈 tambah ini
     try {
       setLoading(true);
       setError("");
       setSuccess("");
 
-      await requestOwnerOtp({
-        phone: formatPhone(phone),
-      });
+      if (role === "pencari") {
+        const res = await fetch("http://localhost:3000/auth/user/resend-otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || data.message || "Gagal kirim OTP");
+      }
+
+      if (role === "pemilik") {
+        await requestOwnerOtp({ phone: formatPhone(phone) });
+      }
 
       setSuccess("OTP baru berhasil dikirim");
     } catch (err) {
@@ -123,14 +113,14 @@ const user =
   return (
     <AuthLayout>
       <OtpForm
-  identifier={phone}
-  type="phone"
-  onSubmit={handleVerify}
-  onResend={handleResend}
-  isLoading={loading}
-  errorMsg={error}
-  successMsg={success}
-/>
+        identifier={role === "pencari" ? email : phone}
+        type={role === "pencari" ? "email" : "phone"}
+        onSubmit={handleVerify}
+        onResend={handleResend}
+        isLoading={loading}
+        errorMsg={error}
+        successMsg={success}
+      />
     </AuthLayout>
   );
 }

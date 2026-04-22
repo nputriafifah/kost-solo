@@ -218,7 +218,7 @@ export default function DashboardPage() {
         </div>
 
         {/* LISTING GRID */}
-        <div className="px-4 grid grid-cols-2 gap-3">
+        <div className="px-4 grid grid-cols-2 md:grid-cols-4 gap-3">
           {loading ? (
             // Skeleton 4 card
             Array.from({ length: 4 }).map((_, i) => (

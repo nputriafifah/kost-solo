@@ -131,7 +131,7 @@ export default function LikePage() {
           </div>
         ) : favoriteItems.length > 0 ? (
           // Grid favorit
-          <div className="grid grid-cols-2 gap-3">
+          <div className="px-4 grid grid-cols-2 md:grid-cols-4 gap-3">
             {favoriteItems.map((item) => (
               <KostCard
                 key={item.id}

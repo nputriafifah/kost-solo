@@ -65,7 +65,7 @@ export default function SearchPage() {
     if (activeGenderRef.current !== "Semua") params.append("genderType", activeGenderRef.current.toLowerCase());
 
     try {
-      const res = await fetch(`http://localhost:3000/search?${params}`);
+      const res = await fetch(`http://localhost:3000/listings/search?${params}`);
       const json = await res.json();
       const mapped = (json.data || []).map((item) => {
         const room = item.roomTypes?.[0];
