@@ -1,53 +1,10 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   MapPin, Search, Navigation2, Star, X,
   SlidersHorizontal, Loader2
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import BottomNav from "../../components/ui/BottomNav";
-
-const SOLO_KOST_DATA = [
-  {
-    id: 1,
-    name: "Griya Sruni Exclusive Kadipiro",
-    price: 1150000,
-    lat: "35%", lng: "42%",
-    rating: 4.8,
-    image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=400",
-    type: "Kost Campur",
-    address: "Banjarsari, Surakarta"
-  },
-  {
-    id: 2,
-    name: "Kost Putri Melati",
-    price: 850000,
-    lat: "55%", lng: "58%",
-    rating: 4.5,
-    image: "https://images.unsplash.com/photo-1598928506311-c55ded91a20c?q=80&w=400",
-    type: "Kost Putri",
-    address: "Jebres, Surakarta"
-  },
-  {
-    id: 3,
-    name: "Mansion Jebres Smart Room",
-    price: 1600000,
-    lat: "25%", lng: "65%",
-    rating: 4.9,
-    image: "https://images.unsplash.com/photo-1554995207-c18c203602cb?q=80&w=400",
-    type: "Kost Putra",
-    address: "Jebres, Surakarta"
-  },
-  {
-    id: 4,
-    name: "Omah Solo Homestay",
-    price: 2100000,
-    lat: "45%", lng: "25%",
-    rating: 4.7,
-    image: "https://images.unsplash.com/photo-1505691938895-1758d7feb511?q=80&w=400",
-    type: "Kost Campur",
-    address: "Laweyan, Surakarta"
-  },
-];
 
 const formatPriceLabel = (price) => {
   if (price >= 1000000) return `${(price / 1000000).toFixed(1)}jt`;
@@ -62,17 +19,40 @@ export default function MapPage() {
   const [maxPrice, setMaxPrice] = useState(2500000);
   const [searchQuery, setSearchQuery] = useState("");
   const [locating, setLocating] = useState(false); // ← state untuk loading GPS
+  const [kosData, setKosData] = useState([]);
+const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+  fetchKos();
+}, [maxPrice, searchQuery]);
+
+const fetchKos = async () => {
+  setLoading(true);
+  try {
+    const res = await fetch(
+  `http://localhost:3000/search?q=${searchQuery}&minPrice=0&maxPrice=${maxPrice}`
+);
+    const json = await res.json();
+    setKosData(json.data || []);
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
   // Filter berdasarkan harga DAN search query — sebelumnya search tidak dipakai
-  const filteredKos = SOLO_KOST_DATA.filter((kost) => {
-    const q = searchQuery.toLowerCase();
-    const matchSearch =
-      q === "" ||
-      kost.name.toLowerCase().includes(q) ||
-      kost.address.toLowerCase().includes(q);
-    const matchPrice = kost.price <= maxPrice;
-    return matchSearch && matchPrice;
-  });
+ const filteredKos = kosData.filter((kost) => {
+  const q = searchQuery.toLowerCase();
+
+  const matchSearch =
+    q === "" ||
+    kost.name.toLowerCase().includes(q) ||
+    kost.address.toLowerCase().includes(q);
+
+  const matchPrice = kost.price <= maxPrice;
+
+  return matchSearch && matchPrice;
+});
 
   // Handler tombol "My Location" dengan Geolocation API
   const handleMyLocation = useCallback(() => {
@@ -177,13 +157,20 @@ export default function MapPage() {
       </div>
 
       {/* MAP AREA */}
-      <div
-        className="flex-1 relative bg-slate-200 overflow-hidden"
-        onClick={() => {
-          setSelectedKost(null);
-          setShowFilter(false);
-        }}
-      >
+      {/* MAP AREA */}
+{/* MAP AREA */}
+<div
+  className="flex-1 relative bg-slate-200 overflow-hidden"
+  onClick={() => {
+    setSelectedKost(null);
+    setShowFilter(false);
+  }}
+>
+  {loading && (
+    <div className="absolute inset-0 flex items-center justify-center bg-white/60 z-50">
+      <Loader2 className="animate-spin text-blue-500" />
+    </div>
+  )}
         {/* Grid pattern */}
         <div
           className="absolute inset-0 opacity-10"
@@ -205,7 +192,10 @@ export default function MapPage() {
           <div
             key={kost.id}
             className="absolute transition-transform hover:scale-110 active:scale-95"
-            style={{ top: kost.lat, left: kost.lng }}
+            style={{
+  top: `${50 + kost.lat}%`,
+  left: `${50 + kost.lng}%`
+}}
           >
             <button
               onClick={(e) => {

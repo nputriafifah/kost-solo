@@ -46,6 +46,8 @@ export default function ProfilPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({ name: "", email: "" });
   const [photoUrl, setPhotoUrl] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+const [saveSuccess, setSaveSuccess] = useState(false);
 
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
@@ -59,13 +61,25 @@ export default function ProfilPage() {
   }, []);
 
   const handleSaveProfile = () => {
-    // Validasi sederhana sebelum simpan
-    if (!editForm.name.trim() || !editForm.email.trim()) return;
+  if (!editForm.name.trim() || !editForm.email.trim()) return;
+
+  setIsSaving(true);
+
+  setTimeout(() => {
     const updated = { ...userData, ...editForm };
+
     localStorage.setItem("user", JSON.stringify(updated));
     setUserData(updated);
-    setIsEditing(false);
-  };
+
+    setIsSaving(false);
+    setSaveSuccess(true);
+
+    setTimeout(() => {
+      setIsEditing(false);
+      setSaveSuccess(false);
+    }, 800);
+  }, 500);
+};
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
@@ -285,13 +299,26 @@ export default function ProfilPage() {
 
             {/* Tombol simpan — pakai onClick bukan form submit */}
             <button
-              onClick={handleSaveProfile}
-              disabled={!editForm.name.trim() || !editForm.email.trim()}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 text-white rounded-2xl text-sm font-semibold flex items-center justify-center gap-2 transition-colors active:scale-95"
-            >
-              <Check size={16} />
-              Simpan perubahan
-            </button>
+  onClick={handleSaveProfile}
+  disabled={
+    isSaving ||
+    !editForm.name.trim() ||
+    !editForm.email.trim()
+  }
+  className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 disabled:text-slate-400 text-white rounded-2xl text-sm font-semibold flex items-center justify-center gap-2 transition-colors active:scale-95"
+>
+  {isSaving ? (
+    <>
+      <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
+      Menyimpan...
+    </>
+  ) : (
+    <>
+      <Check size={16} />
+      Simpan perubahan
+    </>
+  )}
+</button>
           </div>
         </div>
       )}

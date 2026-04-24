@@ -40,67 +40,127 @@ export default function DashboardPage() {
     .toUpperCase()
     .slice(0, 2);
 
-  const [favorites, setFavorites] = useState(() => {
-    const saved = localStorage.getItem("atap_favorites");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [favorites, setFavorites] = useState([]);
+
+  
+  const token = localStorage.getItem("token");
 
   useEffect(() => {
-    localStorage.setItem("atap_favorites", JSON.stringify(favorites));
-  }, [favorites]);
-
-  const handleToggleLike = (id, e) => {
-    e.stopPropagation();
-    setFavorites((prev) =>
-      prev.includes(id) ? prev.filter((fId) => fId !== id) : [...prev, id]
-    );
-  };
-
-  const fetchListings = async () => {
-    setLoading(true);
-    setError(null); // reset error setiap kali fetch
+  const fetchFavorites = async () => {
     try {
-      const res = await fetch("http://localhost:3000/listings");
-      if (!res.ok) throw new Error(`Server error: ${res.status}`);
-      const json = await res.json();
-      const mapped = (json.data || []).map((item) => {
-        const room = item.roomTypes?.[0];
-        return {
-          id: item.id,
-          name: item.name,
-          price: room?.price || 0,
-          location: item.address,
-          gender: item.genderType || "",
-          image:
-            room?.photos?.[0]?.url ||
-            "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267",
-        };
+      const res = await fetch("http://localhost:3000/favorites", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
-      setData(mapped);
+
+      const json = await res.json();
+
+      const ids = (json.data || []).map((item) => String(item.id));
+
+      setFavorites(ids);
     } catch (err) {
-      console.error("Fetch error:", err);
-      setError("Gagal memuat data. Periksa koneksimu dan coba lagi.");
-    } finally {
-      setLoading(false);
+      console.error("Fetch favorites error:", err);
     }
   };
+
+  fetchFavorites();
+}, []);
+const handleToggleLike = async (id) => {
+  console.log("CLICK LIKE:", id);
+
+  const idStr = String(id);
+  const isLiked = favorites.includes(idStr);
+
+  try {
+    const res = await fetch(`http://localhost:3000/favorites/${idStr}`, {
+      method: isLiked ? "DELETE" : "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    console.log("STATUS:", res.status);
+
+    if (!res.ok) throw new Error("Request gagal");
+
+    setFavorites((prev) =>
+      isLiked
+        ? prev.filter((fId) => fId !== idStr)
+        : [...prev, idStr]
+    );
+  } catch (err) {
+    console.error("Like error:", err);
+  }
+};
+  const fetchListings = async () => {
+  setLoading(true);
+  setError(null);
+
+  try {
+    const res = await fetch("http://localhost:3000/listings");
+
+    // ✅ penting
+    if (!res.ok) {
+      throw new Error(`Server error: ${res.status}`);
+    }
+
+    const json = await res.json();
+
+    console.log("API:", json);
+
+    const rawData = Array.isArray(json)
+      ? json
+      : Array.isArray(json.data)
+      ? json.data
+      : [];
+
+    const mapped = rawData.map((item) => {
+  const room = item.roomTypes?.[0] || {};
+
+  return {
+    id: String(item.id), // 🔥 FIX DI SINI
+    name: item.name || "Tanpa Nama",
+    location: item.address || "Lokasi tidak tersedia",
+    price: room.price ?? 0,
+    gender: (item.genderType || "").toLowerCase(),
+    image:
+      room.photos?.[0]?.url ||
+      "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267",
+    available: room.availableCount ?? 0,
+    isPremium: item.isPremium || false,
+  };
+});
+
+    setData(mapped);
+  } catch (err) {
+    console.error(err);
+    setError("Gagal memuat data");
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchListings();
   }, []);
 
   const filteredData = useMemo(() => {
-    const q = searchQuery.toLowerCase();
-    return data.filter((item) => {
-      const matchSearch =
-        item.name.toLowerCase().includes(q) ||
-        item.location.toLowerCase().includes(q);
-      const matchGender =
-        activeFilter === "Semua" ||
-        item.gender?.toLowerCase() === activeFilter.toLowerCase();
-      return matchSearch && matchGender;
-    });
-  }, [data, searchQuery, activeFilter]);
+  const q = searchQuery.toLowerCase();
+  const normalize = (val) => val?.toLowerCase();
+
+  return data.filter((item) => {
+    const matchSearch =
+      item.name.toLowerCase().includes(q) ||
+      item.location.toLowerCase().includes(q);
+
+    const matchGender =
+      activeFilter === "Semua" ||
+      normalize(item.gender) === normalize(activeFilter);
+
+    return matchSearch && matchGender;
+  });
+}, [data, searchQuery, activeFilter]);
 
   return (
     <>

@@ -3,9 +3,9 @@ import { Heart, MapPin } from "lucide-react";
 export default function KostCard({ item, onClick, onLike, isLiked }) {
 
   const handleLikeClick = (e) => {
-    e.stopPropagation(); // 🔥 penting biar tidak trigger onClick card
-    onLike(e);
-  };
+  e.stopPropagation(); // tetap di sini ✅
+  onLike(); // ✅ jangan kirim apa-apa
+};
 
   return (
     <div
@@ -61,11 +61,11 @@ export default function KostCard({ item, onClick, onLike, isLiked }) {
         </div>
 
         <p className="text-[11px] font-bold text-indigo-600">
-          Rp {item.price.toLocaleString("id-ID")}
-          <span className="text-[9px] text-slate-400 font-medium ml-0.5">
-            /bln
-          </span>
-        </p>
+  Rp {(item.price ?? 0).toLocaleString("id-ID")}
+  <span className="text-[9px] text-slate-400 font-medium ml-0.5">
+    /bln
+  </span>
+</p>
       </div>
     </div>
   );
