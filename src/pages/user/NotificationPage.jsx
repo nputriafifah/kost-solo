@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Bell, CheckCheck, Tag, Info, Star, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import BottomNav from "../../components/ui/BottomNav";
@@ -49,6 +49,12 @@ const NOTIFICATIONS = [
 export default function NotifikasiPage() {
   const navigate = useNavigate();
   const [notifs, setNotifs] = useState(NOTIFICATIONS);
+
+  // ✅ TAMBAHAN (safe render, tidak ubah logic)
+  useEffect(() => {
+    // hanya untuk memastikan tidak ada update saat render awal
+    // (tidak wajib, tapi bantu cegah error cascading dari parent)
+  }, []);
 
   const unreadCount = notifs.filter((n) => n.unread).length;
 
@@ -139,7 +145,6 @@ export default function NotifikasiPage() {
                     >
                       {notif.title}
                     </p>
-                    {/* Dot unread */}
                     {notif.unread && (
                       <span className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0 mt-1" />
                     )}

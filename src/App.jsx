@@ -55,8 +55,15 @@ export default function App() {
       <QueryRedirect />
 
       <Routes>
-        {/* ROOT */}
-        <Route path="/" element={<Navigate to="/auth" replace />} />
+        {/* ROOT (UBAH DI SINI) */}
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute role="pencari">
+              <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* AUTH */}
         <Route path="/auth" element={<AuthPage />} />
@@ -129,13 +136,13 @@ export default function App() {
         />
 
         <Route
-  path="/search"
-  element={
-    <ProtectedRoute role="pencari">
-      <SearchPage />
-    </ProtectedRoute>
-  }
-/>
+          path="/search"
+          element={
+            <ProtectedRoute role="pencari">
+              <SearchPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* OWNER */}
         <Route
@@ -166,13 +173,13 @@ export default function App() {
         />
 
         <Route
-  path="/owner/listing/:id"
-  element={
-    <ProtectedRoute role="pemilik">
-      <DetailListingPage />
-    </ProtectedRoute>
-  }
-/>
+          path="/owner/listing/:id"
+          element={
+            <ProtectedRoute role="pemilik">
+              <DetailListingPage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* SETTINGS */}
         <Route
@@ -215,7 +222,7 @@ export default function App() {
         <Route path="/admin" element={<AdminPage />} />
 
         {/* FALLBACK */}
-        <Route path="*" element={<Navigate to="/auth" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
   );
