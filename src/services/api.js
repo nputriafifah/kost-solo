@@ -5,32 +5,32 @@ export const request = async (url, options = {}) => {
 
   try {
     const res = await fetch(BASE_URL + url, {
+      ...options,
+
       headers: {
         "Content-Type": "application/json",
-        ...(token && { Authorization: `Bearer ${token}` }),
+
+        ...(options.headers || {}), // 🔥 taruh dulu
+
+        ...(token && { Authorization: `Bearer ${token}` }), // 🔥 override terakhir
       },
-      ...options,
     });
 
-    // 🔥 AMANIN RESPONSE (INI KUNCI UTAMA)
     const text = await res.text();
     let data;
 
     try {
       data = text ? JSON.parse(text) : {};
     } catch {
-      data = { message: text }; // kalau bukan JSON (HTML error, dll)
+      data = { message: text };
     }
 
-    // ❌ kalau response error
     if (!res.ok) {
-      console.log("FULL ERROR BACKEND:", data); // debug penting
+      console.log("FULL ERROR BACKEND:", data);
       throw new Error(data.message || "Request failed");
     }
 
-    // ✅ return data (support berbagai format backend)
     return data.data ?? data;
-
   } catch (error) {
     console.error("API ERROR:", error.message);
     throw error;

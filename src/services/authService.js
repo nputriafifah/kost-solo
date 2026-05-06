@@ -31,10 +31,18 @@ export const forgotPassword = (payload) =>
     body: JSON.stringify(payload),
   });
 
-export const resetPassword = (payload) =>
+// 🔥 INI YANG PALING PENTING
+export const resetPassword = ({ email, token, newPassword }) =>
   request("/auth/user/reset-password", {
     method: "POST",
-    body: JSON.stringify(payload),
+    headers: {
+      Authorization: `Bearer ${token}`, // 🔥 pakai token dari URL (bukan localStorage)
+    },
+    body: JSON.stringify({
+      email,
+      token,        // 🔥 untuk verifyToken di backend
+      newPassword,  // 🔥 sesuai backend kamu
+    }),
   });
 
 // ===== OWNER =====

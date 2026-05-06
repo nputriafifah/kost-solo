@@ -55,15 +55,8 @@ export default function App() {
       <QueryRedirect />
 
       <Routes>
-        {/* ROOT (UBAH DI SINI) */}
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute role="pencari">
-              <DashboardPage />
-            </ProtectedRoute>
-          }
-        />
+        {/* ROOT TANPA LOGIN */}
+        <Route path="/" element={<DashboardPage />} />
 
         {/* AUTH */}
         <Route path="/auth" element={<AuthPage />} />
@@ -72,24 +65,12 @@ export default function App() {
         <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {/* USER */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute role="pencari">
-              <DashboardPage />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/dashboard" element={<DashboardPage />} />
 
-        <Route
-          path="/detail/:id"
-          element={
-            <ProtectedRoute role="pencari">
-              <DetailPage />
-            </ProtectedRoute>
-          }
-        />
+        {/* DETAIL BOLEH TANPA LOGIN */}
+        <Route path="/detail/:id" element={<DetailPage />} />
 
+        {/* HARUS LOGIN */}
         <Route
           path="/map"
           element={
@@ -135,11 +116,42 @@ export default function App() {
           }
         />
 
+        {/* SEARCH BOLEH TANPA LOGIN */}
+        <Route path="/search" element={<SearchPage />} />
+
+        {/* SETTINGS */}
         <Route
-          path="/search"
+          path="/settings/account"
           element={
-            <ProtectedRoute role="pencari">
-              <SearchPage />
+            <ProtectedRoute>
+              <AccountSettings />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/settings/notifications"
+          element={
+            <ProtectedRoute>
+              <NotificationPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/settings/privacy"
+          element={
+            <ProtectedRoute>
+              <PrivacyPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/settings/faq"
+          element={
+            <ProtectedRoute>
+              <FaqPage />
             </ProtectedRoute>
           }
         />
@@ -177,43 +189,6 @@ export default function App() {
           element={
             <ProtectedRoute role="pemilik">
               <DetailListingPage />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* SETTINGS */}
-        <Route
-          path="/settings/account"
-          element={
-            <ProtectedRoute>
-              <AccountSettings />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/settings/notifications"
-          element={
-            <ProtectedRoute>
-              <NotificationPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/settings/privacy"
-          element={
-            <ProtectedRoute>
-              <PrivacyPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/settings/faq"
-          element={
-            <ProtectedRoute>
-              <FaqPage />
             </ProtectedRoute>
           }
         />

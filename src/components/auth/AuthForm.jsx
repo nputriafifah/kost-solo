@@ -338,6 +338,17 @@ export default function AuthForm({
             />
           </Field>
         )}
+        {role === "pencari" && isLogin && (
+  <div className="flex justify-end">
+    <button
+      type="button"
+      onClick={() => navigate("/forgot-password")}
+      className="text-xs text-blue-600 hover:underline"
+    >
+      Lupa password?
+    </button>
+  </div>
+)}
 
         {role === "pencari" && !isLogin && (
           <Field label="Konfirmasi Password" icon={<Lock size={15} />}>
