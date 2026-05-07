@@ -27,7 +27,11 @@ import EditListingPage from "./pages/owner/EditListingPage";
 import DetailListingPage from "./pages/owner/DetailListingPage";
 
 // ADMIN
-import AdminPage from "./pages/admin/AdminPage";
+// ✅ Yang baru
+import AdminLayout    from "./pages/admin/AdminLayout";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminListings  from "./pages/admin/AdminListings";
+import AdminReports   from "./pages/admin/AdminReports";
 
 // COMPONENT
 import ProtectedRoute from "./components/common/ProtectedRoute";
@@ -194,7 +198,14 @@ export default function App() {
         />
 
         {/* ADMIN */}
-        <Route path="/admin" element={<AdminPage />} />
+        // ✅ GANTI dengan ini
+{/* ADMIN */}
+<Route path="/admin" element={<AdminLayout />}>
+  <Route index element={<Navigate to="/admin/dashboard" replace />} />
+  <Route path="dashboard" element={<AdminDashboard />} />
+  <Route path="listings"  element={<AdminListings />} />
+  <Route path="reports"   element={<AdminReports />} />
+</Route>
 
         {/* FALLBACK */}
         <Route path="*" element={<Navigate to="/" replace />} />
