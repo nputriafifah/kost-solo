@@ -19,6 +19,7 @@ import NotificationPage from "./pages/user/NotificationPage";
 import FaqPage from "./pages/user/FaqPage";
 import PrivacyPage from "./pages/user/PrivacyPage";
 import SearchPage from "./pages/user/SearchPage";
+import AllListingsPage from "./pages/user/AllListingsPage";
 
 // OWNER
 import DashboardOwnerPage from "./pages/owner/DashboardOwnerPage";
@@ -70,7 +71,7 @@ export default function App() {
 
         {/* USER */}
         <Route path="/dashboard" element={<DashboardPage />} />
-
+<Route path="/semua" element={<AllListingsPage />} />
         {/* DETAIL BOLEH TANPA LOGIN */}
         <Route path="/detail/:id" element={<DetailPage />} />
 

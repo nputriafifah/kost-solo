@@ -19,12 +19,12 @@ export default function BottomNav() {
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const isLoggedIn = !!user;
 
-  // MENU DEFAULT
+  // MENU GUEST
   const guestNavItems = [
     {
       icon: Home,
       label: "Home",
-      path: "/dashboard",
+      path: "/",
     },
     {
       icon: User,
@@ -33,12 +33,12 @@ export default function BottomNav() {
     },
   ];
 
-  // MENU SETELAH LOGIN
+  // MENU USER LOGIN
   const userNavItems = [
     {
       icon: Home,
       label: "Home",
-      path: "/dashboard",
+      path: "/",
     },
     {
       icon: Map,
