@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Heart, AlertCircle, RefreshCw,
@@ -9,6 +9,124 @@ import KostCard from "../../components/kost/KostCard";
 const BASE_URL = "http://localhost:3000";
 
 const css = `
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;700&display=swap');
+
+  /* ── NAVBAR ── */
+  .fav-navbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    height: 72px;
+    background: rgba(255,255,255,.88);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid #EAEFF5;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 42px;
+  }
+
+  .fav-navbar-logo {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 25px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    color: #0F172A;
+    cursor: pointer;
+  }
+  .fav-navbar-logo span { color: #2563EB; }
+
+  .fav-navbar-links {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .fav-navbar-link {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #64748B;
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 8px;
+    transition: .2s;
+  }
+  .fav-navbar-link:hover { color: #2563EB; background: #F1F5F9; }
+  .fav-navbar-link.active { color: #2563EB; }
+
+  .fav-navbar-divider {
+    width: 1px;
+    height: 22px;
+    background: #E2E8F0;
+    margin: 0 8px;
+  }
+
+  /* ── AVATAR + DROPDOWN ── */
+  .fav-dropdown-wrap { position: relative; }
+
+  .fav-navbar-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #DBEAFE;
+    color: #1D4ED8;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: 2px solid #BFDBFE;
+    transition: .2s;
+    margin-left: 4px;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .fav-navbar-avatar:hover { background: #BFDBFE; transform: scale(1.05); }
+
+  .fav-navbar-dropdown {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    background: white;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    padding: 8px;
+    min-width: 170px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.10);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    z-index: 200;
+    animation: ddFadeIn .15s ease;
+  }
+  @keyframes ddFadeIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .fav-navbar-dropdown button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 13px;
+    border: none;
+    background: none;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    transition: .13s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .fav-navbar-dropdown button:hover { background: #F1F5F9; }
+  .fav-navbar-dropdown .dd-divider { height: 1px; background: #E2E8F0; margin: 4px 0; }
+  .fav-navbar-dropdown button.danger { color: #EF4444; }
+  .fav-navbar-dropdown button.danger:hover { background: #FEF2F2; }
+
+  /* ── BURGER ── */
   .fav-burger {
     display: none;
     flex-direction: column;
@@ -18,10 +136,9 @@ const css = `
     border-radius: 10px;
     border: none;
     background: none;
+    transition: .15s;
   }
-
   .fav-burger:hover { background: #F1F5F9; }
-
   .fav-burger span {
     display: block;
     width: 20px;
@@ -30,18 +147,139 @@ const css = `
     border-radius: 2px;
   }
 
+  /* ── DRAWER (mobile) ── */
+  .fav-drawer-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.4);
+    z-index: 400;
+    backdrop-filter: blur(3px);
+    animation: overlayIn .2s ease;
+  }
+  @keyframes overlayIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  .fav-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 280px;
+    background: white;
+    z-index: 401;
+    padding: 28px 16px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    box-shadow: -4px 0 32px rgba(0,0,0,.12);
+    transform: translateX(100%);
+    transition: transform .28s cubic-bezier(.4,0,.2,1);
+  }
+  .fav-drawer.open { transform: translateX(0); }
+
+  .fav-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    padding: 0 8px;
+  }
+  .fav-drawer-logo {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    color: #0F172A;
+  }
+  .fav-drawer-logo span { color: #2563EB; }
+
+  .fav-drawer-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #64748B;
+    border: none;
+    background: none;
+    transition: .15s;
+  }
+  .fav-drawer-close:hover { background: #F1F5F9; color: #0F172A; }
+
+  .fav-drawer-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #334155;
+    cursor: pointer;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    font-family: 'DM Sans', sans-serif;
+    transition: .13s;
+  }
+  .fav-drawer-item:hover { background: #F1F5F9; }
+  .fav-drawer-item.active { color: #2563EB; background: #EFF6FF; }
+  .fav-drawer-item.danger { color: #EF4444; }
+  .fav-drawer-item.danger:hover { background: #FEF2F2; }
+
+  .fav-drawer-divider { height: 1px; background: #E2E8F0; margin: 6px 8px; }
+
+  /* ── HERO ── */
+  .fav-hero {
+    background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 45%, #2563EB 100%);
+    padding: 32px 42px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* ── CONTENT ── */
+  .fav-content {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 28px 28px 40px;
+  }
+
+  .fav-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+
+  /* ── RESPONSIVE ── */
+  @media(max-width: 900px) {
+    .fav-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
   @media(max-width: 640px) {
-    .fav-navbar { height: 64px !important; padding: 0 16px !important; }
-    .fav-navbar-links { display: none !important; }
-    .fav-burger { display: flex !important; }
-    .fav-hero { padding: 24px 20px !important; }
-    .fav-content { padding: 20px 16px 40px !important; }
-    .fav-grid { grid-template-columns: repeat(2, 1fr) !important; }
+    .fav-navbar { height: 64px; padding: 0 16px; }
+    .fav-navbar-links { display: none; }
+    .fav-burger { display: flex; }
+    .fav-hero { padding: 24px 20px; }
+    .fav-content { padding: 20px 16px 40px; }
+    .fav-grid { grid-template-columns: repeat(2, 1fr); }
   }
 `;
 
+const NAV_ITEMS = [
+  { label: "Home", path: "/", icon: <Home size={18} /> },
+  { label: "Peta", path: "/map", icon: <Map size={18} /> },
+  { label: "Chat", path: "/chat", icon: <MessageCircle size={18} /> },
+  { label: "Favorit", path: "/favorit", icon: <Heart size={18} /> },
+];
+
 export default function LikePage() {
   const navigate = useNavigate();
+  const menuRef = useRef(null);
 
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -54,6 +292,16 @@ export default function LikePage() {
   const initials = user?.name
     ?.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2) || "GU";
 
+  /* close dropdown on outside click */
+  useEffect(() => {
+    const h = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setShowMenu(false);
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
+
+  /* lock body scroll when drawer open */
   useEffect(() => {
     document.body.style.overflow = showDrawer ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
@@ -110,95 +358,54 @@ export default function LikePage() {
     navigate("/auth");
   };
 
-  const NAV_ITEMS = [
-    { label: "Home",    path: "/",        icon: <Home size={18} /> },
-    { label: "Peta",    path: "/map",     icon: <Map size={18} /> },
-    { label: "Chat",    path: "/chat",    icon: <MessageCircle size={18} /> },
-    { label: "Favorit", path: "/favorit", icon: <Heart size={18} /> },
-  ];
+  const closeDrawer = () => setShowDrawer(false);
 
   return (
     <>
       <style>{css}</style>
       <div className="min-h-screen bg-[#F8FAFC] pb-16">
 
-        {/* NAVBAR */}
-        <nav
-          className="fav-navbar sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-100"
-          style={{ height: 72, display: "flex", alignItems: "center",
-                   justifyContent: "space-between", padding: "0 42px" }}
-        >
-          <div
-            onClick={() => navigate("/")}
-            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif",
-                     fontSize: 25, fontWeight: 800, letterSpacing: -1, cursor: "pointer" }}
-          >
-            Atap<span style={{ color: "#2563EB" }}>.</span>
+        {/* ── NAVBAR ── */}
+        <nav className="fav-navbar">
+          <div className="fav-navbar-logo" onClick={() => navigate("/")}>
+            Atap<span>.</span>
           </div>
 
           {/* Desktop links */}
-          <div className="fav-navbar-links"
-               style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <div className="fav-navbar-links">
             {NAV_ITEMS.map(({ label, path }) => (
               <span
                 key={label}
+                className={`fav-navbar-link${path === "/favorit" ? " active" : ""}`}
                 onClick={() => navigate(path)}
-                style={{
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontSize: 14, fontWeight: 600,
-                  padding: "6px 10px", borderRadius: 8, cursor: "pointer",
-                  color: path === "/favorit" ? "#2563EB" : "#64748B",
-                }}
               >
                 {label}
               </span>
             ))}
 
-            <div style={{ width: 1, height: 22, background: "#E2E8F0", margin: "0 8px" }} />
+            <div className="fav-navbar-divider" />
 
-            <div style={{ position: "relative" }}>
+            <div className="fav-dropdown-wrap" ref={menuRef}>
               <div
+                className="fav-navbar-avatar"
                 onClick={() => setShowMenu((p) => !p)}
-                style={{
-                  width: 36, height: 36, borderRadius: "50%",
-                  background: "#DBEAFE", color: "#1D4ED8",
-                  fontSize: 12, fontWeight: 700,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  cursor: "pointer", border: "2px solid #BFDBFE",
-                }}
+                title={user?.name || "Guest"}
               >
                 {initials}
               </div>
 
               {showMenu && (
-                <div style={{
-                  position: "absolute", top: "calc(100% + 10px)", right: 0,
-                  background: "white", border: "1px solid #E2E8F0",
-                  borderRadius: 16, padding: 8, minWidth: 170,
-                  boxShadow: "0 8px 32px rgba(0,0,0,.10)",
-                  display: "flex", flexDirection: "column", gap: 2, zIndex: 200,
-                }}>
+                <div className="fav-navbar-dropdown">
                   {[
-                    { label: "Profil",     path: "/profil",           icon: <User size={14} /> },
+                    { label: "Profil", path: "/profil", icon: <User size={14} /> },
                     { label: "Pengaturan", path: "/settings/account", icon: <Settings size={14} /> },
                   ].map(({ label, path, icon }) => (
-                    <button key={label}
-                      onClick={() => { navigate(path); setShowMenu(false); }}
-                      style={{ display: "flex", alignItems: "center", gap: 10,
-                               padding: "10px 13px", border: "none", background: "none",
-                               borderRadius: 10, fontSize: 13, fontWeight: 600,
-                               color: "#334155", cursor: "pointer", width: "100%",
-                               textAlign: "left", fontFamily: "'DM Sans', sans-serif" }}>
+                    <button key={label} onClick={() => { navigate(path); setShowMenu(false); }}>
                       {icon} {label}
                     </button>
                   ))}
-                  <div style={{ height: 1, background: "#E2E8F0", margin: "4px 0" }} />
-                  <button onClick={doLogout}
-                    style={{ display: "flex", alignItems: "center", gap: 10,
-                             padding: "10px 13px", border: "none", background: "none",
-                             borderRadius: 10, fontSize: 13, fontWeight: 600,
-                             color: "#EF4444", cursor: "pointer", width: "100%",
-                             textAlign: "left", fontFamily: "'DM Sans', sans-serif" }}>
+                  <div className="dd-divider" />
+                  <button className="danger" onClick={doLogout}>
                     <LogOut size={14} /> Logout
                   </button>
                 </div>
@@ -206,7 +413,7 @@ export default function LikePage() {
             </div>
           </div>
 
-          {/* Burger mobile */}
+          {/* Burger (mobile) */}
           <button
             className="fav-burger"
             onClick={() => setShowDrawer(true)}
@@ -216,138 +423,107 @@ export default function LikePage() {
           </button>
         </nav>
 
-        {/* MOBILE DRAWER */}
+        {/* ── MOBILE DRAWER ── */}
         {showDrawer && (
           <>
-            <div
-              onClick={() => setShowDrawer(false)}
-              style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.4)",
-                       zIndex: 400, backdropFilter: "blur(3px)" }}
-            />
-            <div style={{
-              position: "fixed", top: 0, right: 0, bottom: 0, width: 280,
-              background: "white", zIndex: 401, padding: "28px 16px 24px",
-              display: "flex", flexDirection: "column", gap: 4,
-              boxShadow: "-4px 0 32px rgba(0,0,0,.12)",
-            }}>
-              <div style={{ display: "flex", alignItems: "center",
-                            justifyContent: "space-between", marginBottom: 20, padding: "0 8px" }}>
-                <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif",
-                              fontSize: 22, fontWeight: 800, letterSpacing: -1 }}>
-                  Atap<span style={{ color: "#2563EB" }}>.</span>
-                </div>
-                <button onClick={() => setShowDrawer(false)}
-                  style={{ width: 32, height: 32, borderRadius: 8, border: "none",
-                           background: "none", cursor: "pointer", color: "#64748B",
-                           display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div className="fav-drawer-overlay" onClick={closeDrawer} />
+            <div className="fav-drawer open">
+              <div className="fav-drawer-header">
+                <div className="fav-drawer-logo">Atap<span>.</span></div>
+                <button className="fav-drawer-close" onClick={closeDrawer} aria-label="Tutup menu">
                   ✕
                 </button>
               </div>
 
               {NAV_ITEMS.map(({ label, path, icon }) => (
-                <button key={label}
-                  onClick={() => { navigate(path); setShowDrawer(false); }}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 12,
-                    padding: "13px 16px", borderRadius: 12,
-                    fontSize: 14, fontWeight: 600, cursor: "pointer",
-                    border: "none", width: "100%", textAlign: "left",
-                    fontFamily: "'DM Sans', sans-serif",
-                    background: path === "/favorit" ? "#EFF6FF" : "none",
-                    color: path === "/favorit" ? "#2563EB" : "#334155",
-                  }}>
+                <button
+                  key={label}
+                  className={`fav-drawer-item${path === "/favorit" ? " active" : ""}`}
+                  onClick={() => { navigate(path); closeDrawer(); }}
+                >
                   {icon} {label}
                 </button>
               ))}
 
-              <div style={{ height: 1, background: "#E2E8F0", margin: "6px 8px" }} />
+              <div className="fav-drawer-divider" />
 
-              <button onClick={() => { navigate("/profil"); setShowDrawer(false); }}
-                style={{ display: "flex", alignItems: "center", gap: 12,
-                         padding: "13px 16px", borderRadius: 12, fontSize: 14,
-                         fontWeight: 600, cursor: "pointer", border: "none",
-                         width: "100%", textAlign: "left", background: "none",
-                         color: "#334155", fontFamily: "'DM Sans', sans-serif" }}>
+              <button
+                className="fav-drawer-item"
+                onClick={() => { navigate("/profil"); closeDrawer(); }}
+              >
                 <User size={18} /> Profil
               </button>
 
-              <button onClick={() => { navigate("/settings/account"); setShowDrawer(false); }}
-                style={{ display: "flex", alignItems: "center", gap: 12,
-                         padding: "13px 16px", borderRadius: 12, fontSize: 14,
-                         fontWeight: 600, cursor: "pointer", border: "none",
-                         width: "100%", textAlign: "left", background: "none",
-                         color: "#334155", fontFamily: "'DM Sans', sans-serif" }}>
+              <button
+                className="fav-drawer-item"
+                onClick={() => { navigate("/settings/account"); closeDrawer(); }}
+              >
                 <Settings size={18} /> Pengaturan
               </button>
 
-              <div style={{ height: 1, background: "#E2E8F0", margin: "6px 8px" }} />
+              <div className="fav-drawer-divider" />
 
-              <button onClick={doLogout}
-                style={{ display: "flex", alignItems: "center", gap: 12,
-                         padding: "13px 16px", borderRadius: 12, fontSize: 14,
-                         fontWeight: 600, cursor: "pointer", border: "none",
-                         width: "100%", textAlign: "left", background: "none",
-                         color: "#EF4444", fontFamily: "'DM Sans', sans-serif" }}>
+              <button className="fav-drawer-item danger" onClick={doLogout}>
                 <LogOut size={18} /> Logout
               </button>
             </div>
           </>
         )}
 
-        {/* HERO STRIP */}
-        <div
-          className="fav-hero"
-          style={{
-            background: "linear-gradient(135deg, #0F172A 0%, #1E3A8A 45%, #2563EB 100%)",
-            padding: "32px 42px", display: "flex", alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
+        {/* ── HERO STRIP ── */}
+        <div className="fav-hero">
           <div>
-            <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif",
-                         fontSize: 26, fontWeight: 800, color: "#fff",
-                         letterSpacing: -0.8, margin: 0 }}>
+            <h1 style={{
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontSize: 26, fontWeight: 800, color: "#fff",
+              letterSpacing: -0.8, margin: 0,
+            }}>
               Favorit<span style={{ color: "#93C5FD" }}>.</span>
             </h1>
             <p style={{ fontSize: 13, color: "rgba(255,255,255,.6)", margin: "4px 0 0" }}>
               {!loading && !error ? `${data.length} kost tersimpan` : "Kost favorit kamu"}
             </p>
           </div>
-          <div style={{ width: 52, height: 52, borderRadius: 16,
-                        background: "rgba(255,255,255,.12)", border: "1px solid rgba(255,255,255,.18)",
-                        display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{
+            width: 52, height: 52, borderRadius: 16,
+            background: "rgba(255,255,255,.12)", border: "1px solid rgba(255,255,255,.18)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
             <Heart size={24} color="rgba(255,255,255,.8)" />
           </div>
         </div>
 
-        {/* CONTENT */}
-        <div
-          className="fav-content"
-          style={{ maxWidth: 900, margin: "0 auto", padding: "28px 28px 40px" }}
-        >
+        {/* ── CONTENT ── */}
+        <div className="fav-content">
 
           {/* Loading */}
           {loading && (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {[...Array(4)].map((_, i) => (
-                <div key={i} style={{ height: 180, borderRadius: 18,
-                                      background: "white", border: "1px solid #F1F5F9" }} />
+                <div key={i} style={{
+                  height: 180, borderRadius: 18,
+                  background: "white", border: "1px solid #F1F5F9",
+                }} />
               ))}
             </div>
           )}
 
           {/* Error */}
           {error && (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center",
-                          padding: "64px 0", gap: 12, textAlign: "center" }}>
+            <div style={{
+              display: "flex", flexDirection: "column", alignItems: "center",
+              padding: "64px 0", gap: 12, textAlign: "center",
+            }}>
               <AlertCircle size={26} color="#F87171" />
               <p style={{ fontSize: 14, color: "#475569", margin: 0 }}>{error}</p>
               <button
                 onClick={fetchFavorites}
-                style={{ display: "flex", alignItems: "center", gap: 8,
-                         background: "#2563EB", color: "white", border: "none",
-                         padding: "10px 18px", borderRadius: 12, fontSize: 13,
-                         fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  background: "#2563EB", color: "white", border: "none",
+                  padding: "10px 18px", borderRadius: 12, fontSize: 13,
+                  fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
+                }}
               >
                 <RefreshCw size={14} /> Coba lagi
               </button>
@@ -356,11 +532,15 @@ export default function LikePage() {
 
           {/* Empty */}
           {!loading && !error && data.length === 0 && (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center",
-                          justifyContent: "center", marginTop: 64, gap: 12, textAlign: "center" }}>
-              <div style={{ width: 64, height: 64, borderRadius: 20,
-                            background: "#FFF1F2", display: "flex",
-                            alignItems: "center", justifyContent: "center" }}>
+            <div style={{
+              display: "flex", flexDirection: "column", alignItems: "center",
+              justifyContent: "center", marginTop: 64, gap: 12, textAlign: "center",
+            }}>
+              <div style={{
+                width: 64, height: 64, borderRadius: 20,
+                background: "#FFF1F2", display: "flex",
+                alignItems: "center", justifyContent: "center",
+              }}>
                 <Heart size={28} color="#FDA4AF" />
               </div>
               <p style={{ fontSize: 14, fontWeight: 600, color: "#475569", margin: 0 }}>
@@ -371,10 +551,12 @@ export default function LikePage() {
               </p>
               <button
                 onClick={() => navigate("/")}
-                style={{ marginTop: 4, background: "#0F172A", color: "white",
-                         border: "none", padding: "10px 24px", borderRadius: 12,
-                         fontSize: 13, fontWeight: 700, cursor: "pointer",
-                         fontFamily: "'DM Sans', sans-serif" }}
+                style={{
+                  marginTop: 4, background: "#0F172A", color: "white",
+                  border: "none", padding: "10px 24px", borderRadius: 12,
+                  fontSize: 13, fontWeight: 700, cursor: "pointer",
+                  fontFamily: "'DM Sans', sans-serif",
+                }}
               >
                 Cari kost
               </button>
@@ -383,10 +565,7 @@ export default function LikePage() {
 
           {/* Grid */}
           {!loading && !error && data.length > 0 && (
-            <div
-              className="fav-grid"
-              style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 18 }}
-            >
+            <div className="fav-grid">
               {data.map((item) => (
                 <KostCard
                   key={item.id}

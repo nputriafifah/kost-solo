@@ -208,7 +208,7 @@ export default function AuthForm({
             : role === "pemilik"
             ? "Pemilik Kost"
             : "Admin"}{" "}
-          — Kost Solo
+          — Atap
         </span>
       </div>
 

@@ -68,7 +68,7 @@ export default function AuthLayout({ children }) {
                 </div>
                 <div>
                   <p className="text-lg font-bold leading-none text-white" style={{ fontFamily: "Plus Jakarta Sans" }}>
-                    Kost Solo
+                    Atap
                   </p>
                   <p className="text-blue-200 text-[10px] font-medium uppercase tracking-widest">
                     Platform #1 Surakarta

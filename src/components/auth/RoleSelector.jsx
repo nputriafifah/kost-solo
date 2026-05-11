@@ -17,7 +17,7 @@ export default function RoleSelector({ onSelectRole }) {
       </h1>
 
       <p className="mb-8 text-sm text-slate-400">
-        Pilih peran Anda agar Kost Solo dapat memberikan pengalaman terbaik untuk kebutuhan anda.
+        Pilih peran Anda agar Atap dapat memberikan pengalaman terbaik untuk kebutuhan anda.
       </p>
 
       <div className="space-y-3">

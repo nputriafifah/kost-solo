@@ -164,7 +164,7 @@ export default function AllListingsPage() {
       setFavorites((p) =>
         isLiked ? p.filter((f) => f !== idStr) : [...p, idStr]
       );
-    } catch {}
+    } catch { }
   };
 
   /* ---------- fetch listings ---------- */
@@ -257,7 +257,7 @@ export default function AllListingsPage() {
   };
 
   /* =========================================================
-     CSS
+      CSS
   ========================================================= */
   const css = `
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;700&display=swap');
@@ -785,8 +785,13 @@ export default function AllListingsPage() {
     .al-sort-wrap { width: 100%; }
     .al-sort-trigger { width: 100%; justify-content: space-between; }
     .al-sort-dropdown { right: 0; left: auto; min-width: 190px; }
-    .al-content { padding: 16px; }
-    .al-grid { grid-template-columns: 1fr; gap: 16px; }
+    
+    /* MODIFIED: Tampilan 2 kolom di mobile */
+    .al-content { padding: 12px; }
+    .al-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .al-skeleton-img { height: 130px; }
+    /* ------------------------------------ */
+
     .al-drawer { border-radius: 20px 20px 0 0; }
     .al-price-row { flex-direction: column; align-items: stretch; }
     .al-price-sep { display: none; }
@@ -794,7 +799,7 @@ export default function AllListingsPage() {
   `;
 
   /* =========================================================
-     RENDER
+      RENDER
   ========================================================= */
   return (
     <>

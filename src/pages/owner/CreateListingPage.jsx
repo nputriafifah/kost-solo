@@ -197,7 +197,7 @@ export default function CreateListingPage() {
           {/* ── Page title ── */}
           <div className="mb-6">
             <p className="text-xs font-semibold text-blue-500 uppercase tracking-widest mb-1">
-              Kost Solo
+              Atap
             </p>
             <h1 className="text-2xl font-extrabold text-slate-800" style={{ fontFamily: "Plus Jakarta Sans" }}>
               Daftarkan Kost Baru
