@@ -13,34 +13,42 @@ const formatPriceLabel = (price) => {
   return `${Math.round(price / 1000)}rb`;
 };
 
+/*
+  Konsisten dengan DashboardPage:
+  mobile:      tampil di bottom nav saat login
+  guestMobile: tampil di bottom nav saat guest
+*/
 const NAV_ITEMS = [
-  { label: "Home", path: "/", icon: Home },
-  { label: "Search", path: "/search", icon: Search },
-  { label: "Peta", path: "/map", icon: Map },
-  { label: "Favorit", path: "/favorit", icon: Heart },
-  { label: "Profil", path: "/profil", icon: User },
+  { label: "Home",    path: "/",        icon: Home,          mobile: true,  guestMobile: true  },
+  { label: "Search",  path: "/search",  icon: Search,        mobile: true,  guestMobile: true  },
+  { label: "Peta",    path: "/map",     icon: Map,           mobile: true,  guestMobile: true  },
+  { label: "Favorit", path: "/favorit", icon: Heart,         mobile: true,  guestMobile: false },
+  { label: "Profil",  path: "/profil",  icon: User,          mobile: true,  guestMobile: false },
 ];
 
+const MOBILE_NAV   = NAV_ITEMS.filter((n) => n.mobile);
+const GUEST_MOBILE = NAV_ITEMS.filter((n) => n.guestMobile);
+
 export default function MapPage() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const menuRef = useRef(null);
+  const navigate    = useNavigate();
+  const location    = useLocation();
+  const menuRef     = useRef(null);
   const currentPath = location.pathname;
 
   const [selectedKost, setSelectedKost] = useState(null);
-  const [showFilter, setShowFilter] = useState(false);
-  const [maxPrice, setMaxPrice] = useState(2500000);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [kosData, setKosData] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [locating, setLocating] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
+  const [showFilter,   setShowFilter]   = useState(false);
+  const [maxPrice,     setMaxPrice]     = useState(2500000);
+  const [searchQuery,  setSearchQuery]  = useState("");
+  const [kosData,      setKosData]      = useState([]);
+  const [loading,      setLoading]      = useState(false);
+  const [locating,     setLocating]     = useState(false);
+  const [showMenu,     setShowMenu]     = useState(false);
 
-  const user = JSON.parse(localStorage.getItem("user") || "null");
+  const user       = JSON.parse(localStorage.getItem("user") || "null");
   const isLoggedIn = !!user;
-  const userName = user?.name || "Guest";
-  const token = localStorage.getItem("token");
-  const initials = isLoggedIn
+  const userName   = user?.name || "Guest";
+  const token      = localStorage.getItem("token");
+  const initials   = isLoggedIn
     ? userName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "GU";
 
@@ -99,12 +107,8 @@ export default function MapPage() {
   body { margin: 0; }
 
   .mp-root {
-    font-family: 'DM Sans', sans-serif;
-    color: #0F172A;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+    font-family: 'DM Sans', sans-serif; color: #0F172A;
+    height: 100vh; display: flex; flex-direction: column; overflow: hidden;
   }
 
   /* ── NAVBAR ── */
@@ -127,7 +131,17 @@ export default function MapPage() {
   .mp-navbar-cta { border:none; cursor:pointer; padding:11px 22px; border-radius:12px; background:linear-gradient(135deg,#2563EB,#3B82F6); color:#fff; font-size:13px; font-weight:700; transition:.2s; font-family:'DM Sans',sans-serif; }
   .mp-navbar-cta:hover { transform:translateY(-1px); box-shadow:0 12px 25px rgba(37,99,235,.22); }
 
-  /* ── AVATAR DROPDOWN ── */
+  /* chat icon */
+  .mp-chat-btn {
+    width:36px; height:36px; border-radius:50%;
+    background:#F1F5F9; color:#475569;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; border:1.5px solid #E2E8F0; transition:.2s; margin-left:2px;
+  }
+  .mp-chat-btn:hover { background:#EFF6FF; color:#2563EB; border-color:#BFDBFE; }
+  .mp-mobile-chat { display:none; }
+
+  /* avatar + dropdown */
   .mp-dropdown-wrap { position:relative; }
   .mp-navbar-avatar { width:36px; height:36px; border-radius:50%; background:#DBEAFE; color:#1D4ED8; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; cursor:pointer; border:2px solid #BFDBFE; transition:.2s; margin-left:4px; font-family:'DM Sans',sans-serif; }
   .mp-navbar-avatar:hover { background:#BFDBFE; transform:scale(1.05); }
@@ -185,28 +199,28 @@ export default function MapPage() {
   .mp-gps-btn { position:absolute; right:16px; z-index:50; width:46px; height:46px; background:white; border:1px solid #E2E8F0; border-radius:14px; box-shadow:0 4px 16px rgba(0,0,0,.10); display:flex; align-items:center; justify-content:center; cursor:pointer; color:#475569; transition:.15s; }
   .mp-gps-btn:hover { background:#EFF6FF; color:#2563EB; border-color:#BFDBFE; }
 
-  /* ── BOTTOM NAV (mobile only) ── */
+  /* ── BOTTOM NAV ── */
   .mp-bottom-nav { display: none; }
 
   /* ── RESPONSIVE ── */
   @media(max-width:900px) { .mp-navbar { padding:0 20px; } }
 
+  @media(max-width:768px) {
+    .mp-navbar-links { display:none; }
+    .mp-mobile-chat  { display:flex; }
+  }
+
   @media(max-width:640px) {
     .mp-navbar { height:60px; padding:0 16px; }
-    .mp-navbar-links { display:none; }
 
-    /* bottom nav */
     .mp-bottom-nav {
-      display: flex;
-      flex-shrink: 0;
-      position: relative;
-      z-index: 300;
+      display: flex; flex-shrink: 0;
+      position: relative; z-index: 300;
       background: rgba(255,255,255,.97);
       backdrop-filter: blur(20px);
       border-top: 1px solid #E2E8F0;
       padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
-      justify-content: space-around;
-      align-items: center;
+      justify-content: space-around; align-items: center;
       box-shadow: 0 -4px 20px rgba(0,0,0,.07);
     }
     .mp-bn-item {
@@ -218,12 +232,13 @@ export default function MapPage() {
     }
     .mp-bn-item.active { color:#2563EB; }
     .mp-bn-item span { font-size:10px; font-weight:700; letter-spacing:.1px; }
+    .mp-bn-item.active::after {
+      content:''; display:block;
+      width:4px; height:4px;
+      background:#2563EB; border-radius:50%; margin-top:1px;
+    }
     .mp-bn-avatar { width:24px; height:24px; border-radius:50%; background:#DBEAFE; color:#1D4ED8; font-size:8px; font-weight:800; display:flex; align-items:center; justify-content:center; border:2px solid #BFDBFE; font-family:'DM Sans',sans-serif; }
     .mp-bn-item.active .mp-bn-avatar { border-color:#2563EB; background:#BFDBFE; }
-    .mp-bn-dot { width:4px; height:4px; background:#2563EB; border-radius:50%; margin-top:1px; }
-
-    /* geser GPS button saat ada bottom nav */
-    .mp-card { bottom: 16px; }
   }
 
   @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
@@ -234,23 +249,24 @@ export default function MapPage() {
       <style>{css}</style>
       <div className="mp-root">
 
-        {/* ── NAVBAR (desktop) ── */}
+        {/* ── NAVBAR ── */}
         <nav className="mp-navbar">
           <div className="mp-navbar-logo" onClick={() => navigate("/")}>
             Atap<span>.</span>
           </div>
 
+          {/* Desktop links */}
           <div className="mp-navbar-links">
             {isLoggedIn ? (
               <>
                 {[
-                  { label: "Home", path: "/" },
-                  { label: "Search", path: "/search" },
-                  { label: "Peta", path: "/map" },
+                  { label: "Home",    path: "/" },
+                  { label: "Search",  path: "/search" },
+                  { label: "Peta",    path: "/map" },
                   { label: "Favorit", path: "/favorit" },
                 ].map(({ label, path }) => (
                   <span
-                    key={label}
+                    key={path}
                     className={`mp-navbar-link${currentPath === path ? " active" : ""}`}
                     onClick={() => navigate(path)}
                   >
@@ -258,6 +274,9 @@ export default function MapPage() {
                   </span>
                 ))}
                 <div className="mp-navbar-divider" />
+                <div className="mp-chat-btn" onClick={() => navigate("/chat")} title="Chat">
+                  <MessageCircle size={16} />
+                </div>
                 <div className="mp-dropdown-wrap" ref={menuRef}>
                   <div
                     className="mp-navbar-avatar"
@@ -284,11 +303,25 @@ export default function MapPage() {
               </>
             ) : (
               <>
+                <span className="mp-navbar-link" onClick={() => navigate("/search")}>Search</span>
+                <span className="mp-navbar-link" onClick={() => navigate("/map")}>Peta</span>
+                <div className="mp-navbar-divider" />
                 <span className="mp-navbar-login" onClick={() => navigate("/auth")}>Masuk</span>
                 <button className="mp-navbar-cta" onClick={() => navigate("/auth")}>Daftar Gratis</button>
               </>
             )}
           </div>
+
+          {/* Mobile kanan: chat icon hanya untuk user login */}
+          {isLoggedIn && (
+            <div
+              className="mp-chat-btn mp-mobile-chat"
+              onClick={() => navigate("/chat")}
+              title="Chat"
+            >
+              <MessageCircle size={16} />
+            </div>
+          )}
         </nav>
 
         {/* ── MAP AREA ── */}
@@ -382,29 +415,39 @@ export default function MapPage() {
           </button>
         </div>
 
-        {/* ── BOTTOM NAV (mobile) ── */}
+        {/* ── BOTTOM NAV ──
+            Guest:  Home · Search · Peta · Masuk
+            Login:  Home · Search · Peta · Favorit · Profil
+        ── */}
         <nav className="mp-bottom-nav">
-          {NAV_ITEMS.map(({ label, path, icon: Icon }) => {
+          {(isLoggedIn ? MOBILE_NAV : GUEST_MOBILE).map(({ label, path, icon: Icon }) => {
             const isActive = currentPath === path;
             const isProfil = path === "/profil";
             return (
               <button
-                key={label}
+                key={path}
                 className={`mp-bn-item${isActive ? " active" : ""}`}
-                onClick={() => {
-                  if (isProfil && !isLoggedIn) { navigate("/auth"); return; }
-                  navigate(path);
-                }}
+                onClick={() => navigate(path)}
               >
                 {isProfil && isLoggedIn
                   ? <div className="mp-bn-avatar">{initials}</div>
                   : <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
                 }
                 <span>{label}</span>
-                {isActive && <div className="mp-bn-dot" />}
               </button>
             );
           })}
+
+          {/* Tombol Masuk — hanya untuk guest */}
+          {!isLoggedIn && (
+            <button
+              className={`mp-bn-item${currentPath === "/auth" ? " active" : ""}`}
+              onClick={() => navigate("/auth")}
+            >
+              <User size={20} strokeWidth={currentPath === "/auth" ? 2.5 : 1.8} />
+              <span>Masuk</span>
+            </button>
+          )}
         </nav>
 
       </div>

@@ -16,6 +16,10 @@ import {
   SlidersHorizontal,
   Home,
   MessageCircle,
+  Shield,
+  BadgeCheck,
+  Tag,
+  MessageSquare,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import KostCard from "../../components/kost/KostCard";
@@ -40,34 +44,83 @@ function KostCardSkeleton() {
 
 const FILTERS = ["Semua", "Putra", "Putri", "Campur"];
 
-/* Navbar: Home, Search, Map, Favorite, Profil */
+/*
+  SINGLE SOURCE OF TRUTH navigasi.
+  desktop:     tampil di top navbar sebagai link teks
+  mobile:      tampil di bottom nav saat sudah login
+  guestMobile: tampil di bottom nav saat belum login
+*/
 const NAV_ITEMS = [
-  { label: "Home", path: "/", icon: Home },
-  { label: "Search", path: "/search", icon: Search },
-  { label: "Peta", path: "/map", icon: Map },
-  { label: "Favorit", path: "/favorit", icon: Heart },
-  { label: "Profil", path: "/profil", icon: User },
+  { label: "Home",    path: "/",        icon: Home,          desktop: true,  mobile: true,  guestMobile: true  },
+  { label: "Search",  path: "/search",  icon: Search,        desktop: true,  mobile: true,  guestMobile: true  },
+  { label: "Peta",    path: "/map",     icon: Map,           desktop: true,  mobile: true,  guestMobile: true  },
+  { label: "Favorit", path: "/like",    icon: Heart,         desktop: true,  mobile: true,  guestMobile: false },
+  { label: "Chat",    path: "/chat",    icon: MessageCircle, desktop: false, mobile: false, guestMobile: false },
+  { label: "Profil",  path: "/profil",  icon: User,          desktop: false, mobile: true,  guestMobile: false },
+];
+
+const DESKTOP_LINKS = NAV_ITEMS.filter((n) => n.desktop);
+const MOBILE_NAV    = NAV_ITEMS.filter((n) => n.mobile);
+const GUEST_MOBILE  = NAV_ITEMS.filter((n) => n.guestMobile);
+
+const WHY_ITEMS = [
+  { icon: Search,      title: "Pencarian Cerdas",      desc: "Filter berdasarkan gender, harga, lokasi kampus, dan fasilitas dalam hitungan detik." },
+  { icon: Map,         title: "Peta Interaktif",        desc: "Lihat sebaran kost di peta, bandingkan jarak ke kampus atau tempat kerja kamu." },
+  { icon: MessageSquare, title: "Chat Langsung",        desc: "Hubungi pemilik kost tanpa perantara, negosiasi harga lebih mudah dan transparan." },
+  { icon: Heart,       title: "Simpan Favorit",         desc: "Tandai kost yang menarik dan bandingkan sebelum memutuskan pilihan terbaik." },
+  { icon: BadgeCheck,  title: "Listing Terverifikasi",  desc: "Setiap kost dicek dan diverifikasi tim Atap agar informasi selalu akurat." },
+  { icon: Tag,         title: "Harga Transparan",       desc: "Tidak ada biaya tersembunyi. Harga yang kamu lihat adalah harga yang kamu bayar." },
+];
+
+const FOOTER_COLS = [
+  {
+    title: "Platform",
+    links: [
+      { label: "Cari Kost",       path: "/search" },
+      { label: "Peta Kost",       path: "/map"    },
+      { label: "Kost Favorit",    path: "/like"   },
+      { label: "Semua Listing",   path: "/semua"  },
+    ],
+  },
+  {
+    title: "Untuk Pemilik",
+    links: [
+      { label: "Daftarkan Kost",  path: "/owner/dashboard" },
+      { label: "Kelola Listing",  path: "/owner/dashboard" },
+      { label: "Panduan Harga",   path: null               },
+      { label: "FAQ Pemilik",     path: null               },
+    ],
+  },
+  {
+    title: "Perusahaan",
+    links: [
+      { label: "Tentang Kami",    path: null },
+      { label: "Karir",           path: null },
+      { label: "Blog",            path: null },
+      { label: "Hubungi Kami",    path: null },
+    ],
+  },
 ];
 
 export default function DashboardPage() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const menuRef = useRef(null);
+  const navigate    = useNavigate();
+  const location    = useLocation();
+  const menuRef     = useRef(null);
+  const currentPath = location.pathname;
 
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [activeFilter, setActiveFilter] = useState("Semua");
-  const [favorites, setFavorites] = useState([]);
-  const [showMenu, setShowMenu] = useState(false);
-  const [showNotif, setShowNotif] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(2);
-  const [showDrawer, setShowDrawer] = useState(false);
+  const [data,         setData]        = useState([]);
+  const [loading,      setLoading]     = useState(true);
+  const [error,        setError]       = useState(null);
+  const [activeFilter, setActiveFilter]= useState("Semua");
+  const [favorites,    setFavorites]   = useState([]);
+  const [showMenu,     setShowMenu]    = useState(false);
+  const [showNotif,    setShowNotif]   = useState(false);
+  const [unreadCount,  setUnreadCount] = useState(2);
 
-  const user = JSON.parse(localStorage.getItem("user") || "null");
+  const user       = JSON.parse(localStorage.getItem("user") || "null");
   const isLoggedIn = !!user;
-  const userName = user?.name || "Guest";
-  const token = localStorage.getItem("token");
+  const userName   = user?.name || "Guest";
+  const token      = localStorage.getItem("token");
 
   const initials = isLoggedIn
     ? userName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
@@ -82,13 +135,7 @@ export default function DashboardPage() {
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
-  /* lock body scroll when drawer open */
-  useEffect(() => {
-    document.body.style.overflow = showDrawer ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
-  }, [showDrawer]);
-
-  /* favorites */
+  /* fetch favorites */
   useEffect(() => {
     if (!isLoggedIn) return;
     fetch("http://localhost:3000/favorites", {
@@ -101,7 +148,7 @@ export default function DashboardPage() {
 
   const handleToggleLike = async (id) => {
     if (!isLoggedIn) { navigate("/auth"); return; }
-    const idStr = String(id);
+    const idStr   = String(id);
     const isLiked = favorites.includes(idStr);
     try {
       const res = await fetch(`http://localhost:3000/favorites/${idStr}`, {
@@ -117,27 +164,27 @@ export default function DashboardPage() {
   const fetchListings = async () => {
     setLoading(true); setError(null);
     try {
-      const res = await fetch("http://localhost:3000/listings");
+      const res  = await fetch("http://localhost:3000/listings");
       if (!res.ok) throw new Error(`${res.status}`);
       const json = await res.json();
-      const raw = Array.isArray(json) ? json : Array.isArray(json.data) ? json.data : [];
+      const raw  = Array.isArray(json) ? json : Array.isArray(json.data) ? json.data : [];
       setData(
         raw.map((item) => {
           const room = item.roomTypes?.[0] || {};
           return {
-            id: String(item.id),
-            name: item.name || "Tanpa Nama",
-            location: item.address || "Lokasi tidak tersedia",
-            price: room.price ?? 0,
-            gender: (item.genderType || "").toLowerCase(),
-            image: room.photos?.[0]?.url || "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267",
+            id:        String(item.id),
+            name:      item.name     || "Tanpa Nama",
+            location:  item.address  || "Lokasi tidak tersedia",
+            price:     room.price    ?? 0,
+            gender:    (item.genderType || "").toLowerCase(),
+            image:     room.photos?.[0]?.url || "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267",
             available: room.availableCount ?? 0,
             isPremium: item.isPremium || false,
           };
         })
       );
     } catch { setError("Gagal memuat data"); }
-    finally { setLoading(false); }
+    finally  { setLoading(false); }
   };
 
   useEffect(() => { fetchListings(); }, []);
@@ -155,8 +202,9 @@ export default function DashboardPage() {
     navigate("/auth");
   };
 
-  const renderCards = (count = 6) => {
-    if (loading) return Array.from({ length: count }).map((_, i) => <KostCardSkeleton key={i} />);
+  const renderCards = (count = 8) => {
+    if (loading)
+      return Array.from({ length: count }).map((_, i) => <KostCardSkeleton key={i} />);
     if (error)
       return (
         <div className="atap-empty" style={{ gridColumn: "1/-1" }}>
@@ -179,17 +227,14 @@ export default function DashboardPage() {
         key={item.id}
         item={item}
         isLiked={favorites.includes(item.id)}
-        onLike={(e) => {
-          if (e && e.stopPropagation) e.stopPropagation();
-          handleToggleLike(item.id);
-        }}
+        onLike={(e) => { e?.stopPropagation(); handleToggleLike(item.id); }}
         onClick={() => navigate(`/detail/${item.id}`)}
       />
     ));
   };
 
   /* =========================
-      CSS
+     CSS
   ========================= */
   const css = `
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;700&display=swap');
@@ -200,30 +245,35 @@ export default function DashboardPage() {
   .atap-root { font-family: 'DM Sans', sans-serif; color: #0F172A; }
   .atap-root h1, .atap-root h2, .atap-root h3 { font-family: 'Plus Jakarta Sans', sans-serif; }
 
-  /* ---- NAVBAR ---- */
+  /* =====================
+     TOP NAVBAR
+  ===================== */
   .atap-navbar {
     position: sticky; top: 0; z-index: 100;
     height: 72px;
-    background: rgba(255,255,255,.88);
+    background: rgba(255,255,255,.92);
     backdrop-filter: blur(16px);
     border-bottom: 1px solid #EAEFF5;
     display: flex; align-items: center; justify-content: space-between;
     padding: 0 42px;
   }
   .atap-navbar-logo {
-    font-size: 25px; font-weight: 800; letter-spacing: -1px; color: #0F172A;
-    cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 25px; font-weight: 800; letter-spacing: -1px;
+    color: #0F172A; cursor: pointer;
   }
   .atap-navbar-logo span { color: #2563EB; }
-  .atap-navbar-links { display: flex; align-items: center; gap: 6px; }
+
+  .atap-navbar-links { display: flex; align-items: center; gap: 4px; }
   .atap-navbar-link {
-    font-size: 14px; font-weight: 600; color: #64748B; cursor: pointer;
-    transition: .2s; padding: 6px 10px; border-radius: 8px;
-    font-family: 'DM Sans', sans-serif;
+    font-size: 14px; font-weight: 600; color: #64748B;
+    cursor: pointer; padding: 7px 11px; border-radius: 9px;
+    transition: .15s; font-family: 'DM Sans', sans-serif;
   }
-  .atap-navbar-link:hover { color: #2563EB; background: #F1F5F9; }
+  .atap-navbar-link:hover  { color: #2563EB; background: #EFF6FF; }
   .atap-navbar-link.active { color: #2563EB; }
-  .atap-navbar-divider { width: 1px; height: 22px; background: #E2E8F0; margin: 0 8px; }
+  .atap-navbar-divider { width: 1px; height: 22px; background: #E2E8F0; margin: 0 6px; }
+
   .atap-navbar-login {
     font-size: 14px; font-weight: 700; color: #475569;
     cursor: pointer; padding: 8px 14px; border-radius: 10px; transition: .15s;
@@ -238,65 +288,18 @@ export default function DashboardPage() {
   }
   .atap-navbar-cta:hover { transform: translateY(-1px); box-shadow: 0 12px 25px rgba(37,99,235,.22); }
 
-  .atap-chat-icon-btn {
+  /* chat icon button */
+  .atap-chat-btn {
     width: 36px; height: 36px; border-radius: 50%;
     background: #F1F5F9; color: #475569;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; border: 1.5px solid #E2E8F0; transition: .2s;
-    position: relative; margin-left: 2px;
+    margin-left: 2px;
   }
-  .atap-chat-icon-btn:hover { background: #EFF6FF; color: #2563EB; border-color: #BFDBFE; transform: scale(1.05); }
+  .atap-chat-btn:hover { background: #EFF6FF; color: #2563EB; border-color: #BFDBFE; }
+  .atap-mobile-chat { display: none; }
 
-  .atap-burger {
-    display: none; flex-direction: column; gap: 5px;
-    cursor: pointer; padding: 8px; border-radius: 10px;
-    border: none; background: none; transition: .15s;
-  }
-  .atap-burger:hover { background: #F1F5F9; }
-  .atap-burger span { display: block; width: 20px; height: 2px; background: #475569; border-radius: 2px; }
-
-  .atap-drawer-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,.4);
-    z-index: 400; backdrop-filter: blur(3px);
-    animation: overlayIn .2s ease;
-  }
-  @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
-  .atap-drawer {
-    position: fixed; top: 0; right: 0; bottom: 0; width: 280px;
-    background: white; z-index: 401;
-    padding: 28px 16px 24px;
-    display: flex; flex-direction: column; gap: 4px;
-    box-shadow: -4px 0 32px rgba(0,0,0,.12);
-    transform: translateX(100%);
-    transition: transform .28s cubic-bezier(.4,0,.2,1);
-  }
-  .atap-drawer.open { transform: translateX(0); }
-  .atap-drawer-header {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 20px; padding: 0 8px;
-  }
-  .atap-drawer-logo { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 22px; font-weight: 800; letter-spacing: -1px; color: #0F172A; }
-  .atap-drawer-logo span { color: #2563EB; }
-  .atap-drawer-close {
-    width: 32px; height: 32px; border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; color: #64748B; border: none; background: none; transition: .15s;
-  }
-  .atap-drawer-close:hover { background: #F1F5F9; color: #0F172A; }
-  .atap-drawer-item {
-    display: flex; align-items: center; gap: 12px;
-    padding: 13px 16px; border-radius: 12px;
-    font-size: 14px; font-weight: 600; color: #334155;
-    cursor: pointer; border: none; background: none;
-    width: 100%; text-align: left;
-    font-family: 'DM Sans', sans-serif; transition: .13s;
-  }
-  .atap-drawer-item:hover { background: #F1F5F9; }
-  .atap-drawer-item.active { color: #2563EB; background: #EFF6FF; }
-  .atap-drawer-item.danger { color: #EF4444; }
-  .atap-drawer-item.danger:hover { background: #FEF2F2; }
-  .atap-drawer-divider { height: 1px; background: #E2E8F0; margin: 6px 8px; }
-
+  /* avatar + dropdown */
   .atap-dropdown-wrap { position: relative; }
   .atap-navbar-avatar {
     width: 36px; height: 36px; border-radius: 50%;
@@ -310,7 +313,7 @@ export default function DashboardPage() {
   .atap-navbar-dropdown {
     position: absolute; top: calc(100% + 10px); right: 0;
     background: white; border: 1px solid #E2E8F0; border-radius: 16px;
-    padding: 8px; min-width: 170px;
+    padding: 8px; min-width: 175px;
     box-shadow: 0 8px 32px rgba(0,0,0,.10);
     display: flex; flex-direction: column; gap: 2px;
     z-index: 200; animation: ddFadeIn .15s ease;
@@ -326,11 +329,14 @@ export default function DashboardPage() {
     color: #334155; cursor: pointer; width: 100%; text-align: left;
     transition: .13s; font-family: 'DM Sans', sans-serif;
   }
-  .atap-navbar-dropdown button:hover { background: #F1F5F9; }
-  .atap-navbar-dropdown .dd-divider { height: 1px; background: #E2E8F0; margin: 4px 0; }
+  .atap-navbar-dropdown button:hover  { background: #F1F5F9; }
+  .atap-navbar-dropdown .dd-divider   { height: 1px; background: #E2E8F0; margin: 4px 0; }
   .atap-navbar-dropdown button.danger { color: #EF4444; }
   .atap-navbar-dropdown button.danger:hover { background: #FEF2F2; }
 
+  /* =====================
+     HERO
+  ===================== */
   .atap-hero {
     position: relative; overflow: hidden; padding: 64px 24px 72px;
     background:
@@ -362,6 +368,9 @@ export default function DashboardPage() {
   }
   .atap-search-btn:hover { transform: translateY(-1px); }
 
+  /* =====================
+     CONTENT SECTION
+  ===================== */
   .atap-section { max-width: 1180px; margin: auto; padding: 42px 28px; }
   .atap-sec-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
   .atap-sec-title { font-size: 22px; font-weight: 800; letter-spacing: -0.8px; font-family: 'Plus Jakarta Sans', sans-serif; }
@@ -373,18 +382,13 @@ export default function DashboardPage() {
     background: white; font-size: 13px; font-weight: 700; color: #64748B;
     cursor: pointer; transition: .2s; font-family: 'DM Sans', sans-serif;
   }
-  .atap-chip:hover { border-color: #93C5FD; color: #2563EB; }
+  .atap-chip:hover  { border-color: #93C5FD; color: #2563EB; }
   .atap-chip.active { background: linear-gradient(135deg, #1D4ED8, #2563EB); border-color: #2563EB; color: white; }
 
-  /* ---- GRID (Desktop 4 layout) ---- */
-  .atap-grid { 
-    display: grid; 
-    grid-template-columns: repeat(4, 1fr); 
-    gap: 18px; 
-  }
+  .atap-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
 
   .atap-skeleton { background: white; border-radius: 18px; overflow: hidden; border: 1px solid #EEF2F7; animation: pulse 1.4s infinite; }
-  .atap-skeleton-img { height: 170px; background: #E2E8F0; }
+  .atap-skeleton-img  { height: 170px; background: #E2E8F0; }
   .atap-skeleton-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
   .atap-skeleton-line { height: 12px; border-radius: 999px; background: #E2E8F0; }
   @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
@@ -397,129 +401,257 @@ export default function DashboardPage() {
     font-weight: 700; font-family: 'DM Sans', sans-serif;
   }
 
+  /* =====================
+     KENAPA ATAP?
+  ===================== */
+  .atap-why-section {
+    background: linear-gradient(180deg, #F8FAFC 0%, #EFF6FF 100%);
+    border-top: 1px solid #E2E8F0;
+    border-bottom: 1px solid #E2E8F0;
+  }
+  .atap-why-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+  .atap-why-card {
+    background: white;
+    border: 1px solid #E2E8F0;
+    border-radius: 20px;
+    padding: 26px 22px;
+    transition: .2s;
+  }
+  .atap-why-card:hover {
+    border-color: #BFDBFE;
+    box-shadow: 0 8px 28px rgba(37,99,235,.09);
+    transform: translateY(-2px);
+  }
+  .atap-why-icon {
+    width: 44px; height: 44px; border-radius: 12px;
+    background: #EFF6FF; color: #2563EB;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 16px;
+  }
+  .atap-why-title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 15px; font-weight: 700; color: #0F172A;
+    margin-bottom: 8px;
+  }
+  .atap-why-desc { font-size: 13px; line-height: 1.65; color: #64748B; }
+
+  /* =====================
+     CTA BANNER
+  ===================== */
+  .atap-cta-banner {
+    max-width: 1180px; margin: 0 auto; padding: 0 28px 52px;
+  }
+  .atap-cta-inner {
+    background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 60%, #2563EB 100%);
+    border-radius: 24px;
+    padding: 52px 48px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 32px; position: relative; overflow: hidden;
+  }
+  .atap-cta-inner::before {
+    content: '';
+    position: absolute; top: -60px; right: -60px;
+    width: 280px; height: 280px; border-radius: 50%;
+    background: rgba(255,255,255,.05);
+  }
+  .atap-cta-text h2 {
+    font-size: 26px; font-weight: 800; color: white;
+    margin: 0 0 10px; letter-spacing: -0.8px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+  .atap-cta-text p { font-size: 14px; color: rgba(255,255,255,.65); margin: 0; line-height: 1.6; }
+  .atap-cta-btns { display: flex; gap: 12px; flex-shrink: 0; position: relative; z-index: 1; }
+  .atap-cta-btn-primary {
+    border: none; cursor: pointer;
+    background: white; color: #1D4ED8;
+    padding: 13px 26px; border-radius: 14px;
+    font-size: 14px; font-weight: 700;
+    font-family: 'DM Sans', sans-serif; transition: .2s;
+  }
+  .atap-cta-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(0,0,0,.15); }
+  .atap-cta-btn-ghost {
+    border: 1.5px solid rgba(255,255,255,.3); cursor: pointer;
+    background: rgba(255,255,255,.1); color: white;
+    padding: 13px 26px; border-radius: 14px;
+    font-size: 14px; font-weight: 700;
+    font-family: 'DM Sans', sans-serif; transition: .2s;
+    backdrop-filter: blur(8px);
+  }
+  .atap-cta-btn-ghost:hover { background: rgba(255,255,255,.18); }
+
+  /* =====================
+     FOOTER
+  ===================== */
+  .atap-footer {
+    background: #0F172A;
+    color: #94A3B8;
+  }
+  .atap-footer-inner {
+    max-width: 1180px; margin: auto; padding: 52px 28px 44px;
+    display: flex; gap: 60px;
+  }
+  .atap-footer-brand { flex: 1.2; }
+  .atap-footer-logo {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 24px; font-weight: 800; color: white;
+    letter-spacing: -1px; margin-bottom: 14px;
+  }
+  .atap-footer-logo span { color: #3B82F6; }
+  .atap-footer-brand p {
+    font-size: 13.5px; line-height: 1.7; color: #64748B;
+    max-width: 270px; margin: 0 0 22px;
+  }
+  .atap-footer-socials { display: flex; gap: 10px; }
+  .atap-footer-social {
+    font-size: 12px; font-weight: 700; color: #475569;
+    background: #1E293B; border: 1px solid #334155;
+    padding: 6px 14px; border-radius: 999px; cursor: pointer; transition: .15s;
+  }
+  .atap-footer-social:hover { color: white; border-color: #3B82F6; }
+
+  .atap-footer-links { flex: 2; display: flex; gap: 40px; }
+  .atap-footer-col { display: flex; flex-direction: column; gap: 11px; flex: 1; }
+  .atap-footer-col-title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 13px; font-weight: 700; color: white;
+    margin-bottom: 4px; letter-spacing: .3px;
+  }
+  .atap-footer-link {
+    font-size: 13px; color: #64748B; cursor: pointer; transition: .13s;
+    background: none; border: none; padding: 0; text-align: left;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .atap-footer-link:hover { color: #93C5FD; }
+
+  .atap-footer-divider { border: none; border-top: 1px solid #1E293B; margin: 0; }
+  .atap-footer-bottom {
+    max-width: 1180px; margin: 0 auto; padding: 20px 28px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 12px; color: #475569;
+  }
+  .atap-footer-bottom-links { display: flex; gap: 20px; }
+  .atap-footer-bottom-links span { cursor: pointer; transition: .13s; }
+  .atap-footer-bottom-links span:hover { color: #94A3B8; }
+
+  /* =====================
+     BOTTOM NAV — hidden by default
+  ===================== */
   .atap-bottom-nav { display: none; }
 
+  /* =====================
+     RESPONSIVE
+  ===================== */
   @media(max-width: 1100px) { .atap-grid { grid-template-columns: repeat(3, 1fr); } }
 
   @media(max-width: 900px) {
-    .atap-navbar { padding: 0 20px; }
-    .atap-hero { padding: 56px 20px 64px; }
-    .atap-hero p { font-size: 15px; }
+    .atap-navbar  { padding: 0 20px; }
+    .atap-hero    { padding: 56px 20px 64px; }
+    .atap-hero p  { font-size: 15px; }
     .atap-section { padding: 40px 20px; }
+    .atap-grid    { grid-template-columns: repeat(2, 1fr); }
+    .atap-why-grid { grid-template-columns: repeat(2, 1fr); }
+    .atap-footer-inner { flex-direction: column; gap: 36px; }
+    .atap-footer-brand p { max-width: 100%; }
+    .atap-cta-inner { flex-direction: column; text-align: center; padding: 40px 28px; }
+    .atap-cta-btns { justify-content: center; }
   }
 
   @media(max-width: 768px) {
     .atap-navbar-links { display: none; }
-    .atap-burger { display: flex; }
+    .atap-mobile-chat  { display: flex; }
   }
 
-  /* ---- MOBILE (2 Kolom & Layout Selang Seling) ---- */
   @media(max-width: 640px) {
-    .atap-navbar { height: 60px; padding: 0 16px; }
-
-    .atap-hero { padding: 48px 16px 56px; }
+    .atap-navbar  { height: 60px; padding: 0 16px; }
+    .atap-hero    { padding: 48px 16px 56px; }
     .atap-hero h1 { font-size: 32px; line-height: 1.15; }
-    .atap-hero p { font-size: 14px; }
+    .atap-hero p  { font-size: 14px; }
     .atap-search-wrap { flex-direction: column; align-items: stretch; gap: 8px; padding: 12px; }
-    .atap-search-row { display: flex; align-items: center; gap: 8px; }
-    .atap-search-btn { width: 100%; justify-content: center; }
-    
-    /* Grid Mobile: 2 Kolom Kesamping */
-    .atap-grid { 
-        grid-template-columns: repeat(2, 1fr); 
-        gap: 12px; 
-    }
+    .atap-search-btn  { width: 100%; justify-content: center; }
+    .atap-grid        { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .atap-sec-header  { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .atap-section     { padding-bottom: 96px; }
+    .atap-why-grid    { grid-template-columns: 1fr 1fr; gap: 12px; }
+    .atap-why-card    { padding: 20px 16px; }
+    .atap-footer-links { flex-wrap: wrap; gap: 28px; }
+    .atap-footer-bottom { flex-direction: column; gap: 10px; text-align: center; }
+    .atap-footer-bottom-links { flex-wrap: wrap; justify-content: center; gap: 12px; }
+    .atap-cta-banner  { padding: 0 16px 40px; }
+    .atap-cta-inner   { padding: 32px 20px; border-radius: 18px; }
+    .atap-cta-text h2 { font-size: 20px; }
+    .atap-cta-btns    { flex-direction: column; width: 100%; }
+    .atap-cta-btn-primary, .atap-cta-btn-ghost { width: 100%; text-align: center; }
 
-    /* Logika Selang-seling: 2 kesamping (default) lalu 2 kebawah (full width) */
-    /* Item ke 3 dan 4 akan memakan 2 kolom (tampil kebawah) */
-    .atap-grid > *:nth-child(4n+3),
-    .atap-grid > *:nth-child(4n+4) {
-      grid-column: span 2;
-    }
-
-    .atap-sec-header { flex-direction: column; align-items: flex-start; gap: 10px; }
-    .atap-section { padding-bottom: 96px; }
-
+    /* BOTTOM NAV */
     .atap-bottom-nav {
       display: flex;
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      z-index: 300;
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 300;
       background: rgba(255,255,255,.97);
       backdrop-filter: blur(20px);
       border-top: 1px solid #E2E8F0;
       padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
-      justify-content: space-around;
-      align-items: center;
+      justify-content: space-around; align-items: center;
       box-shadow: 0 -4px 20px rgba(0,0,0,.07);
     }
-
     .atap-bn-item {
       display: flex; flex-direction: column; align-items: center; gap: 3px;
       padding: 6px 10px; border: none; background: none;
-      border-radius: 12px; cursor: pointer; color: #94A3B8;
-      transition: color .15s; min-width: 52px;
-      font-family: 'DM Sans', sans-serif;
+      border-radius: 12px; cursor: pointer;
+      color: #94A3B8; transition: color .15s;
+      min-width: 52px; font-family: 'DM Sans', sans-serif;
     }
     .atap-bn-item.active { color: #2563EB; }
-    .atap-bn-item span { font-size: 10px; font-weight: 700; letter-spacing: .1px; }
-
+    .atap-bn-item span   { font-size: 10px; font-weight: 700; letter-spacing: .1px; }
+    .atap-bn-item.active::after {
+      content: ''; display: block;
+      width: 4px; height: 4px;
+      background: #2563EB; border-radius: 50%; margin-top: 1px;
+    }
     .atap-bn-avatar {
       width: 24px; height: 24px; border-radius: 50%;
       background: #DBEAFE; color: #1D4ED8;
       font-size: 8px; font-weight: 800;
       display: flex; align-items: center; justify-content: center;
-      border: 2px solid #BFDBFE;
-      font-family: 'DM Sans', sans-serif;
+      border: 2px solid #BFDBFE; font-family: 'DM Sans', sans-serif;
     }
     .atap-bn-item.active .atap-bn-avatar { background: #BFDBFE; border-color: #2563EB; }
-
-    .atap-bn-item.active::after {
-      content: '';
-      display: block;
-      width: 4px; height: 4px;
-      background: #2563EB;
-      border-radius: 50%;
-      margin-top: 1px;
-    }
   }
   `;
-
-  const currentPath = location.pathname;
 
   return (
     <>
       <style>{css}</style>
       <div className="atap-root">
 
-        {/* ---- NAVBAR (desktop) ---- */}
+        {/* =====================
+            TOP NAVBAR
+        ===================== */}
         <nav className="atap-navbar">
           <div className="atap-navbar-logo" onClick={() => navigate("/")}>
             Atap<span>.</span>
           </div>
 
+          {/* Desktop links */}
           <div className="atap-navbar-links">
             {isLoggedIn ? (
               <>
-                {NAV_ITEMS.filter(({ path }) => path !== "/profil").map(({ label, path }) => (
+                {DESKTOP_LINKS.map(({ label, path }) => (
                   <span
-                    key={label}
-                    className={`atap-navbar-link${path === currentPath ? " active" : ""}`}
+                    key={path}
+                    className={`atap-navbar-link${currentPath === path ? " active" : ""}`}
                     onClick={() => navigate(path)}
                   >
                     {label}
                   </span>
                 ))}
                 <div className="atap-navbar-divider" />
-
-                <div
-                  className="atap-chat-icon-btn"
-                  onClick={() => navigate("/chat")}
-                  title="Pesan"
-                >
+                <div className="atap-chat-btn" onClick={() => navigate("/chat")} title="Chat">
                   <MessageCircle size={16} />
                 </div>
-
                 <div className="atap-dropdown-wrap" ref={menuRef}>
                   <div
                     className="atap-navbar-avatar"
@@ -555,66 +687,21 @@ export default function DashboardPage() {
             )}
           </div>
 
-          <button className="atap-burger" onClick={() => setShowDrawer(true)} aria-label="Buka menu">
-            <span /><span /><span />
-          </button>
+          {/* Mobile kanan: chat icon hanya untuk user login */}
+          {isLoggedIn && (
+            <div
+              className="atap-chat-btn atap-mobile-chat"
+              onClick={() => navigate("/chat")}
+              title="Chat"
+            >
+              <MessageCircle size={16} />
+            </div>
+          )}
         </nav>
 
-        {/* ---- MOBILE DRAWER ---- */}
-        {showDrawer && (
-          <>
-            <div className="atap-drawer-overlay" onClick={() => setShowDrawer(false)} />
-            <div className="atap-drawer open">
-              <div className="atap-drawer-header">
-                <div className="atap-drawer-logo">Atap<span>.</span></div>
-                <button className="atap-drawer-close" onClick={() => setShowDrawer(false)}>✕</button>
-              </div>
-
-              {isLoggedIn ? (
-                <>
-                  {NAV_ITEMS.map(({ label, path, icon: Icon }) => (
-                    <button
-                      key={label}
-                      className={`atap-drawer-item${path === currentPath ? " active" : ""}`}
-                      onClick={() => { navigate(path); setShowDrawer(false); }}
-                    >
-                      <Icon size={18} /> {label}
-                    </button>
-                  ))}
-                  <button
-                    className="atap-drawer-item"
-                    onClick={() => { navigate("/chat"); setShowDrawer(false); }}
-                  >
-                    <MessageCircle size={18} /> Chat
-                  </button>
-                  <div className="atap-drawer-divider" />
-                  <button className="atap-drawer-item" onClick={() => { navigate("/settings/account"); setShowDrawer(false); }}>
-                    <Settings size={18} /> Pengaturan
-                  </button>
-                  <div className="atap-drawer-divider" />
-                  <button className="atap-drawer-item danger" onClick={doLogout}>
-                    <LogOut size={18} /> Logout
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button className="atap-drawer-item" onClick={() => { navigate("/search"); setShowDrawer(false); }}>
-                    <Search size={18} /> Search
-                  </button>
-                  <button className="atap-drawer-item" onClick={() => { navigate("/map"); setShowDrawer(false); }}>
-                    <Map size={18} /> Peta
-                  </button>
-                  <div className="atap-drawer-divider" />
-                  <button className="atap-drawer-item" onClick={() => { navigate("/auth"); setShowDrawer(false); }}>
-                    <User size={18} /> Masuk / Daftar
-                  </button>
-                </>
-              )}
-            </div>
-          </>
-        )}
-
-        {/* ---- HERO ---- */}
+        {/* =====================
+            HERO
+        ===================== */}
         <div className="atap-hero">
           <div className="atap-blob" style={{ width: 320, height: 320, top: -120, right: -80 }} />
           <div className="atap-blob" style={{ width: 220, height: 220, left: -70, bottom: -80 }} />
@@ -638,7 +725,9 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* ---- CONTENT ---- */}
+        {/* =====================
+            CONTENT — LISTINGS
+        ===================== */}
         <div className="atap-section">
           <div className="atap-sec-header">
             <div className="atap-sec-title">Rekomendasi kost</div>
@@ -650,7 +739,7 @@ export default function DashboardPage() {
             {FILTERS.map((f) => (
               <button
                 key={f}
-                className={`atap-chip ${activeFilter === f ? "active" : ""}`}
+                className={`atap-chip${activeFilter === f ? " active" : ""}`}
                 onClick={() => setActiveFilter(f)}
               >
                 {f}
@@ -666,6 +755,49 @@ export default function DashboardPage() {
           <KampusSection />
         </div>
 
+        {/* =====================
+            KENAPA ATAP?
+        ===================== */}
+        <div className="atap-why-section">
+          <div className="atap-section">
+            <div className="atap-sec-header">
+              <div className="atap-sec-title">Kenapa pilih Atap?</div>
+            </div>
+            <div className="atap-why-grid">
+              {WHY_ITEMS.map(({ icon: Icon, title, desc }) => (
+                <div key={title} className="atap-why-card">
+                  <div className="atap-why-icon"><Icon size={20} strokeWidth={1.8} /></div>
+                  <div className="atap-why-title">{title}</div>
+                  <div className="atap-why-desc">{desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* =====================
+            CTA BANNER
+        ===================== */}
+        <div className="atap-cta-banner">
+          <div className="atap-cta-inner">
+            <div className="atap-cta-text">
+              <h2>Punya kost? Daftarkan sekarang.</h2>
+              <p>Jangkau ribuan pencari kost aktif setiap hari.<br />Gratis daftar, mudah kelola, cepat dapat penyewa.</p>
+            </div>
+            <div className="atap-cta-btns">
+              <button
+                className="atap-cta-btn-primary"
+                onClick={() => navigate(isLoggedIn ? "/owner/dashboard" : "/auth")}
+              >
+                Daftarkan Kost
+              </button>
+              <button className="atap-cta-btn-ghost" onClick={() => navigate("/map")}>
+                Lihat di Peta
+              </button>
+            </div>
+          </div>
+        </div>
+
         {showNotif && isLoggedIn && (
           <NotificationPanel
             onClose={() => setShowNotif(false)}
@@ -673,20 +805,67 @@ export default function DashboardPage() {
           />
         )}
 
-        {/* ---- BOTTOM NAV (mobile) ---- */}
+        {/* =====================
+            FOOTER
+        ===================== */}
+        <footer className="atap-footer">
+          <div className="atap-footer-inner">
+            {/* Brand */}
+            <div className="atap-footer-brand">
+              <div className="atap-footer-logo">Atap<span>.</span></div>
+              <p>Platform pencarian kost terpercaya untuk mahasiswa dan pekerja di seluruh Indonesia.</p>
+              <div className="atap-footer-socials">
+                {["Instagram", "Twitter", "TikTok"].map((s) => (
+                  <span key={s} className="atap-footer-social">{s}</span>
+                ))}
+              </div>
+            </div>
+
+            {/* Links */}
+            <div className="atap-footer-links">
+              {FOOTER_COLS.map(({ title, links }) => (
+                <div key={title} className="atap-footer-col">
+                  <div className="atap-footer-col-title">{title}</div>
+                  {links.map(({ label, path }) => (
+                    <button
+                      key={label}
+                      className="atap-footer-link"
+                      onClick={() => path && navigate(path)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <hr className="atap-footer-divider" />
+
+          <div className="atap-footer-bottom">
+            <span>© {new Date().getFullYear()} Atap. Hak cipta dilindungi.</span>
+            <div className="atap-footer-bottom-links">
+              <span>Kebijakan Privasi</span>
+              <span>Syarat &amp; Ketentuan</span>
+              <span>Cookie</span>
+            </div>
+          </div>
+        </footer>
+
+        {/* =====================
+            MOBILE BOTTOM NAV
+            Guest:  Home · Search · Peta · Masuk
+            Login:  Home · Search · Peta · Favorit · Profil
+        ===================== */}
         <nav className="atap-bottom-nav">
-          {NAV_ITEMS.map(({ label, path, icon: Icon }) => {
+          {(isLoggedIn ? MOBILE_NAV : GUEST_MOBILE).map(({ label, path, icon: Icon }) => {
             const isActive = currentPath === path;
             const isProfil = path === "/profil";
-
             return (
               <button
-                key={label}
+                key={path}
                 className={`atap-bn-item${isActive ? " active" : ""}`}
-                onClick={() => {
-                  if (isProfil && !isLoggedIn) { navigate("/auth"); return; }
-                  navigate(path);
-                }}
+                onClick={() => navigate(path)}
               >
                 {isProfil && isLoggedIn ? (
                   <div className="atap-bn-avatar">{initials}</div>
@@ -697,6 +876,17 @@ export default function DashboardPage() {
               </button>
             );
           })}
+
+          {/* Tombol Masuk — hanya untuk guest */}
+          {!isLoggedIn && (
+            <button
+              className={`atap-bn-item${currentPath === "/auth" ? " active" : ""}`}
+              onClick={() => navigate("/auth")}
+            >
+              <User size={20} strokeWidth={currentPath === "/auth" ? 2.5 : 1.8} />
+              <span>Masuk</span>
+            </button>
+          )}
         </nav>
 
       </div>

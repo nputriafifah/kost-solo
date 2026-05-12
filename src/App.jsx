@@ -76,14 +76,7 @@ export default function App() {
         <Route path="/detail/:id" element={<DetailPage />} />
 
         {/* HARUS LOGIN */}
-        <Route
-          path="/map"
-          element={
-            <ProtectedRoute role="pencari">
-              <MapPage />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/map" element={<MapPage />} />
 
         <Route
           path="/chat"
