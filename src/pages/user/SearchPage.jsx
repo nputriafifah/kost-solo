@@ -2,41 +2,25 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
-  Search,
-  Clock,
-  TrendingUp,
-  X,
-  MapPin,
-  Home,
-  ChevronLeft,
-  ChevronDown,
-  Check,
-  Users,
-  ArrowUpDown,
+  Search, Clock, TrendingUp, X, MapPin, Home,
+  ChevronLeft, ChevronDown, Check, Users, ArrowUpDown,
+  Navigation, Plus, Minus, List, Map as MapIcon, Star,
+  BadgeCheck, Crown,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-/* ── Portal Dropdown ─────────────────────────────────────────────────────── */
+/* ─── Portal Dropdown ───────────────────────────────────────────────────── */
 function DropdownPortal({ anchorRef, children, onClose }) {
   const [pos, setPos] = useState({ top: 0, left: 0 });
-
   useEffect(() => {
     if (!anchorRef?.current) return;
-    const rect = anchorRef.current.getBoundingClientRect();
-    setPos({ top: rect.bottom + window.scrollY + 8, left: rect.left + window.scrollX });
+    const r = anchorRef.current.getBoundingClientRect();
+    setPos({ top: r.bottom + window.scrollY + 8, left: r.left + window.scrollX });
   }, [anchorRef]);
-
   return createPortal(
     <>
-      {/* invisible overlay to close on outside click */}
-      <div
-        style={{ position: "fixed", inset: 0, zIndex: 9998 }}
-        onClick={onClose}
-      />
-      <div
-        className="sp-dropdown"
-        style={{ position: "absolute", top: pos.top, left: pos.left, zIndex: 9999 }}
-      >
+      <div style={{ position: "fixed", inset: 0, zIndex: 9998 }} onClick={onClose} />
+      <div className="sp-dropdown" style={{ position: "absolute", top: pos.top, left: pos.left, zIndex: 9999 }}>
         {children}
       </div>
     </>,
@@ -44,398 +28,459 @@ function DropdownPortal({ anchorRef, children, onClose }) {
   );
 }
 
+/* ─── Map Price Pin ─────────────────────────────────────────────────────── */
+function PricePin({ price, active, onClick }) {
+  const label = price >= 1_000_000
+    ? `Rp ${(price / 1_000_000).toFixed(1).replace(".0", "")} jt`
+    : `Rp ${Math.round(price / 1000)}rb`;
+  return (
+    <button className={`sp-map-pin${active ? " active" : ""}`} onClick={onClick}>
+      {label}
+    </button>
+  );
+}
+
+/* ─── Static Map (Leaflet-free placeholder with price pins) ─────────────── */
+function StaticMap({ results, activeId, onPinClick }) {
+  // We render a simple SVG-based map background with price pins overlaid
+  // Positions are computed from lat/lng relative to bounding box
+  const hasBounds = results.length > 0 && results[0].latitude;
+
+  const lats = results.map(r => r.latitude).filter(Boolean);
+  const lngs = results.map(r => r.longitude).filter(Boolean);
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+  const padFactor = 0.15;
+  const latRange = (maxLat - minLat) || 0.01;
+  const lngRange = (maxLng - minLng) || 0.01;
+
+  const toXY = (lat, lng) => {
+    const x = ((lng - minLng) / lngRange) * (100 - padFactor * 200) + padFactor * 100;
+    const y = ((maxLat - lat) / latRange) * (100 - padFactor * 200) + padFactor * 100;
+    return { x, y };
+  };
+
+  return (
+    <div className="sp-map-container">
+      {/* Tile-style background */}
+      <div className="sp-map-bg" />
+
+      {/* Decorative road lines */}
+      <svg className="sp-map-roads" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <line x1="0" y1="40" x2="100" y2="38" stroke="#E8E8E8" strokeWidth="2" />
+        <line x1="0" y1="60" x2="100" y2="63" stroke="#E8E8E8" strokeWidth="1.5" />
+        <line x1="30" y1="0" x2="32" y2="100" stroke="#E8E8E8" strokeWidth="1.5" />
+        <line x1="65" y1="0" x2="68" y2="100" stroke="#E8E8E8" strokeWidth="1" />
+        <text x="5" y="28" fontSize="4" fill="#A0A0A0" fontFamily="sans-serif">KENTINGAN</text>
+        <text x="5" y="80" fontSize="4" fill="#A0A0A0" fontFamily="sans-serif">LAWEYAN</text>
+      </svg>
+
+      {/* Price pins */}
+      {results.map((item) => {
+        if (!item.latitude || !item.longitude || !item.price) return null;
+        const { x, y } = toXY(item.latitude, item.longitude);
+        return (
+          <div
+            key={item.id}
+            className="sp-map-pin-wrap"
+            style={{ left: `${x}%`, top: `${y}%` }}
+          >
+            <PricePin
+              price={item.price}
+              active={activeId === item.id}
+              onClick={() => onPinClick(item.id)}
+            />
+          </div>
+        );
+      })}
+
+      {/* Map controls */}
+      <div className="sp-map-controls">
+        <button className="sp-map-ctrl-btn"><Navigation size={14} /></button>
+        <div className="sp-map-zoom">
+          <button className="sp-map-ctrl-btn"><Plus size={14} /></button>
+          <button className="sp-map-ctrl-btn" style={{ borderTop: "1px solid #E8E8E8" }}><Minus size={14} /></button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Constants ─────────────────────────────────────────────────────────── */
 const BASE_URL = "http://localhost:3000";
 const HISTORY_KEY = "atap_search_history";
 
 const TRENDS = [
-  "Kost dekat UNS",
-  "Kost Laweyan murah",
-  "Kost AC wifi",
-  "Kost Nusukan putri",
+  "Kost dekat UNS", "Kost Laweyan murah", "Kost AC wifi", "Kost Nusukan putri",
 ];
 
 const GENDER_FILTERS = [
-  { value: "Putra",  label: "Putra" },
-  { value: "Putri",  label: "Putri" },
+  { value: "Putra", label: "Putra" },
+  { value: "Putri", label: "Putri" },
   { value: "Campur", label: "Campur" },
 ];
 
 const SORT_OPTIONS = [
-  { value: "",              label: "Paling direkomendasikan" },
-  { value: "lowest_price",  label: "Harga termurah" },
+  { value: "", label: "Terdekat dulu" },
+  { value: "lowest_price", label: "Harga termurah" },
   { value: "highest_price", label: "Harga tertinggi" },
-  { value: "newest",        label: "Terbaru" },
+  { value: "newest", label: "Terbaru" },
 ];
 
+const PRICE_PRESETS = [
+  { label: "< Rp 1jt", min: "", max: "1000000" },
+  { label: "Rp 1–2jt", min: "1000000", max: "2000000" },
+  { label: "> Rp 2jt", min: "2000000", max: "" },
+];
+
+/* ─── CSS ────────────────────────────────────────────────────────────────── */
 const css = `
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap');
 
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+body { background:#F5F5F5; font-family:'DM Sans',sans-serif; color:#0F172A; }
 
-body {
-  background: #F8FAFC;
-  font-family: 'DM Sans', sans-serif;
-  color: #0F172A;
-}
-
-.sp-root h1,
-.sp-root h2,
-.sp-root h3,
-.sp-card-name {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-}
-
-/* ROOT */
-.sp-root {
-  min-height: 100vh;
-  background: #F5F5F5;
-  padding-bottom: 40px;
-}
+.sp-root { min-height:100vh; background:#F5F5F5; display:flex; flex-direction:column; }
 
 /* ── HEADER ── */
 .sp-header {
-  position: sticky;
-  top: 0;
-  z-index: 200;
-  background: #fff;
-  border-bottom: 1px solid #EBEBEB;
+  position:sticky; top:0; z-index:200;
+  background:#fff; border-bottom:1px solid #EBEBEB;
 }
-
 .sp-header-top {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
+  display:flex; align-items:center; gap:10px; padding:12px 16px;
 }
-
 .sp-back-btn {
-  width: 36px; height: 36px;
-  border: none; background: none;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; border-radius: 50%;
-  color: #1A1A1A; flex-shrink: 0;
-  transition: background .15s;
+  width:36px; height:36px; border:none; background:none;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; border-radius:50%; color:#1A1A1A; flex-shrink:0;
+  transition:background .15s;
 }
-.sp-back-btn:hover { background: #F8FAFC; }
+.sp-back-btn:hover { background:#F8FAFC; }
 
 .sp-search-bar {
-  flex: 1;
-  display: flex; align-items: center; gap: 10px;
-  height: 44px;
-  border: 1.5px solid #E0E0E0;
-  border-radius: 8px;
-  padding: 0 14px;
-  background: #FAFAFA;
-  transition: border-color .15s, background .15s;
+  flex:1; display:flex; align-items:center; gap:10px;
+  height:44px; border:1.5px solid #E0E0E0; border-radius:10px;
+  padding:0 14px; background:#FAFAFA;
+  transition:border-color .15s, background .15s;
 }
-.sp-search-bar:focus-within {
-  border-color: rgb(25, 62, 155);
-  background: #fff;
-}
-
+.sp-search-bar:focus-within { border-color:#4F46E5; background:#fff; }
 .sp-search-input {
-  flex: 1; border: none; background: transparent;
-  font-size: 14px; font-family: 'Plus Jakarta Sans', sans-serif;
-  color: #1A1A1A; outline: none;
+  flex:1; border:none; background:transparent;
+  font-size:14px; font-family:'Plus Jakarta Sans',sans-serif;
+  color:#1A1A1A; outline:none;
 }
-.sp-search-input::placeholder { color: #ABABAB; }
-
+.sp-search-input::placeholder { color:#BDBDBD; }
 .sp-clear-btn {
-  border: none; background: none; cursor: pointer;
-  color: #ABABAB; display: flex; align-items: center;
-  transition: color .15s;
+  border:none; background:none; cursor:pointer; color:#BDBDBD;
+  display:flex; align-items:center; transition:color .15s;
 }
-.sp-clear-btn:hover { color: #555; }
+.sp-clear-btn:hover { color:#555; }
 
-/* ── FILTER BAR ── */
-.sp-filter-bar {
-  padding: 10px 16px 12px;
-  overflow-x: auto;
-}
-.sp-filter-bar::-webkit-scrollbar { display: none; }
-
-.sp-filter-row {
-  display: flex; gap: 8px;
-  min-width: max-content;
-}
-
-.sp-chip-wrap {
-  position: relative;
-}
+/* ── FILTER CHIPS ── */
+.sp-filter-bar { padding:8px 16px 12px; overflow-x:auto; }
+.sp-filter-bar::-webkit-scrollbar { display:none; }
+.sp-filter-row { display:flex; gap:8px; min-width:max-content; }
 
 .sp-chip {
-  height: 36px; padding: 0 14px;
-  border: 1.5px solid #D9D9D9;
-  border-radius: 999px;
-  background: #fff;
-  display: flex; align-items: center; gap: 6px;
-  cursor: pointer; white-space: nowrap;
-  font-size: 13px; font-weight: 600;
-  color: #333;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  transition: border-color .15s, color .15s, background .15s;
+  height:34px; padding:0 14px;
+  border:1.5px solid #E5E5E5; border-radius:999px;
+  background:#fff; display:flex; align-items:center; gap:6px;
+  cursor:pointer; white-space:nowrap;
+  font-size:12px; font-weight:600; color:#444;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  transition:all .15s;
 }
-.sp-chip svg { flex-shrink:0; }
-.sp-chip:hover { border-color: #BDBDBD; }
-.sp-chip.active {
-  border-color: #1A1A1A;
-  background: #1A1A1A;
-  color: #fff;
-}
-.sp-chip.filtered {
-  border-color: #2563EB;
-  color: #2563EB;
-  background: #F0FAF1;
-}
+.sp-chip:hover { border-color:#BDBDBD; }
+.sp-chip.active { border-color:#1A1A1A; background:#1A1A1A; color:#fff; }
+.sp-chip.filtered { border-color:#4F46E5; color:#4F46E5; background:#EEF2FF; }
 
-/* ── DROPDOWN (rendered via Portal to body) ── */
+/* ── DROPDOWN ── */
 .sp-dropdown {
-  min-width: 260px;
-  background: #fff;
-  border-radius: 12px;
-  border: 1px solid #EBEBEB;
-  box-shadow: 0 8px 32px rgba(0,0,0,.12);
-  overflow: hidden;
-  animation: dropIn .15s ease;
+  min-width:260px; background:#fff; border-radius:14px;
+  border:1px solid #EBEBEB; box-shadow:0 8px 32px rgba(0,0,0,.12);
+  overflow:hidden; animation:dropIn .15s ease;
 }
 @keyframes dropIn {
   from { opacity:0; transform:translateY(-6px); }
   to   { opacity:1; transform:translateY(0); }
 }
+.sp-dropdown-body { padding:16px 18px 10px; }
+.sp-dropdown-subtitle { font-size:12px; color:#888; margin-bottom:12px; }
 
-.sp-dropdown-body { padding: 18px 18px 12px; }
-
-.sp-dropdown-subtitle {
-  font-size: 13px; color: #777; margin-bottom: 14px; line-height: 1.5;
-}
-
-/* gender checkbox list */
-.sp-check-list { display: flex; flex-direction: column; gap: 0; }
-
+.sp-check-list { display:flex; flex-direction:column; }
 .sp-check-item {
-  display: flex; align-items: center; gap: 12px;
-  padding: 11px 0;
-  cursor: pointer;
-  border-bottom: 1px solid #F5F5F5;
+  display:flex; align-items:center; gap:12px; padding:11px 0;
+  cursor:pointer; border-bottom:1px solid #F5F5F5;
 }
-.sp-check-item:last-child { border-bottom: none; }
-
+.sp-check-item:last-child { border-bottom:none; }
 .sp-checkbox {
-  width: 20px; height: 20px; border-radius: 4px;
-  border: 1.5px solid #CACACA;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; transition: .15s;
+  width:20px; height:20px; border-radius:5px;
+  border:1.5px solid #CACACA; display:flex; align-items:center;
+  justify-content:center; flex-shrink:0; transition:.15s;
 }
-.sp-checkbox.checked { background: #2563EB; border-color: #2563EB; }
+.sp-checkbox.checked { background:#4F46E5; border-color:#4F46E5; }
+.sp-check-label { font-size:14px; font-weight:500; color:#1A1A1A; }
 
-.sp-check-label { font-size: 14px; font-weight: 500; color: #1A1A1A; }
+/* price presets */
+.sp-price-presets { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+.sp-price-preset {
+  padding:6px 12px; border-radius:999px; border:1.5px solid #E5E5E5;
+  background:#fff; font-size:12px; font-weight:600; cursor:pointer;
+  font-family:'Plus Jakarta Sans',sans-serif; color:#555; transition:all .15s;
+}
+.sp-price-preset.active { border-color:#4F46E5; background:#EEF2FF; color:#4F46E5; }
 
-/* price inputs */
-.sp-price-row { display: flex; gap: 10px; }
+.sp-price-row { display:flex; gap:8px; }
 .sp-price-input {
-  flex: 1; height: 40px; border-radius: 8px;
-  border: 1.5px solid #E0E0E0; background: #FAFAFA;
-  padding: 0 12px; outline: none;
-  font-size: 13px; font-family: 'Plus Jakarta Sans', sans-serif;
-  color: #1A1A1A;
-  transition: border-color .15s, background .15s;
+  flex:1; height:40px; border-radius:8px; border:1.5px solid #E0E0E0;
+  background:#FAFAFA; padding:0 12px; outline:none;
+  font-size:13px; font-family:'Plus Jakarta Sans',sans-serif; color:#1A1A1A;
+  transition:border-color .15s, background .15s;
 }
-.sp-price-input:focus { background: #fff; border-color: #2563EB; }
-.sp-price-input::placeholder { color: #ABABAB; }
+.sp-price-input:focus { background:#fff; border-color:#4F46E5; }
+.sp-price-input::placeholder { color:#BDBDBD; }
 
-/* sort list */
-.sp-sort-list { display: flex; flex-direction: column; gap: 0; }
+.sp-sort-list { display:flex; flex-direction:column; }
 .sp-sort-item {
-  height: 46px; border: none; background: none;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 4px; cursor: pointer;
-  font-size: 14px; font-weight: 500; color: #333;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  border-bottom: 1px solid #F5F5F5;
-  border-radius: 0; transition: color .15s;
+  height:46px; border:none; background:none;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 4px; cursor:pointer; font-size:14px; font-weight:500; color:#333;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  border-bottom:1px solid #F5F5F5; transition:color .15s;
 }
-.sp-sort-item:last-child { border-bottom: none; }
-.sp-sort-item:hover { color: #2563EB; }
-.sp-sort-item.active { color: #2563EB; font-weight: 700; }
+.sp-sort-item:last-child { border-bottom:none; }
+.sp-sort-item:hover { color:#4F46E5; }
+.sp-sort-item.active { color:#4F46E5; font-weight:700; }
 
-/* dropdown footer */
 .sp-dropdown-footer {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 18px;
-  border-top: 1px solid #F0F0F0;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 18px; border-top:1px solid #F0F0F0;
 }
 .sp-dd-reset {
-  border: none; background: none;
-  font-size: 13px; font-weight: 600; color: #888;
-  cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif;
-  text-decoration: underline;
+  border:none; background:none; font-size:13px; font-weight:600; color:#888;
+  cursor:pointer; font-family:'Plus Jakarta Sans',sans-serif; text-decoration:underline;
 }
 .sp-dd-save {
-  border: none; background: #2563EB;
-  color: #fff; font-size: 13px; font-weight: 700;
-  cursor: pointer; font-family: 'Plus Jakarta Sans', sans-serif;
-  padding: 8px 20px; border-radius: 8px;
-  transition: background .15s;
+  border:none; background:#4F46E5; color:#fff; font-size:13px; font-weight:700;
+  cursor:pointer; font-family:'Plus Jakarta Sans',sans-serif;
+  padding:8px 20px; border-radius:9px; transition:background .15s;
 }
-.sp-dd-save:hover { background: #2563EB; }
+.sp-dd-save:hover { background:#4338CA; }
 
 /* ── SUGGESTIONS ── */
-.sp-suggestions {
-  background: #fff;
-  border-bottom: 1px solid #EBEBEB;
-}
-
+.sp-suggestions { background:#fff; border-bottom:1px solid #EBEBEB; }
 .sp-suggest-label {
-  padding: 14px 16px 6px;
-  font-size: 11px; font-weight: 700;
-  letter-spacing: .06em; text-transform: uppercase;
-  color: #ABABAB;
+  padding:14px 16px 6px; font-size:11px; font-weight:700;
+  letter-spacing:.06em; text-transform:uppercase; color:#BDBDBD;
 }
-
 .sp-suggest-item {
-  padding: 11px 16px;
-  display: flex; align-items: center; justify-content: space-between;
-  cursor: pointer; transition: background .12s;
+  padding:11px 16px; display:flex; align-items:center;
+  justify-content:space-between; cursor:pointer; transition:background .12s;
 }
-.sp-suggest-item:hover { background: #FAFAFA; }
-
+.sp-suggest-item:hover { background:#FAFAFA; }
 .sp-suggest-left {
-  display: flex; align-items: center; gap: 10px;
-  font-size: 14px; font-weight: 500; color: #333;
+  display:flex; align-items:center; gap:10px;
+  font-size:14px; font-weight:500; color:#333;
 }
-.sp-suggest-icon { color: #ABABAB; flex-shrink:0; }
+.sp-suggest-icon { color:#BDBDBD; flex-shrink:0; }
 .sp-suggest-del {
-  border: none; background: none; cursor: pointer;
-  color: #CBCBCB; display: flex; padding: 4px;
-  transition: color .12s;
+  border:none; background:none; cursor:pointer; color:#CBCBCB;
+  display:flex; padding:4px; transition:color .12s;
 }
-.sp-suggest-del:hover { color: #888; }
+.sp-suggest-del:hover { color:#888; }
+
+/* ── MAP ── */
+.sp-map-container {
+  position:relative; width:100%; height:240px;
+  background:#ECEEF0; overflow:hidden; flex-shrink:0;
+}
+.sp-map-bg {
+  position:absolute; inset:0;
+  background:
+    linear-gradient(#E8EDF2 1px, transparent 1px),
+    linear-gradient(90deg, #E8EDF2 1px, transparent 1px);
+  background-size:32px 32px;
+  background-color:#F0F4F8;
+}
+.sp-map-roads {
+  position:absolute; inset:0; width:100%; height:100%;
+}
+.sp-map-pin-wrap {
+  position:absolute; transform:translate(-50%, -100%);
+}
+.sp-map-pin {
+  background:#fff; border:none; border-radius:999px;
+  padding:5px 10px; font-size:11px; font-weight:700;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  color:#1A1A1A; cursor:pointer; white-space:nowrap;
+  box-shadow:0 2px 8px rgba(0,0,0,.18);
+  transition:all .15s; position:relative;
+}
+.sp-map-pin::after {
+  content:''; position:absolute; bottom:-5px; left:50%;
+  transform:translateX(-50%);
+  border:5px solid transparent; border-top-color:#fff;
+  border-bottom:none;
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.1));
+}
+.sp-map-pin:hover, .sp-map-pin.active {
+  background:#4F46E5; color:#fff;
+}
+.sp-map-pin.active::after { border-top-color:#4F46E5; }
+
+.sp-map-controls {
+  position:absolute; right:12px; top:12px;
+  display:flex; flex-direction:column; gap:6px;
+}
+.sp-map-zoom {
+  background:#fff; border-radius:8px;
+  border:1px solid #E0E0E0; overflow:hidden;
+  box-shadow:0 2px 8px rgba(0,0,0,.08);
+  display:flex; flex-direction:column;
+}
+.sp-map-ctrl-btn {
+  width:34px; height:34px; border:none; background:#fff;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; color:#555; transition:background .15s;
+  border-radius:8px; box-shadow:0 2px 8px rgba(0,0,0,.08);
+}
+.sp-map-ctrl-btn:hover { background:#F8FAFC; }
+
+/* ── VIEW TOGGLE ── */
+.sp-view-toggle {
+  position:absolute; bottom:12px; right:12px;
+  display:flex; background:#1A1A1A; border-radius:999px;
+  overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,.25);
+}
+.sp-view-btn {
+  display:flex; align-items:center; gap:6px; padding:8px 14px;
+  border:none; background:transparent; cursor:pointer;
+  font-size:12px; font-weight:700; color:#fff; opacity:.55;
+  font-family:'Plus Jakarta Sans',sans-serif; transition:all .15s;
+}
+.sp-view-btn.active { opacity:1; background:rgba(255,255,255,.15); }
 
 /* ── CONTENT ── */
-.sp-content { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+.sp-content { flex:1; padding:14px 16px; display:flex; flex-direction:column; gap:10px; }
 
 .sp-result-header {
-  display: flex; align-items: center; justify-content: space-between;
+  display:flex; align-items:center; justify-content:space-between;
 }
+.sp-result-count { font-size:13px; color:#777; font-weight:500; }
+.sp-result-count strong { color:#1A1A1A; }
+.sp-sort-label { font-size:12px; color:#888; }
 
-.sp-result-count {
-  font-size: 13px; color: #777;
-}
-.sp-result-count strong { color: #1A1A1A; }
-
-.sp-loading {
-  text-align: center; padding: 60px 0;
-  color: #ABABAB; font-size: 14px; font-weight: 600;
-}
-
+/* loading */
+.sp-loading { text-align:center; padding:60px 0; color:#BDBDBD; font-size:14px; }
 .sp-loading-dot {
-  display: inline-block;
-  width: 8px; height: 8px; border-radius: 50%;
-  background: #2563EB; margin: 0 3px;
-  animation: bounce .8s infinite ease-in-out;
+  display:inline-block; width:8px; height:8px; border-radius:50%;
+  background:#4F46E5; margin:0 3px;
+  animation:bounce .8s infinite ease-in-out;
 }
-.sp-loading-dot:nth-child(2) { animation-delay: .15s; }
-.sp-loading-dot:nth-child(3) { animation-delay: .3s; }
+.sp-loading-dot:nth-child(2) { animation-delay:.15s; }
+.sp-loading-dot:nth-child(3) { animation-delay:.3s; }
 @keyframes bounce {
-  0%, 100% { transform: translateY(0); opacity:.5; }
-  50%       { transform: translateY(-6px); opacity:1; }
+  0%,100% { transform:translateY(0); opacity:.4; }
+  50%      { transform:translateY(-6px); opacity:1; }
 }
 
-.sp-empty {
-  padding: 60px 0; display: flex; flex-direction: column;
-  align-items: center; gap: 10px; color: #ABABAB;
-}
-.sp-empty p { font-size: 14px; font-weight: 600; }
-.sp-empty small { font-size: 12px; }
+/* empty */
+.sp-empty { padding:60px 0; display:flex; flex-direction:column; align-items:center; gap:8px; color:#BDBDBD; }
+.sp-empty p { font-size:14px; font-weight:600; }
+.sp-empty small { font-size:12px; }
 
 /* ── CARD ── */
 .sp-card {
-  background: #fff; border-radius: 12px;
-  border: 1px solid #E2E8F0; overflow: hidden;
-  cursor: pointer; transition: box-shadow .15s, transform .15s;
+  background:#fff; border-radius:14px;
+  border:1px solid #EAEAEA; overflow:hidden;
+  cursor:pointer; transition:box-shadow .15s, transform .15s, border-color .15s;
 }
-.sp-card:hover {
-  box-shadow: 0 8px 28px rgba(37,99,235,.08);
-  transform: translateY(-1px);
-}
+.sp-card:hover { box-shadow:0 6px 24px rgba(79,70,229,.1); transform:translateY(-1px); }
+.sp-card.highlighted { border-color:#4F46E5; box-shadow:0 0 0 2px #EEF2FF; }
 
-.sp-card-inner { display: flex; gap: 12px; padding: 12px; }
+.sp-card-inner { display:flex; gap:12px; padding:12px; }
 
-.sp-card-img-wrap { position: relative; flex-shrink: 0; }
-
-.sp-card-img {
-  width: 110px; height: 110px; border-radius: 10px; object-fit: cover;
-}
+.sp-card-img-wrap { position:relative; flex-shrink:0; }
+.sp-card-img { width:108px; height:108px; border-radius:10px; object-fit:cover; }
 .sp-card-img-placeholder {
-  width: 110px; height: 110px; border-radius: 10px;
-  background: #F0FAF1;
-  display: flex; align-items: center; justify-content: center;
-  color: #B2DFBA;
+  width:108px; height:108px; border-radius:10px;
+  background:#EEF2FF; display:flex; align-items:center; justify-content:center; color:#A5B4FC;
 }
 
-.sp-card-badge {
-  position: absolute; top: 7px; left: 7px;
-  padding: 3px 8px; border-radius: 999px;
-  font-size: 10px; font-weight: 700;
-  background: rgba(255,255,255,.95);
-  color: #1A1A1A; border: 1px solid #E0E0E0;
+/* badges row */
+.sp-card-badges { display:flex; align-items:center; gap:6px; margin-bottom:5px; flex-wrap:wrap; }
+
+.sp-badge {
+  display:inline-flex; align-items:center; gap:3px;
+  padding:3px 8px; border-radius:5px;
+  font-size:10px; font-weight:700; font-family:'Plus Jakarta Sans',sans-serif;
 }
-.sp-card-badge.putri { color: #D64C7F; border-color: #FADADD; background: #FFF5F7; }
-.sp-card-badge.putra { color: #2563EB; border-color: #BFDBFE; background: #EFF6FF; }
-.sp-card-badge.campur { color: #6D3FC1; border-color: #DDD6FE; background: #F5F3FF; }
+.sp-badge-unggulan {
+  background:#FFF3EB; color:#D4621A; border:1px solid #FCDCC5;
+}
+.sp-badge-verified {
+  background:#EDFAF3; color:#15803D; border:1px solid #BBF7D0;
+}
+.sp-badge-gender-putri { background:#FFF0F5; color:#C2185B; border:1px solid #FBCFE8; }
+.sp-badge-gender-putra { background:#EFF6FF; color:#1D4ED8; border:1px solid #BFDBFE; }
+.sp-badge-gender-campur { background:#F5F3FF; color:#6D28D9; border:1px solid #DDD6FE; }
 
 .sp-card-body {
-  flex: 1; min-width: 0;
-  display: flex; flex-direction: column; justify-content: space-between;
-  padding: 2px 0;
+  flex:1; min-width:0; display:flex; flex-direction:column;
+  justify-content:space-between; padding:2px 0;
 }
-
 .sp-card-name {
-  font-size: 15px; line-height: 1.4; font-weight: 700; color: #1A1A1A;
-  display: -webkit-box; -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical; overflow: hidden;
-  margin-bottom: 4px;
+  font-size:15px; font-weight:700; color:#1A1A1A; line-height:1.35;
+  font-family:'Plus Jakarta Sans',sans-serif;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+  margin-bottom:3px;
 }
-
 .sp-card-loc {
-  display: flex; align-items: center; gap: 4px;
-  font-size: 12px; color: #ABABAB; margin-bottom: 8px;
+  display:flex; align-items:center; gap:4px;
+  font-size:11px; color:#ABABAB; margin-bottom:8px;
 }
-
-.sp-card-price {
-  font-size: 18px; font-weight: 800; color: #2563EB;
+.sp-card-bottom { display:flex; align-items:flex-end; justify-content:space-between; }
+.sp-card-price { font-size:17px; font-weight:800; color:#4F46E5; font-family:'Plus Jakarta Sans',sans-serif; }
+.sp-card-price span { font-size:11px; color:#ABABAB; font-weight:500; }
+.sp-card-no-price { font-size:12px; color:#D0D0D0; }
+.sp-card-rating {
+  display:flex; align-items:center; gap:3px;
+  font-size:11px; font-weight:600; color:#F59E0B;
+  font-family:'Plus Jakarta Sans',sans-serif;
 }
-.sp-card-price span { font-size: 12px; color: #ABABAB; font-weight: 500; }
-
-.sp-card-no-price { font-size: 12px; color: #D0D0D0; }
+.sp-card-rating span { color:#888; font-weight:400; }
 
 @media(max-width:480px) {
-  .sp-card-img, .sp-card-img-placeholder { width: 95px; height: 95px; }
-  .sp-card-price { font-size: 16px; }
-  .sp-card-name { font-size: 14px; }
+  .sp-card-img, .sp-card-img-placeholder { width:92px; height:92px; }
+  .sp-card-price { font-size:15px; }
+  .sp-card-name { font-size:13px; }
 }
 `;
 
+/* ─── Component ─────────────────────────────────────────────────────────── */
 export default function SearchPage() {
   const navigate = useNavigate();
   const debounceRef = useRef(null);
 
-  const [query,          setQuery]          = useState("");
-  const [focused,        setFocused]        = useState(false);
-  const [results,        setResults]        = useState([]);
-  const [loading,        setLoading]        = useState(false);
-  const [searched,       setSearched]       = useState(false);
+  const [query, setQuery] = useState("");
+  const [focused, setFocused] = useState(false);
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState(null);
+  const [view, setView] = useState("map");   // "map" | "list"
+  const [activePinId, setActivePinId] = useState(null);
 
-  // Gender: multi-select (empty = semua)
   const [selectedGenders, setSelectedGenders] = useState([]);
-  const [minPrice,        setMinPrice]         = useState("");
-  const [maxPrice,        setMaxPrice]         = useState("");
-  const [sort,            setSort]             = useState("");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [sort, setSort] = useState("");
+  const [pricePreset, setPricePreset] = useState(null);
 
   const genderAnchorRef = useRef(null);
-  const priceAnchorRef  = useRef(null);
-  const sortAnchorRef   = useRef(null);
+  const priceAnchorRef = useRef(null);
+  const sortAnchorRef = useRef(null);
 
   const [history, setHistory] = useState(() => {
     try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"); }
@@ -449,7 +494,6 @@ export default function SearchPage() {
       return next;
     });
   };
-
   const deleteHistory = (q) => {
     setHistory((prev) => {
       const next = prev.filter((x) => x !== q);
@@ -458,40 +502,49 @@ export default function SearchPage() {
     });
   };
 
-  const toggleGender = (val) => {
+  const toggleGender = (val) =>
     setSelectedGenders((prev) =>
       prev.includes(val) ? prev.filter((g) => g !== val) : [...prev, val]
     );
+
+  const applyPreset = (p) => {
+    if (pricePreset === p.label) {
+      setPricePreset(null); setMinPrice(""); setMaxPrice("");
+    } else {
+      setPricePreset(p.label); setMinPrice(p.min); setMaxPrice(p.max);
+    }
   };
 
   const doSearch = useCallback(
     async (customQuery) => {
       const q = customQuery ?? query;
       if (!q.trim()) return;
-
       saveHistory(q);
-      setLoading(true);
-      setSearched(true);
-      setFocused(false);
-      setActiveDropdown(null);
+      setLoading(true); setSearched(true); setFocused(false); setActiveDropdown(null);
 
       const params = new URLSearchParams({ q });
       if (minPrice) params.append("minPrice", minPrice);
       if (maxPrice) params.append("maxPrice", maxPrice);
-      if (sort)     params.append("sort", sort);
+      if (sort) params.append("sort", sort);
       if (selectedGenders.length === 1) params.append("genderType", selectedGenders[0].toLowerCase());
 
       try {
-        const res  = await fetch(`${BASE_URL}/listings/search?${params}`);
+        const res = await fetch(`${BASE_URL}/listings/search?${params}`);
         const json = await res.json();
         setResults(
           (json.data || []).map((item) => ({
-            id:       item.id,
-            name:     item.name,
-            price:    item.cheapestPrice ?? null,
+            id: item.id,
+            name: item.name,
+            price: item.cheapestPrice ?? null,
             location: item.address ?? "",
-            gender:   item.genderType ?? "",
-            image:    item.thumbnailUrl
+            gender: item.genderType ?? "",
+            isPremium: item.isPremium ?? false,
+            isVerified: item.isVerified ?? true,
+            rating: item.rating ?? null,
+            reviewCount: item.reviewCount ?? null,
+            latitude: item.latitude ? Number(item.latitude) : null,
+            longitude: item.longitude ? Number(item.longitude) : null,
+            image: item.thumbnailUrl
               ? item.thumbnailUrl.startsWith("http")
                 ? item.thumbnailUrl
                 : `${BASE_URL}${item.thumbnailUrl}`
@@ -515,13 +568,11 @@ export default function SearchPage() {
     debounceRef.current = setTimeout(() => doSearch(val), 400);
   };
 
-  const genderLabel = selectedGenders.length === 0
-    ? "Semua Tipe Kos"
-    : selectedGenders.join(", ");
-
+  const genderLabel = selectedGenders.length === 0 ? "Tipe Kos" : selectedGenders.join(", ");
   const priceFiltered = minPrice || maxPrice;
-  const sortLabel = SORT_OPTIONS.find((o) => o.value === sort)?.label || "Urutkan";
+  const activeSortLabel = SORT_OPTIONS.find((o) => o.value === sort)?.label;
 
+  /* ── Render ── */
   return (
     <>
       <style>{css}</style>
@@ -533,9 +584,8 @@ export default function SearchPage() {
             <button className="sp-back-btn" onClick={() => navigate(-1)}>
               <ChevronLeft size={20} />
             </button>
-
             <div className="sp-search-bar">
-              <Search size={16} color="#2563EB" style={{ flexShrink: 0 }} />
+              <Search size={15} color="#4F46E5" style={{ flexShrink: 0 }} />
               <input
                 autoFocus
                 value={query}
@@ -543,67 +593,79 @@ export default function SearchPage() {
                 onFocus={() => setFocused(true)}
                 onBlur={() => setTimeout(() => setFocused(false), 150)}
                 onKeyDown={(e) => e.key === "Enter" && doSearch()}
-                placeholder="Coba Tebet Jakarta Selatan"
+                placeholder="Cari kos dekat UNS, Laweyan…"
                 className="sp-search-input"
               />
               {query && (
-                <button
-                  className="sp-clear-btn"
-                  onMouseDown={() => { setQuery(""); setResults([]); setSearched(false); }}
-                >
+                <button className="sp-clear-btn" onMouseDown={() => { setQuery(""); setResults([]); setSearched(false); }}>
                   <X size={14} />
                 </button>
               )}
             </div>
           </div>
 
-          {/* FILTER BAR */}
+          {/* FILTER CHIPS */}
           <div className="sp-filter-bar">
             <div className="sp-filter-row">
 
-              {/* TIPE KOS / GENDER */}
-              <div className="sp-chip-wrap" ref={genderAnchorRef}>
+              {/* Filter icon chip */}
+              <button
+                className={`sp-chip${(selectedGenders.length > 0 || priceFiltered || sort) ? " filtered" : ""}`}
+                onClick={() => { }}
+                style={{ gap: 6 }}
+              >
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                  <path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+                Filter
+              </button>
+
+              {/* Tipe Kos / Gender */}
+              <div ref={genderAnchorRef}>
                 <button
                   className={`sp-chip${activeDropdown === "gender" ? " active" : selectedGenders.length > 0 ? " filtered" : ""}`}
                   onClick={() => setActiveDropdown((p) => p === "gender" ? null : "gender")}
                 >
-                  <Users size={14} />
+                  <Users size={13} />
                   {genderLabel}
-                  <ChevronDown size={14} />
+                  <ChevronDown size={13} />
                 </button>
               </div>
 
-              {/* HARGA */}
-              <div className="sp-chip-wrap" ref={priceAnchorRef}>
+              {/* Harga preset chips */}
+              {PRICE_PRESETS.map((p) => (
                 <button
-                  className={`sp-chip${activeDropdown === "price" ? " active" : priceFiltered ? " filtered" : ""}`}
+                  key={p.label}
+                  className={`sp-chip${pricePreset === p.label ? " filtered" : ""}`}
+                  onClick={() => applyPreset(p)}
+                >
+                  {p.label}
+                </button>
+              ))}
+
+              {/* Custom Harga */}
+              <div ref={priceAnchorRef}>
+                <button
+                  className={`sp-chip${activeDropdown === "price" ? " active" : (priceFiltered && !pricePreset) ? " filtered" : ""}`}
                   onClick={() => setActiveDropdown((p) => p === "price" ? null : "price")}
                 >
-                  Harga
-                  <ChevronDown size={14} />
+                  Harga Lain <ChevronDown size={13} />
                 </button>
               </div>
 
-              {/* URUTKAN */}
-              <div className="sp-chip-wrap" ref={sortAnchorRef}>
-                <button
-                  className={`sp-chip${activeDropdown === "sort" ? " active" : sort ? " filtered" : ""}`}
-                  onClick={() => setActiveDropdown((p) => p === "sort" ? null : "sort")}
-                >
-                  <ArrowUpDown size={14} />
-                  {sort ? SORT_OPTIONS.find((o) => o.value === sort)?.label : "Urutkan"}
-                  <ChevronDown size={14} />
-                </button>
-              </div>
+              {/* Dekat UNS — quick hardcoded location chip */}
+              <button className="sp-chip" onClick={() => { setQuery("dekat UNS"); doSearch("dekat UNS"); }}>
+                <MapPin size={12} /> Dekat UNS
+              </button>
 
             </div>
           </div>
 
-          {/* PORTALED DROPDOWNS — rendered outside overflow container */}
+          {/* PORTALED DROPDOWNS */}
           {activeDropdown === "gender" && (
             <DropdownPortal anchorRef={genderAnchorRef} onClose={() => setActiveDropdown(null)}>
               <div className="sp-dropdown-body">
-                <p className="sp-dropdown-subtitle">Tipe kos yang kamu cari berdasarkan gender.</p>
+                <p className="sp-dropdown-subtitle">Pilih tipe kos berdasarkan gender</p>
                 <div className="sp-check-list">
                   {GENDER_FILTERS.map((g) => (
                     <div key={g.value} className="sp-check-item" onClick={() => toggleGender(g.value)}>
@@ -617,7 +679,7 @@ export default function SearchPage() {
               </div>
               <div className="sp-dropdown-footer">
                 <button className="sp-dd-reset" onClick={() => setSelectedGenders([])}>Hapus</button>
-                <button className="sp-dd-save" onClick={() => { doSearch(); setActiveDropdown(null); }}>Simpan</button>
+                <button className="sp-dd-save" onClick={() => { doSearch(); setActiveDropdown(null); }}>Terapkan</button>
               </div>
             </DropdownPortal>
           )}
@@ -627,46 +689,13 @@ export default function SearchPage() {
               <div className="sp-dropdown-body">
                 <p className="sp-dropdown-subtitle">Rentang harga per bulan</p>
                 <div className="sp-price-row">
-                  <input
-                    type="number" placeholder="Rp Min"
-                    value={minPrice}
-                    onChange={(e) => setMinPrice(e.target.value)}
-                    className="sp-price-input"
-                  />
-                  <input
-                    type="number" placeholder="Rp Max"
-                    value={maxPrice}
-                    onChange={(e) => setMaxPrice(e.target.value)}
-                    className="sp-price-input"
-                  />
+                  <input type="number" placeholder="Rp Min" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} className="sp-price-input" />
+                  <input type="number" placeholder="Rp Max" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} className="sp-price-input" />
                 </div>
               </div>
               <div className="sp-dropdown-footer">
-                <button className="sp-dd-reset" onClick={() => { setMinPrice(""); setMaxPrice(""); }}>Hapus</button>
-                <button className="sp-dd-save" onClick={() => { doSearch(); setActiveDropdown(null); }}>Simpan</button>
-              </div>
-            </DropdownPortal>
-          )}
-
-          {activeDropdown === "sort" && (
-            <DropdownPortal anchorRef={sortAnchorRef} onClose={() => setActiveDropdown(null)}>
-              <div className="sp-dropdown-body" style={{ paddingBottom: 0 }}>
-                <div className="sp-sort-list">
-                  {SORT_OPTIONS.map((o) => (
-                    <button
-                      key={o.value}
-                      className={`sp-sort-item${sort === o.value ? " active" : ""}`}
-                      onClick={() => setSort(o.value)}
-                    >
-                      {o.label}
-                      {sort === o.value && <Check size={14} />}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="sp-dropdown-footer">
-                <button className="sp-dd-reset" onClick={() => setSort("")}>Hapus</button>
-                <button className="sp-dd-save" onClick={() => { doSearch(); setActiveDropdown(null); }}>Simpan</button>
+                <button className="sp-dd-reset" onClick={() => { setMinPrice(""); setMaxPrice(""); setPricePreset(null); }}>Hapus</button>
+                <button className="sp-dd-save" onClick={() => { doSearch(); setActiveDropdown(null); }}>Terapkan</button>
               </div>
             </DropdownPortal>
           )}
@@ -681,8 +710,7 @@ export default function SearchPage() {
                 {history.map((h) => (
                   <div key={h} className="sp-suggest-item">
                     <div className="sp-suggest-left" onMouseDown={() => { setQuery(h); doSearch(h); }}>
-                      <Clock size={14} className="sp-suggest-icon" />
-                      {h}
+                      <Clock size={14} className="sp-suggest-icon" /> {h}
                     </div>
                     <button className="sp-suggest-del" onMouseDown={(e) => { e.stopPropagation(); deleteHistory(h); }}>
                       <X size={13} />
@@ -691,16 +719,34 @@ export default function SearchPage() {
                 ))}
               </>
             )}
-
             <p className="sp-suggest-label">Trending</p>
             {TRENDS.map((t) => (
               <div key={t} className="sp-suggest-item" onMouseDown={() => { setQuery(t); doSearch(t); }}>
                 <div className="sp-suggest-left">
-                  <TrendingUp size={14} className="sp-suggest-icon" />
-                  {t}
+                  <TrendingUp size={14} className="sp-suggest-icon" /> {t}
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* MAP VIEW */}
+        {searched && !loading && results.length > 0 && view === "map" && (
+          <div style={{ position: "relative" }}>
+            <StaticMap
+              results={results}
+              activeId={activePinId}
+              onPinClick={(id) => setActivePinId((prev) => prev === id ? null : id)}
+            />
+            {/* View Toggle inside map */}
+            <div className="sp-view-toggle">
+              <button className={`sp-view-btn${view === "map" ? " active" : ""}`} onClick={() => setView("map")}>
+                <MapIcon size={13} /> Peta
+              </button>
+              <button className={`sp-view-btn${view === "list" ? " active" : ""}`} onClick={() => setView("list")}>
+                <List size={13} /> Daftar
+              </button>
+            </div>
           </div>
         )}
 
@@ -709,9 +755,7 @@ export default function SearchPage() {
 
           {loading && (
             <div className="sp-loading">
-              <span className="sp-loading-dot" />
-              <span className="sp-loading-dot" />
-              <span className="sp-loading-dot" />
+              <span className="sp-loading-dot" /><span className="sp-loading-dot" /><span className="sp-loading-dot" />
             </div>
           )}
 
@@ -724,59 +768,103 @@ export default function SearchPage() {
           )}
 
           {searched && !loading && results.length > 0 && (
-            <p className="sp-result-count">
-              Ditemukan <strong>{results.length}</strong> kos-kosan
-            </p>
+            <div className="sp-result-header">
+              <p className="sp-result-count">
+                <strong>{results.length}</strong> hunian di {view === "map" ? "peta" : "daftar"}
+              </p>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span className="sp-sort-label">{activeSortLabel || "Terdekat dulu"}</span>
+                {/* list toggle when in list mode */}
+                {view === "list" && (
+                  <div className="sp-view-toggle" style={{ position: "static", boxShadow: "none", background: "#F0F0F0", borderRadius: 999 }}>
+                    <button className={`sp-view-btn${view === "map" ? " active" : ""}`} onClick={() => setView("map")} style={{ color: "#555", padding: "5px 10px" }}>
+                      <MapIcon size={12} /> Peta
+                    </button>
+                    <button className={`sp-view-btn${view === "list" ? " active" : ""}`} onClick={() => setView("list")} style={{ color: "#555", padding: "5px 10px" }}>
+                      <List size={12} /> Daftar
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
 
           {results.map((item) => {
             const g = (item.gender || "").toLowerCase();
-            const badgeClass = g === "putri" ? " putri" : g === "putra" ? " putra" : g === "campur" ? " campur" : "";
+            const genderBadgeClass = g === "putri" ? "sp-badge-gender-putri"
+              : g === "putra" ? "sp-badge-gender-putra"
+                : g === "campur" ? "sp-badge-gender-campur" : "";
+
+            const isHighlighted = activePinId === item.id;
+
             return (
               <div
                 key={item.id}
-                className="sp-card"
+                className={`sp-card${isHighlighted ? " highlighted" : ""}`}
                 onClick={() => navigate(`/detail/${item.id}`)}
               >
                 <div className="sp-card-inner">
                   <div className="sp-card-img-wrap">
                     {item.image ? (
-                      <img src={item.image} alt="" className="sp-card-img" />
+                      <img src={item.image} alt={item.name} className="sp-card-img" />
                     ) : (
                       <div className="sp-card-img-placeholder">
-                        <Home size={30} strokeWidth={1.5} />
+                        <Home size={28} strokeWidth={1.5} />
                       </div>
-                    )}
-                    {item.gender && (
-                      <span className={`sp-card-badge${badgeClass}`}>
-                        {item.gender}
-                      </span>
                     )}
                   </div>
 
                   <div className="sp-card-body">
                     <div>
+                      {/* Badge row */}
+                      <div className="sp-card-badges">
+                        {item.isPremium && (
+                          <span className="sp-badge sp-badge-unggulan">
+                            <Crown size={9} /> UNGGULAN
+                          </span>
+                        )}
+                        {item.isVerified && (
+                          <span className="sp-badge sp-badge-verified">
+                            <BadgeCheck size={9} /> Verified
+                          </span>
+                        )}
+                        {item.gender && genderBadgeClass && (
+                          <span className={`sp-badge ${genderBadgeClass}`}>
+                            {item.gender}
+                          </span>
+                        )}
+                      </div>
+
                       <p className="sp-card-name">{item.name}</p>
                       <p className="sp-card-loc">
-                        <MapPin size={11} style={{ flexShrink: 0 }} />
+                        <MapPin size={10} style={{ flexShrink: 0 }} />
                         {item.location}
                       </p>
                     </div>
 
-                    {item.price ? (
-                      <p className="sp-card-price">
-                        Rp {Number(item.price).toLocaleString("id-ID")}
-                        <span>/bulan</span>
-                      </p>
-                    ) : (
-                      <p className="sp-card-no-price">Harga belum tersedia</p>
-                    )}
+                    <div className="sp-card-bottom">
+                      {item.price ? (
+                        <p className="sp-card-price">
+                          Rp {Number(item.price).toLocaleString("id-ID")}
+                          <span>/bln</span>
+                        </p>
+                      ) : (
+                        <p className="sp-card-no-price">Harga belum tersedia</p>
+                      )}
+
+                      {item.rating && (
+                        <div className="sp-card-rating">
+                          <Star size={11} fill="#F59E0B" stroke="none" />
+                          {item.rating}
+                          {item.reviewCount && <span>({item.reviewCount})</span>}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
             );
           })}
-
         </div>
       </div>
     </>

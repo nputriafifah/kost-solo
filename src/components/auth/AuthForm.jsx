@@ -8,22 +8,17 @@ import {
   User,
   ChevronLeft,
   Shield,
+  X,
 } from "lucide-react";
 import Field from "../ui/Field";
 import { getAuthAction } from "../../utils/authAction";
 
-export default function AuthForm({
-  role,
-  isLogin,
-  setIsLogin,
-  onBack,
-}) {
+export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
   const navigate = useNavigate();
 
-  const [showPassword] = useState(false);
-  const [showConfirmPassword] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
+  const [ownerStep, setOwnerStep] = useState(1);
 
   const [form, setForm] = useState({
     name: "",
@@ -31,9 +26,9 @@ export default function AuthForm({
     phone: "",
     password: "",
     confirmPassword: "",
-     kostName: "",
-  location: "",
-  contact: "",
+    kostName: "",
+    location: "",
+    contact: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -51,6 +46,13 @@ export default function AuthForm({
     setForm((p) => ({ ...p, [name]: value }));
   };
 
+  const handleSwitchMode = (loginMode) => {
+    setIsLogin(loginMode);
+    setOwnerStep(1);
+    setError("");
+    setSuccess("");
+  };
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
@@ -61,125 +63,82 @@ export default function AuthForm({
 
       if (!isLogin) {
         if (!form.name) throw new Error("Nama wajib diisi");
+
         if (role === "pemilik") {
-  if (!form.phone) throw new Error("Nomor HP wajib diisi");
-  if (!form.email) throw new Error("Email wajib diisi");
-  if (!form.kostName) throw new Error("Nama kost wajib diisi");
-  if (!form.location) throw new Error("Lokasi wajib diisi");
-  if (!form.contact) throw new Error("Kontak wajib diisi");
-}else {
+          if (!form.email) throw new Error("Email wajib diisi");
+          if (!form.phone) throw new Error("Nomor HP wajib diisi");
+          if (!form.kostName) throw new Error("Nama kost wajib diisi");
+          if (!form.location) throw new Error("Lokasi wajib diisi");
+          if (!form.contact) throw new Error("Kontak wajib diisi");
+        } else {
           if (!form.email) throw new Error("Email wajib diisi");
           if (!form.password) throw new Error("Password wajib diisi");
           if (form.password !== form.confirmPassword)
             throw new Error("Password tidak sama");
         }
-        if (!agreed)
-          throw new Error("Setujui syarat & ketentuan");
+
+        if (!agreed) throw new Error("Setujui syarat & ketentuan");
       }
 
       setLoading(true);
 
-      // LOGIN OWNER (OTP)
       if (isLogin && role === "pemilik") {
-        const res = await fetch(
-          "http://localhost:3000/auth/owner/request-otp",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ phone: formattedPhone }),
-          }
-        );
-
+        const res = await fetch("http://localhost:3000/auth/owner/request-otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: formattedPhone }),
+        });
         const json = await res.json();
         if (!res.ok) throw new Error(json.error);
-
         setSuccess("OTP dikirim...");
-        setTimeout(() => {
-          navigate("/verify-otp", {
-            state: { role: "pemilik", phone: formattedPhone },
-          });
-        }, 800);
-
+        setTimeout(() => navigate("/verify-otp", { state: { role: "pemilik", phone: formattedPhone } }), 800);
         return;
       }
 
-      // LOGIN USER
       if (isLogin) {
         const action = getAuthAction(role, true);
-        const result = await action({
-          email: form.email,
-          password: form.password,
-        });
-
+        const result = await action({ email: form.email, password: form.password });
         const token = result.token || result?.data?.token;
         const user = result.user || result?.data?.user;
-
         if (token) localStorage.setItem("token", token);
         if (user) localStorage.setItem("user", JSON.stringify(user));
-
         setSuccess("Login berhasil...");
         setTimeout(() => navigate("/dashboard"), 800);
         return;
       }
 
-      // REGISTER USER
       if (role === "pencari") {
-        const res = await fetch(
-          "http://localhost:3000/auth/user/register",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: form.name,
-              email: form.email,
-              password: form.password,
-            }),
-          }
-        );
-
+        const res = await fetch("http://localhost:3000/auth/user/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: form.name, email: form.email, password: form.password }),
+        });
         const json = await res.json();
         if (!res.ok) throw new Error(json.error);
-
         setSuccess("OTP dikirim ke email...");
-        setTimeout(() => {
-          navigate("/verify-otp", {
-            state: { role: "pencari", email: form.email },
-          });
-        }, 800);
-
+        setTimeout(() => navigate("/verify-otp", { state: { role: "pencari", email: form.email } }), 800);
         return;
       }
 
-      // REGISTER OWNER
       if (role === "pemilik") {
-  const res = await fetch(
-    "http://localhost:3000/auth/owner/register",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: form.name,
-        email: form.email,
-        phone: formattedPhone,
-        kostName: form.kostName,
-        location: form.location,
-        contact: form.contact,
-      }),
-    }
-  );
-
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.error);
-
-  setSuccess("OTP dikirim...");
-  setTimeout(() => {
-    navigate("/verify-otp", {
-      state: { role: "pemilik", phone: formattedPhone },
-    });
-  }, 800);
-
-  return;
-}
+        const res = await fetch("http://localhost:3000/auth/owner/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: form.name,
+            email: form.email,
+            phone: formattedPhone,
+            kostName: form.kostName,
+            location: form.location,
+            contact: form.contact,
+          }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error);
+        setSuccess("OTP dikirim...");
+        setTimeout(() => navigate("/verify-otp", { state: { role: "pemilik", phone: formattedPhone } }), 800);
+        return;
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -194,7 +153,8 @@ export default function AuthForm({
         onClick={onBack}
         className="flex items-center gap-1.5 text-sm font-semibold text-slate-400 hover:text-blue-600 mb-7"
       >
-        <ChevronLeft size={16} /> Ganti Peran
+        <ChevronLeft size={16} />
+        Ganti Peran
       </button>
 
       {/* HEADER */}
@@ -203,12 +163,7 @@ export default function AuthForm({
           <Search size={15} className="text-blue-600" />
         </div>
         <span className="text-[11px] font-bold text-blue-500 uppercase tracking-widest">
-          {role === "pencari"
-            ? "Pencari Kost"
-            : role === "pemilik"
-            ? "Pemilik Kost"
-            : "Admin"}{" "}
-          — Atap
+          {role === "pencari" ? "Pencari Kost" : role === "pemilik" ? "Pemilik Kost" : "Admin"} — Atap
         </span>
       </div>
 
@@ -216,163 +171,135 @@ export default function AuthForm({
         {isLogin ? "Masuk ke Akun" : "Buat Akun Baru"}
       </h1>
       <p className="mb-6 text-sm text-slate-400">
-        {isLogin
-          ? "Selamat datang kembali"
-          : "Gratis selamanya daftar dalam 1 menit"}
+        {isLogin ? "Selamat datang kembali" : "Gratis selamanya daftar dalam 1 menit"}
       </p>
 
       {/* SWITCH */}
       <div className="flex p-1 mb-6 bg-slate-100 rounded-xl">
         <button
           type="button"
-          onClick={() => setIsLogin(true)}
-          className={`flex-1 py-2.5 text-sm font-semibold rounded-lg ${
-            isLogin ? "bg-white shadow-sm" : "text-slate-400"
-          }`}
+          onClick={() => handleSwitchMode(true)}
+          className={`flex-1 py-2.5 text-sm font-semibold rounded-lg ${isLogin ? "bg-white shadow-sm" : "text-slate-400"}`}
         >
           Masuk
         </button>
         <button
           type="button"
-          onClick={() => setIsLogin(false)}
-          className={`flex-1 py-2.5 text-sm font-semibold rounded-lg ${
-            !isLogin ? "bg-white shadow-sm" : "text-slate-400"
-          }`}
+          onClick={() => handleSwitchMode(false)}
+          className={`flex-1 py-2.5 text-sm font-semibold rounded-lg ${!isLogin ? "bg-white shadow-sm" : "text-slate-400"}`}
         >
           Daftar
         </button>
       </div>
 
-      {/* FORM */}
+      {/* ── FORM — submit button is INSIDE here ── */}
       <form className="space-y-3" onSubmit={handleSubmit}>
+
+        {/* NAMA */}
         {!isLogin && (
           <Field label="Nama Lengkap" icon={<User size={15} />}>
-            <input
-              name="name"
-              className={inputClass}
-              value={form.name}
-              onChange={handleChange}
-            />
+            <input name="name" className={inputClass} value={form.name} onChange={handleChange} />
           </Field>
         )}
 
+        {/* USER EMAIL */}
         {role === "pencari" && (
           <Field label="Email" icon={<Mail size={15} />}>
-            <input
-              name="email"
-              className={inputClass}
-              value={form.email}
-              onChange={handleChange}
-            />
+            <input name="email" className={inputClass} value={form.email} onChange={handleChange} />
           </Field>
         )}
 
+        {/* OWNER LOGIN */}
         {role === "pemilik" && isLogin && (
-  <Field label="Nomor HP" icon={<Phone size={15} />}>
-    <input
-      name="phone"
-      className={inputClass}
-      value={form.phone}
-      onChange={handleChange}
-    />
-  </Field>
-)}
+          <Field label="Nomor HP" icon={<Phone size={15} />}>
+            <input name="phone" className={inputClass} value={form.phone} onChange={handleChange} />
+          </Field>
+        )}
 
-{role === "pemilik" && !isLogin && (
-  <>
-    <Field label="Email" icon={<Mail size={15} />}>
-      <input
-        name="email"
-        className={inputClass}
-        value={form.email}
-        onChange={handleChange}
-      />
-    </Field>
+        {/* OWNER REGISTER STEP 1 */}
+        {role === "pemilik" && !isLogin && ownerStep === 1 && (
+          <>
+            <Field label="Email" icon={<Mail size={15} />}>
+              <input name="email" className={inputClass} value={form.email} onChange={handleChange} />
+            </Field>
+            <Field label="Nomor HP" icon={<Phone size={15} />}>
+              <input name="phone" className={inputClass} value={form.phone} onChange={handleChange} />
+            </Field>
+            {error && <p className="text-sm text-red-500">{error}</p>}
+            <button
+              type="button"
+              onClick={() => {
+                if (!form.name) return setError("Nama wajib diisi");
+                if (!form.email) return setError("Email wajib diisi");
+                if (!form.phone) return setError("Nomor HP wajib diisi");
+                setError("");
+                setOwnerStep(2);
+              }}
+              className="w-full py-3 text-white bg-blue-600 rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+            >
+              Lanjut
+            </button>
+          </>
+        )}
 
-    <Field label="Nomor HP" icon={<Phone size={15} />}>
-      <input
-        name="phone"
-        className={inputClass}
-        value={form.phone}
-        onChange={handleChange}
-      />
-    </Field>
+        {/* OWNER REGISTER STEP 2 */}
+        {role === "pemilik" && !isLogin && ownerStep === 2 && (
+          <>
+            <Field label="Nama Kost">
+              <input name="kostName" className={inputClass} value={form.kostName} onChange={handleChange} />
+            </Field>
+            <Field label="Lokasi">
+              <input name="location" className={inputClass} value={form.location} onChange={handleChange} />
+            </Field>
+            <Field label="Kontak">
+              <input name="contact" className={inputClass} value={form.contact} onChange={handleChange} />
+            </Field>
+            <button
+              type="button"
+              onClick={() => setOwnerStep(1)}
+              className="text-sm text-blue-600 hover:underline"
+            >
+              ← Kembali
+            </button>
+          </>
+        )}
 
-    <Field label="Nama Kost">
-      <input
-        name="kostName"
-        className={inputClass}
-        value={form.kostName}
-        onChange={handleChange}
-      />
-    </Field>
-
-    <Field label="Lokasi">
-      <input
-        name="location"
-        className={inputClass}
-        value={form.location}
-        onChange={handleChange}
-      />
-    </Field>
-
-    <Field label="Kontak">
-      <input
-        name="contact"
-        className={inputClass}
-        value={form.contact}
-        onChange={handleChange}
-      />
-    </Field>
-  </>
-)}
-
+        {/* USER PASSWORD */}
         {role === "pencari" && (
           <Field label="Password" icon={<Lock size={15} />}>
-            <input
-              type="password"
-              name="password"
-              className={inputClass}
-              value={form.password}
-              onChange={handleChange}
-            />
+            <input type="password" name="password" className={inputClass} value={form.password} onChange={handleChange} />
           </Field>
         )}
-        {role === "pencari" && isLogin && (
-  <div className="flex justify-end">
-    <button
-      type="button"
-      onClick={() => navigate("/forgot-password")}
-      className="text-xs text-blue-600 hover:underline"
-    >
-      Lupa password?
-    </button>
-  </div>
-)}
 
+        {/* LUPA PASSWORD */}
+        {role === "pencari" && isLogin && (
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => navigate("/forgot-password")}
+              className="text-xs text-blue-600 hover:underline"
+            >
+              Lupa password?
+            </button>
+          </div>
+        )}
+
+        {/* USER CONFIRM PASSWORD */}
         {role === "pencari" && !isLogin && (
           <Field label="Konfirmasi Password" icon={<Lock size={15} />}>
-            <input
-              type="password"
-              name="confirmPassword"
-              className={inputClass}
-              value={form.confirmPassword}
-              onChange={handleChange}
-            />
+            <input type="password" name="confirmPassword" className={inputClass} value={form.confirmPassword} onChange={handleChange} />
           </Field>
         )}
 
-        {error && <p className="text-sm text-red-500">{error}</p>}
+        {/* ERROR */}
+        {error && !(role === "pemilik" && !isLogin && ownerStep === 1) && (
+          <p className="text-sm text-red-500">{error}</p>
+        )}
+
+        {/* SUCCESS */}
         {success && <p className="text-sm text-green-600">{success}</p>}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-3 text-white bg-blue-600 rounded-xl font-semibold"
-        >
-          {loading ? "Memproses..." : isLogin ? "Masuk" : "Daftar"}
-        </button>
-
+        {/* TERMS */}
         {!isLogin && (
           <div className="flex items-start gap-2 text-xs text-slate-500">
             <input
@@ -393,34 +320,55 @@ export default function AuthForm({
             </p>
           </div>
         )}
+
+        {/* SUBMIT — inside form, hidden on owner step 1 */}
+        {!(role === "pemilik" && !isLogin && ownerStep === 1) && (
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 text-white bg-blue-600 rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-60 transition-colors"
+          >
+            {loading ? "Memproses..." : isLogin ? "Masuk" : "Daftar"}
+          </button>
+        )}
+
+        {/* FOOTER */}
+        <div className="flex items-center justify-center gap-2 pt-4">
+          <Shield size={12} className="text-slate-400" />
+          <p className="text-xs text-slate-400">Data aman & terenkripsi</p>
+        </div>
       </form>
 
-      {/* MODAL */}
+      {/* TERMS MODAL */}
       {showTerms && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white w-[90%] max-w-md rounded-xl p-5">
-            <h2 className="text-lg font-bold mb-2">Syarat & Ketentuan</h2>
-            <div className="text-sm text-slate-600 space-y-2 max-h-60 overflow-y-auto">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white w-full max-w-md rounded-2xl p-5 shadow-xl">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-bold">Syarat & Ketentuan</h2>
+              <button
+                type="button"
+                onClick={() => setShowTerms(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-500"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="text-sm text-slate-600 space-y-2 max-h-60 overflow-y-auto mb-4">
               <p>1. Data harus benar.</p>
               <p>2. Tidak boleh fake account.</p>
               <p>3. Tanggung jawab user.</p>
               <p>4. Bisa berubah sewaktu-waktu.</p>
             </div>
             <button
+              type="button"
               onClick={() => setShowTerms(false)}
-              className="mt-4 w-full py-2 bg-blue-600 text-white rounded-lg"
+              className="w-full py-2.5 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
             >
-              Saya Mengerti
+              Mengerti
             </button>
           </div>
         </div>
       )}
-
-      {/* FOOTER */}
-      <div className="flex items-center justify-center gap-2 pt-4 mt-6">
-        <Shield size={12} />
-        <p className="text-xs text-slate-400">Data aman & terenkripsi</p>
-      </div>
     </div>
   );
 }

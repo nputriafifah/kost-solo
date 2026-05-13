@@ -8,10 +8,14 @@ export default function AuthPage() {
   const [role, setRole] = useState("pencari");
   const [isLogin, setIsLogin] = useState(true);
 
+  // STEP KHUSUS OWNER REGISTER
+  const [ownerStep, setOwnerStep] = useState(1);
+
   const handleSelectRole = (selectedRole) => {
     setRole(selectedRole);
     setIsLogin(true);
     setView("form");
+    setOwnerStep(1);
   };
 
   return (
@@ -24,6 +28,8 @@ export default function AuthPage() {
           isLogin={isLogin}
           setIsLogin={setIsLogin}
           onBack={() => setView("role")}
+          ownerStep={ownerStep}
+          setOwnerStep={setOwnerStep}
         />
       )}
     </AuthLayout>
