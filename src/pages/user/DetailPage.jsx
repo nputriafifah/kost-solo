@@ -8,7 +8,8 @@ import {
   LayoutGrid, Send, Loader2, Share2, BadgeCheck, Star,
   Zap, Tv, Coffee, Utensils, Dumbbell, Package, Droplets,
   Thermometer, BookOpen, TreePine, WashingMachine, Lock,
-  Bookmark, ChevronRight as ChevRight, Timer,
+  Bookmark, ChevronRight as ChevRight, Timer, Globe,
+  CheckCircle2, AlertCircle,
 } from "lucide-react";
 
 /* ── Helpers ──────────────────────────────────────────────────────────────── */
@@ -47,8 +48,8 @@ const ruleIcon = (rule = "") => {
 };
 
 const genderConfig = {
-  putra: { label: "Putra", bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE", dot: "#3B82F6" },
-  putri: { label: "Putri", bg: "#FDF2F8", text: "#9D174D", border: "#FBCFE8", dot: "#EC4899" },
+  putra:  { label: "Putra",  bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE", dot: "#3B82F6" },
+  putri:  { label: "Putri",  bg: "#FDF2F8", text: "#9D174D", border: "#FBCFE8", dot: "#EC4899" },
   campur: { label: "Campur", bg: "#F0FDF4", text: "#166534", border: "#BBF7D0", dot: "#22C55E" },
 };
 
@@ -76,12 +77,13 @@ const fmtDate = (iso) => {
 
 const QUICK_REPLIES = [
   { label: "Masih tersedia?", text: "Apakah kamar masih tersedia?" },
-  { label: "Mau survey", text: "Boleh survey dulu kak?" },
-  { label: "Nego harga?", text: "Apakah bisa nego harga?" },
+  { label: "Mau survey",      text: "Boleh survey dulu kak?" },
+  { label: "Nego harga?",     text: "Apakah bisa nego harga?" },
   { label: "Tanya fasilitas", text: "Fasilitas apa saja yang tersedia?" },
 ];
 
-const API = "http://localhost:8080";
+const API = "http://localhost:3000";
+
 const getToken = () => localStorage.getItem("token") || "";
 const getCurrentUserId = () => {
   try {
@@ -102,38 +104,29 @@ const authFetch = (url, opts = {}) =>
 /* ── AjukanSewa Full Page ─────────────────────────────────────────────────── */
 function AjukanSewaPage({ item, onBack, onSubmit }) {
   const today = new Date().toISOString().split("T")[0];
-  const [masuk, setMasuk] = useState(today);
+  const [masuk,  setMasuk]  = useState(today);
   const [durasi, setDurasi] = useState(6);
-  const [pesan, setPesan] = useState("");
-  const [saved, setSaved] = useState(false);
+  const [pesan,  setPesan]  = useState("");
+  const [saved,  setSaved]  = useState(false);
 
   const keluar = addMonths(masuk, durasi);
   const gender = genderConfig[item?.gender?.toLowerCase()];
 
-  const handleSubmit = () => {
-    onSubmit({ masuk, durasi, keluar, pesan });
-  };
-
   return (
     <div className="min-h-screen bg-slate-50 pb-28" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-      {/* Header */}
       <div className="bg-white border-b border-slate-100 px-4 pt-12 pb-4 sticky top-0 z-30">
         <div className="flex items-center justify-between">
           <button onClick={onBack} className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center">
             <ArrowLeft size={17} className="text-slate-700" />
           </button>
           <h1 className="text-[16px] font-bold text-slate-900">Ajukan sewa</h1>
-          <button
-            onClick={() => setSaved(!saved)}
-            className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center"
-          >
+          <button onClick={() => setSaved(!saved)} className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center">
             <Bookmark size={17} className={saved ? "text-blue-600 fill-blue-600" : "text-slate-500"} />
           </button>
         </div>
       </div>
 
       <div className="px-4 py-4 space-y-4">
-        {/* Kost info card */}
         <div className="bg-white rounded-2xl border border-slate-100 p-4 flex items-center gap-3 shadow-sm">
           {item?.images?.[0] ? (
             <img src={item.images[0]} alt={item.name} className="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
@@ -147,10 +140,7 @@ function AjukanSewaPage({ item, onBack, onSubmit }) {
             <p className="text-[12px] text-slate-400 truncate mb-1">
               {item?.location}
               {gender && (
-                <span
-                  className="ml-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border"
-                  style={{ background: gender.bg, color: gender.text, borderColor: gender.border }}
-                >
+                <span className="ml-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border" style={{ background: gender.bg, color: gender.text, borderColor: gender.border }}>
                   {gender.label}
                 </span>
               )}
@@ -162,7 +152,6 @@ function AjukanSewaPage({ item, onBack, onSubmit }) {
           </div>
         </div>
 
-        {/* Badges */}
         <div className="flex items-center gap-2">
           {item?.isVerified && (
             <div className="flex items-center gap-1.5 bg-white border border-slate-100 rounded-full px-3 py-1.5 shadow-sm">
@@ -176,25 +165,15 @@ function AjukanSewaPage({ item, onBack, onSubmit }) {
           </div>
         </div>
 
-        {/* Section 1: Tanggal & Durasi */}
         <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0">1</div>
             <h3 className="text-[15px] font-bold text-slate-800">Tanggal masuk & durasi</h3>
           </div>
-
-          {/* Date pickers */}
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div>
               <p className="text-[11px] text-slate-400 font-semibold mb-1.5">Masuk</p>
-              <div className="relative">
-                <input
-                  type="date"
-                  value={masuk}
-                  onChange={(e) => setMasuk(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-[13px] font-semibold text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50 appearance-none"
-                />
-              </div>
+              <input type="date" value={masuk} onChange={(e) => setMasuk(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-[13px] font-semibold text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50 appearance-none" />
             </div>
             <div>
               <p className="text-[11px] text-slate-400 font-semibold mb-1.5">Keluar (perkiraan)</p>
@@ -204,20 +183,11 @@ function AjukanSewaPage({ item, onBack, onSubmit }) {
               </div>
             </div>
           </div>
-
-          {/* Durasi buttons */}
           <div>
             <p className="text-[11px] text-slate-400 font-semibold mb-2">Durasi sewa</p>
             <div className="grid grid-cols-4 gap-2">
               {[3, 6, 12, 24].map((bln) => (
-                <button
-                  key={bln}
-                  onClick={() => setDurasi(bln)}
-                  className={`py-2.5 rounded-xl text-[13px] font-bold transition-all active:scale-95 ${durasi === bln
-                    ? "bg-blue-600 text-white shadow-lg shadow-blue-200"
-                    : "bg-slate-100 text-slate-500 hover:bg-slate-200"
-                    }`}
-                >
+                <button key={bln} onClick={() => setDurasi(bln)} className={`py-2.5 rounded-xl text-[13px] font-bold transition-all active:scale-95 ${durasi === bln ? "bg-blue-600 text-white shadow-lg shadow-blue-200" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
                   {bln} bln
                 </button>
               ))}
@@ -225,37 +195,22 @@ function AjukanSewaPage({ item, onBack, onSubmit }) {
           </div>
         </div>
 
-        {/* Section 2: Pesan ke pemilik */}
         <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0">2</div>
             <h3 className="text-[15px] font-bold text-slate-800">Pesan ke pemilik</h3>
           </div>
-          <textarea
-            rows={4}
-            placeholder="Perkenalkan diri kamu dan ceritakan kebutuhan kamu..."
-            value={pesan}
-            onChange={(e) => setPesan(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[13.5px] text-slate-700 placeholder-slate-400 outline-none resize-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50"
-          />
+          <textarea rows={4} placeholder="Perkenalkan diri kamu dan ceritakan kebutuhan kamu..." value={pesan} onChange={(e) => setPesan(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[13.5px] text-slate-700 placeholder-slate-400 outline-none resize-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50" />
         </div>
 
-        {/* Info note */}
         <div className="bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3 flex items-start gap-3">
           <ShieldCheck size={15} className="text-blue-400 flex-shrink-0 mt-0.5" />
-          <p className="text-[12px] text-blue-600 leading-relaxed">
-            Kamu akan dihubungi pemilik setelah permintaan dikirim. Tidak ada pembayaran di muka.
-          </p>
+          <p className="text-[12px] text-blue-600 leading-relaxed">Kamu akan dihubungi pemilik setelah permintaan dikirim. Tidak ada pembayaran di muka.</p>
         </div>
       </div>
 
-      {/* Sticky CTA */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-4 py-4"
-        style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}>
-        <button
-          onClick={handleSubmit}
-          className="w-full h-14 rounded-2xl bg-blue-600 text-white font-bold text-[15px] flex items-center justify-center gap-2 active:scale-[0.97] transition-transform shadow-lg shadow-blue-200"
-        >
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-4 py-4" style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}>
+        <button onClick={() => onSubmit({ masuk, durasi, keluar, pesan })} className="w-full h-14 rounded-2xl bg-blue-600 text-white font-bold text-[15px] flex items-center justify-center gap-2 active:scale-[0.97] transition-transform shadow-lg shadow-blue-200">
           Kirim permintaan sewa
           <ChevRight size={18} />
         </button>
@@ -264,33 +219,188 @@ function AjukanSewaPage({ item, onBack, onSubmit }) {
   );
 }
 
+/* ── Lead / Minat Modal ───────────────────────────────────────────────────── */
+function MinatModal({ item, onClose }) {
+  const token = getToken();
+  const userId = getCurrentUserId();
+  const isLoggedIn = !!token && !!userId;
+
+  const [name,    setName]    = useState("");
+  const [phone,   setPhone]   = useState("");
+  const [email,   setEmail]   = useState("");
+  const [loading, setLoading] = useState(false);
+  const [status,  setStatus]  = useState(null); // "success" | "error" | null
+  const [errMsg,  setErrMsg]  = useState("");
+
+  const handleSubmit = async () => {
+    // Validation for guest
+    if (!isLoggedIn) {
+      if (name.trim().length < 2) { setErrMsg("Nama minimal 2 karakter"); return; }
+      if (phone.trim().length < 8) { setErrMsg("Nomor HP tidak valid"); return; }
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setErrMsg("Format email tidak valid"); return; }
+    }
+    setErrMsg("");
+    setLoading(true);
+    try {
+      const waNum = formatPhone(item.contactNumber);
+      const waMsg = isLoggedIn
+        ? `Halo kak, saya tertarik dengan kost *${item.name}* di ${item.location}. Apakah masih tersedia?`
+        : `Halo kak, saya *${name.trim()}* tertarik dengan kost *${item.name}* di ${item.location}. Apakah masih tersedia?`;
+      window.open(`https://wa.me/${waNum}?text=${encodeURIComponent(waMsg)}`, "_blank");
+      setStatus("success");
+    } catch (e) {
+      setErrMsg(e.message || "Terjadi kesalahan");
+      setStatus("error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end justify-center"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="bg-white w-full max-w-lg rounded-t-3xl px-5 pt-3 pb-8 animate-[slideUp_0.3s_ease]">
+        <div className="w-10 h-1 rounded-full bg-slate-200 mx-auto mb-5" />
+
+        {status === "success" ? (
+          <div className="flex flex-col items-center py-6 gap-4 text-center">
+            <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center">
+              <CheckCircle2 size={32} className="text-emerald-500" />
+            </div>
+            <div>
+              <h3 className="text-[17px] font-bold text-slate-800 mb-1">WhatsApp terbuka!</h3>
+              <p className="text-[13px] text-slate-500 leading-relaxed">Lanjutkan percakapan di WhatsApp. Pemilik kost akan segera merespons pesanmu.</p>
+            </div>
+            <button onClick={onClose} className="w-full h-12 rounded-2xl bg-blue-600 text-white font-semibold text-[14px]">Tutup</button>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-[16px] font-bold text-slate-800">Saya Minat</h3>
+              <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+                <X size={16} className="text-slate-500" />
+              </button>
+            </div>
+            <p className="text-[12px] text-slate-400 mb-5">Informasi kamu akan diteruskan ke pemilik kost</p>
+
+            {/* Kost summary */}
+            <div className="flex items-center gap-3 bg-slate-50 rounded-2xl p-3 mb-5 border border-slate-100">
+              {item?.images?.[0] ? (
+                <img src={item.images[0]} alt={item.name} className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
+              ) : (
+                <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                  <Home size={18} className="text-blue-300" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-bold text-slate-800 truncate">{item?.name}</p>
+                <p className="text-[11px] text-slate-400 truncate">{item?.location}</p>
+              </div>
+              <p className="text-[13px] font-bold text-blue-600 flex-shrink-0">
+                Rp {Number(item?.price || 0).toLocaleString("id-ID")}
+              </p>
+            </div>
+
+            {isLoggedIn ? (
+              <div className="bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3 flex items-start gap-3 mb-5">
+                <ShieldCheck size={15} className="text-blue-400 flex-shrink-0 mt-0.5" />
+                <p className="text-[12px] text-blue-600 leading-relaxed">Kamu sudah login. Data profilmu akan digunakan sebagai informasi kontak.</p>
+              </div>
+            ) : (
+              <div className="space-y-3 mb-5">
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-500 block mb-1.5">Nama Lengkap <span className="text-red-400">*</span></label>
+                  <input
+                    type="text"
+                    placeholder="contoh: Budi Santoso"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[13.5px] text-slate-700 placeholder-slate-400 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-500 block mb-1.5">Nomor HP (WhatsApp) <span className="text-red-400">*</span></label>
+                  <input
+                    type="tel"
+                    placeholder="contoh: 08123456789"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[13.5px] text-slate-700 placeholder-slate-400 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-500 block mb-1.5">Email <span className="text-slate-400 font-normal">(opsional)</span></label>
+                  <input
+                    type="email"
+                    placeholder="contoh: budi@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[13.5px] text-slate-700 placeholder-slate-400 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50"
+                  />
+                </div>
+              </div>
+            )}
+
+            {errMsg && (
+              <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-4 py-2.5 mb-4">
+                <AlertCircle size={14} className="text-red-400 flex-shrink-0" />
+                <p className="text-[12px] text-red-500">{errMsg}</p>
+              </div>
+            )}
+
+            <button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="w-full h-13 py-3.5 rounded-2xl bg-blue-600 text-white font-bold text-[14px] flex items-center justify-center gap-2 active:scale-[0.97] transition-transform shadow-lg shadow-blue-200 disabled:opacity-60"
+            >
+              {loading ? <Loader2 size={16} className="animate-spin" /> : null}
+              {loading ? "Mengirim..." : "Kirim Minat Saya"}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ══════════════════════════════════════════════════════════════════════════ */
 export default function DetailPage() {
-  const { id } = useParams();
+  const { id }   = useParams();
   const navigate = useNavigate();
 
-  const [item, setItem] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [isLiked, setIsLiked] = useState(false);
+  const [item,      setItem]      = useState(null);
+  const [loading,   setLoading]   = useState(true);
+  const [isLiked,   setIsLiked]   = useState(false);
   const [activeImg, setActiveImg] = useState(0);
-  const [showSewa, setShowSewa] = useState(false);
+  const [showSewa,  setShowSewa]  = useState(false);
+  const [showMinat, setShowMinat] = useState(false);
 
-  const [showChat, setShowChat] = useState(false);
-  const [threadId, setThreadId] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [chatInput, setChatInput] = useState("");
+  const [showChat,    setShowChat]    = useState(false);
+  const [threadId,    setThreadId]    = useState(null);
+  const [messages,    setMessages]    = useState([]);
+  const [chatInput,   setChatInput]   = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [sendLoading, setSendLoading] = useState(false);
-  const [quickUsed, setQuickUsed] = useState(false);
-  const [chatError, setChatError] = useState(null);
-  const chatEndRef = useRef(null);
-  const pollRef = useRef(null);
+  const [quickUsed,   setQuickUsed]   = useState(false);
+  const [chatError,   setChatError]   = useState(null);
+  const chatEndRef    = useRef(null);
+  const thumbsRef     = useRef(null);
+  const pollRef       = useRef(null);
 
   const myId = getCurrentUserId();
 
   useEffect(() => {
     if (showChat) chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, showChat]);
+
+  // Scroll thumbnail strip to keep active thumb visible
+  useEffect(() => {
+    if (!thumbsRef.current) return;
+    const el = thumbsRef.current.children[activeImg];
+    if (el) el.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }, [activeImg]);
 
   useEffect(() => {
     const favs = JSON.parse(localStorage.getItem("atap_favorites") || "[]");
@@ -299,7 +409,7 @@ export default function DetailPage() {
 
   const toggleLike = () => {
     const favs = JSON.parse(localStorage.getItem("atap_favorites") || "[]");
-    const next = isLiked ? favs.filter((f) => f !== id) : [...favs, id];
+    const next  = isLiked ? favs.filter((f) => f !== id) : [...favs, id];
     localStorage.setItem("atap_favorites", JSON.stringify(next));
     setIsLiked(!isLiked);
   };
@@ -311,26 +421,32 @@ export default function DetailPage() {
         if (!res.ok) throw new Error("Gagal fetch");
         const { data } = await res.json();
         if (!data) return;
+
         const room = data.roomTypes?.[0];
+        const cheapestPrice = data.roomTypes?.length
+          ? Math.min(...data.roomTypes.map((r) => r.price ?? Infinity))
+          : 0;
+
         setItem({
-          id: data.id,
-          name: data.name || "Tanpa nama",
-          location: data.address || "Lokasi tidak tersedia",
-          description: data.description || "",
-          rules: Array.isArray(data.rules) ? data.rules : data.rules ? [data.rules] : [],
-          gender: data.genderType,
-          contactNumber: data.contactNumber || data.owner?.phone || "",
-          ownerId: data.ownerId || data.owner?.id || "",
-          ownerName: data.owner?.name || "Pemilik",
-          price: room?.price || 0,
-          size: room?.size || "-",
-          facilities: room?.facilities || [],
-          images: room?.photos?.map((p) => p.url) || [],
-          rating: data.rating || 4.8,
-          reviewCount: data.reviewCount || 32,
-          isVerified: data.isVerified !== false,
-          isFeatured: data.isFeatured || false,
-          availableRooms: data.availableRooms || 3,
+          id:             data.id,
+          name:           data.name || "Tanpa nama",
+          location:       data.address || "Lokasi tidak tersedia",
+          description:    data.description || "",
+          rules:          Array.isArray(data.rules) ? data.rules : data.rules ? [data.rules] : [],
+          gender:         data.genderType,
+          contactNumber:  data.contactNumber || "",
+          ownerId:        data.owner?.id || "",
+          ownerName:      data.owner?.name || "Pemilik",
+          price:          data.cheapestPrice || 0,
+          size:           room?.size || "-",
+          facilities:     data.facilities || room?.facilities || [],
+          // BE returns flat photos array
+          images:         (data.photos || []).map((p) => p.url),
+          rating:         data.rating       || 4.8,
+          reviewCount:    data.reviewCount  || 32,
+          isVerified:     data.isVerified   !== false,
+          isFeatured:     data.isPremium    || false,
+          availableRooms: data.roomTypes?.reduce((sum, r) => sum + (r.availableCount || 0), 0) || 0,
         });
       } catch (err) {
         console.error(err);
@@ -356,7 +472,7 @@ export default function DetailPage() {
         const errJson = await res.json().catch(() => ({}));
         throw new Error(errJson.message || "Gagal membuat thread");
       }
-      const json = await res.json();
+      const json   = await res.json();
       const thread = json.data || json;
       setThreadId(thread.id);
       await fetchMessages(thread.id);
@@ -370,7 +486,7 @@ export default function DetailPage() {
 
   const fetchMessages = async (tid) => {
     try {
-      const res = await authFetch(`${API}/chats/${tid}`);
+      const res  = await authFetch(`${API}/chats/${tid}`);
       if (!res.ok) return;
       const json = await res.json();
       const thread = json.data || json;
@@ -395,28 +511,35 @@ export default function DetailPage() {
         body: JSON.stringify({ message: text.trim() }),
       });
       if (!res.ok) throw new Error("Gagal kirim");
-      const json = await res.json();
+      const json   = await res.json();
       const newMsg = json.data || json;
       setMessages((prev) => [...prev, newMsg]);
-    } catch (e) { console.error(e); } finally { setSendLoading(false); }
+    } catch (e) { console.error(e); }
+    finally { setSendLoading(false); }
   };
 
   const handleQuickReply = (q) => { setQuickUsed(true); sendMessage(q.text); };
-
   const handleSewaSubmit = ({ masuk, durasi, keluar, pesan }) => {
     alert(`Permintaan sewa berhasil dikirim!\nMasuk: ${masuk}\nDurasi: ${durasi} bulan\nKeluar: ${keluar}`);
     setShowSewa(false);
   };
 
-  /* ── If showing sewa page ── */
+  // Touch / swipe handling for hero image
+  const touchStartX = useRef(null);
+  const handleTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
+  const handleTouchEnd   = (e) => {
+    if (touchStartX.current === null) return;
+    const diff = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 40) {
+      const len = images?.length || 1;
+      setActiveImg((p) => diff > 0 ? (p + 1) % len : (p - 1 + len) % len);
+    }
+    touchStartX.current = null;
+  };
+
+  /* ── Sewa page ── */
   if (showSewa && item) {
-    return (
-      <AjukanSewaPage
-        item={item}
-        onBack={() => setShowSewa(false)}
-        onSubmit={handleSewaSubmit}
-      />
-    );
+    return <AjukanSewaPage item={item} onBack={() => setShowSewa(false)} onSubmit={handleSewaSubmit} />;
   }
 
   /* ── Loading skeleton ── */
@@ -444,9 +567,7 @@ export default function DetailPage() {
           <Home size={28} className="text-slate-300" />
         </div>
         <p className="text-sm font-medium text-slate-400">Data tidak ditemukan</p>
-        <button onClick={() => navigate(-1)} className="text-sm font-semibold text-blue-600 bg-blue-50 px-6 py-2.5 rounded-full">
-          Kembali
-        </button>
+        <button onClick={() => navigate(-1)} className="text-sm font-semibold text-blue-600 bg-blue-50 px-6 py-2.5 rounded-full">Kembali</button>
       </div>
     );
   }
@@ -462,66 +583,85 @@ export default function DetailPage() {
       <div className="min-h-screen bg-white pb-36">
 
         {/* ── HERO IMAGE ── */}
-        <div className="relative h-72 overflow-hidden bg-slate-100">
-          <img
-            src={images[activeImg]}
-            alt={item.name}
-            className="w-full h-full object-cover transition-opacity duration-300"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent" />
+        <div
+          className="relative overflow-hidden bg-slate-100"
+          style={{ height: "auto" }}
+        >
+          {/* Main photo */}
+          <div
+            className="relative h-72"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
+            <img
+              src={images[activeImg]}
+              alt={item.name}
+              className="w-full h-full object-cover transition-opacity duration-300"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent pointer-events-none" />
 
-          <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12 pb-3">
-            <button
-              onClick={() => navigate(-1)}
-              className="w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-sm"
-            >
-              <ArrowLeft size={17} className="text-slate-800" />
-            </button>
-            <div className="flex items-center gap-2">
-              <button className="w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-sm">
-                <Share2 size={15} className="text-slate-700" />
+            {/* Top nav */}
+            <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12 pb-3">
+              <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-sm">
+                <ArrowLeft size={17} className="text-slate-800" />
               </button>
-              <button
-                onClick={toggleLike}
-                className={`w-9 h-9 rounded-full flex items-center justify-center shadow-sm transition-all ${isLiked ? "bg-red-500" : "bg-white/90 backdrop-blur-sm"}`}
-              >
-                <Heart size={15} fill={isLiked ? "white" : "none"} className={isLiked ? "text-white" : "text-slate-700"} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button className="w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-sm">
+                  <Share2 size={15} className="text-slate-700" />
+                </button>
+                <button
+                  onClick={toggleLike}
+                  className={`w-9 h-9 rounded-full flex items-center justify-center shadow-sm transition-all ${isLiked ? "bg-red-500" : "bg-white/90 backdrop-blur-sm"}`}
+                >
+                  <Heart size={15} fill={isLiked ? "white" : "none"} className={isLiked ? "text-white" : "text-slate-700"} />
+                </button>
+              </div>
+            </div>
+
+            {/* Prev / Next arrows */}
+            {images.length > 1 && (
+              <>
+                <button onClick={() => setActiveImg((p) => (p - 1 + images.length) % images.length)} className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center">
+                  <ChevronLeft size={16} className="text-slate-700" />
+                </button>
+                <button onClick={() => setActiveImg((p) => (p + 1) % images.length)} className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center">
+                  <ChevronRight size={16} className="text-slate-700" />
+                </button>
+              </>
+            )}
+
+            {/* Dot indicator + counter */}
+            {images.length > 1 && (
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
+                {images.map((_, i) => (
+                  <button key={i} onClick={() => setActiveImg(i)} className={`h-1.5 rounded-full transition-all duration-300 ${i === activeImg ? "w-5 bg-white" : "w-1.5 bg-white/50"}`} />
+                ))}
+              </div>
+            )}
+
+            <div className="absolute bottom-4 right-4 bg-black/40 backdrop-blur-sm text-white text-[11px] font-medium px-2.5 py-1 rounded-full">
+              {activeImg + 1} / {images.length}
             </div>
           </div>
 
+          {/* ── THUMBNAIL STRIP (only when >1 image) ── */}
           {images.length > 1 && (
-            <>
-              <button
-                onClick={() => setActiveImg((p) => (p - 1 + images.length) % images.length)}
-                className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center"
-              >
-                <ChevronLeft size={16} className="text-slate-700" />
-              </button>
-              <button
-                onClick={() => setActiveImg((p) => (p + 1) % images.length)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center"
-              >
-                <ChevronRight size={16} className="text-slate-700" />
-              </button>
-            </>
-          )}
-
-          {images.length > 1 && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
-              {images.map((_, i) => (
+            <div
+              ref={thumbsRef}
+              className="flex gap-2 overflow-x-auto px-4 py-3 bg-white border-b border-slate-100 scrollbar-hide"
+              style={{ scrollbarWidth: "none" }}
+            >
+              {images.map((src, i) => (
                 <button
                   key={i}
                   onClick={() => setActiveImg(i)}
-                  className={`h-1.5 rounded-full transition-all duration-300 ${i === activeImg ? "w-5 bg-white" : "w-1.5 bg-white/50"}`}
-                />
+                  className={`flex-shrink-0 w-16 h-14 rounded-xl overflow-hidden border-2 transition-all ${i === activeImg ? "border-blue-500 shadow-md shadow-blue-100" : "border-transparent opacity-60"}`}
+                >
+                  <img src={src} alt={`foto ${i + 1}`} className="w-full h-full object-cover" />
+                </button>
               ))}
             </div>
           )}
-
-          <div className="absolute bottom-4 right-4 bg-black/40 backdrop-blur-sm text-white text-[11px] font-medium px-2.5 py-1 rounded-full">
-            {activeImg + 1} / {images.length}
-          </div>
         </div>
 
         {/* ── MAIN CONTENT ── */}
@@ -529,21 +669,15 @@ export default function DetailPage() {
 
           <div className="flex items-center gap-2 mb-3 flex-wrap">
             {item.isFeatured && (
-              <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-amber-400 text-amber-900 tracking-wide">
-                UNGGULAN
-              </span>
+              <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-amber-400 text-amber-900 tracking-wide">UNGGULAN</span>
             )}
             {item.isVerified && (
               <span className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
-                <BadgeCheck size={12} />
-                Terverifikasi
+                <BadgeCheck size={12} /> Terverifikasi
               </span>
             )}
             {gender && (
-              <span
-                className="text-[11px] font-semibold px-2.5 py-1 rounded-full border"
-                style={{ background: gender.bg, color: gender.text, borderColor: gender.border }}
-              >
+              <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full border" style={{ background: gender.bg, color: gender.text, borderColor: gender.border }}>
                 {gender.label}
               </span>
             )}
@@ -560,16 +694,11 @@ export default function DetailPage() {
             <span className="text-[13px] text-slate-500 leading-none">{item.location}</span>
           </div>
 
-          <div
-            className="rounded-2xl px-5 py-4 mb-5 flex items-center justify-between"
-            style={{ background: "linear-gradient(135deg, #1E40AF 0%, #2563EB 50%, #3B82F6 100%)" }}
-          >
+          <div className="rounded-2xl px-5 py-4 mb-5 flex items-center justify-between" style={{ background: "linear-gradient(135deg, #1E40AF 0%, #2563EB 50%, #3B82F6 100%)" }}>
             <div>
               <p className="text-[11px] text-blue-200 font-medium mb-0.5">Mulai dari</p>
               <div className="flex items-baseline gap-1">
-                <span className="text-[22px] font-bold text-white">
-                  Rp {Number(item.price).toLocaleString("id-ID")}
-                </span>
+                <span className="text-[22px] font-bold text-white">Rp {Number(item.price).toLocaleString("id-ID")}</span>
                 <span className="text-[12px] text-blue-200 font-medium">/bulan</span>
               </div>
             </div>
@@ -583,9 +712,9 @@ export default function DetailPage() {
 
           <div className="grid grid-cols-3 gap-2.5 mb-6">
             {[
-              { icon: <Ruler size={14} className="text-blue-500" />, label: "Luas Kamar", value: item.size, bg: "#EFF6FF" },
-              { icon: <Home size={14} className="text-purple-500" />, label: "Tipe Kost", value: gender?.label || "Umum", bg: "#F5F3FF" },
-              { icon: <DoorOpen size={14} className="text-emerald-500" />, label: "Status", value: "Tersedia", bg: "#F0FDF4" },
+              { icon: <Ruler size={14} className="text-blue-500" />,       label: "Luas Kamar", value: item.size,           bg: "#EFF6FF" },
+              { icon: <Home size={14} className="text-purple-500" />,      label: "Tipe Kost",  value: gender?.label || "Umum", bg: "#F5F3FF" },
+              { icon: <DoorOpen size={14} className="text-emerald-500" />, label: "Status",     value: "Tersedia",           bg: "#F0FDF4" },
             ].map((s, i) => (
               <div key={i} className="rounded-2xl p-3.5" style={{ background: s.bg }}>
                 <div className="mb-2">{s.icon}</div>
@@ -609,20 +738,11 @@ export default function DetailPage() {
                 {item.facilities.map((f, i) => {
                   const { Icon, color, bg, labelColor } = getFacilityStyle(f);
                   return (
-                    <div
-                      key={i}
-                      className="flex items-center gap-3 rounded-2xl px-4 py-3.5 border"
-                      style={{ background: bg, borderColor: `${color}22` }}
-                    >
-                      <div
-                        className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                        style={{ background: `${color}18` }}
-                      >
+                    <div key={i} className="flex items-center gap-3 rounded-2xl px-4 py-3.5 border" style={{ background: bg, borderColor: `${color}22` }}>
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${color}18` }}>
                         <Icon size={17} style={{ color }} />
                       </div>
-                      <span className="text-[13px] font-semibold leading-tight" style={{ color: labelColor }}>
-                        {f}
-                      </span>
+                      <span className="text-[13px] font-semibold leading-tight" style={{ color: labelColor }}>{f}</span>
                     </div>
                   );
                 })}
@@ -636,9 +756,7 @@ export default function DetailPage() {
               <div className="rounded-2xl border border-slate-100 overflow-hidden bg-white divide-y divide-slate-50">
                 {item.rules.map((r, i) => (
                   <div key={i} className="flex items-start gap-3 px-4 py-3.5">
-                    <div className="w-7 h-7 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0 mt-0.5 text-red-400">
-                      {ruleIcon(r)}
-                    </div>
+                    <div className="w-7 h-7 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0 mt-0.5 text-red-400">{ruleIcon(r)}</div>
                     <span className="text-[13px] text-slate-600 leading-relaxed pt-0.5">{r}</span>
                   </div>
                 ))}
@@ -646,26 +764,57 @@ export default function DetailPage() {
             </div>
           )}
 
-          <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4 mb-2 flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-              {item.ownerName?.[0]?.toUpperCase() || "P"}
+          {/* ── OWNER CARD with WA + Web buttons ── */}
+          <div className="mb-6">
+            <h2 className="text-[16px] font-bold text-slate-800 mb-3">Pemilik Kost</h2>
+            <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                  {item.ownerName?.[0]?.toUpperCase() || "P"}
+                </div>
+                <div className="flex-1">
+                  <p className="text-[14px] font-semibold text-slate-800">{item.ownerName}</p>
+                  <p className="text-[12px] text-slate-400">Pemilik Kost</p>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
+                  <span className="text-[11px] text-emerald-600 font-medium">Online</span>
+                </div>
+              </div>
+
+              {/* Contact buttons */}
+              <div className="grid grid-cols-2 gap-2.5">
+                {/* WhatsApp */}
+                <button
+                  onClick={() => window.open(`https://wa.me/${formatPhone(item.contactNumber)}?text=Halo kak, saya tertarik dengan kost ${encodeURIComponent(item.name)}`, "_blank")}
+                  className="flex items-center justify-center gap-2 h-11 rounded-xl font-semibold text-[13px] text-white active:scale-[0.97] transition-transform"
+                  style={{ background: "linear-gradient(135deg, #25D366, #128C7E)" }}
+                >
+                  {/* WhatsApp icon inline SVG */}
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                    <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.555 4.126 1.527 5.858L.057 23.617a.75.75 0 0 0 .92.92l5.818-1.488A11.946 11.946 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.75 9.75 0 0 1-4.964-1.358l-.356-.214-3.695.945.962-3.617-.232-.371A9.75 9.75 0 1 1 12 21.75z"/>
+                  </svg>
+                  WhatsApp
+                </button>
+
+                {/* Chat in-app */}
+                <button
+                  onClick={openChat}
+                  className="flex items-center justify-center gap-2 h-11 rounded-xl font-semibold text-[13px] text-blue-700 bg-blue-50 border border-blue-100 active:scale-[0.97] transition-transform"
+                >
+                  <MessageCircle size={16} className="text-blue-500" />
+                  Chat di App
+                </button>
+              </div>
             </div>
-            <div className="flex-1">
-              <p className="text-[14px] font-semibold text-slate-800">{item.ownerName}</p>
-              <p className="text-[12px] text-slate-400">Pemilik Kost</p>
-            </div>
-            <button
-              onClick={() => window.open(`https://wa.me/${formatPhone(item.contactNumber)}`, "_blank")}
-              className="text-[12px] font-semibold text-blue-600 bg-blue-50 border border-blue-100 px-4 py-2 rounded-xl"
-            >
-              Hubungi
-            </button>
           </div>
+
         </div>
       </div>
 
       {/* ── CTA BAR ── */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-100 px-4 py-3 pb-safe">
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-100 px-4 py-3" style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}>
         <div className="flex items-center gap-2.5 max-w-xl mx-auto">
           <button
             onClick={toggleLike}
@@ -674,29 +823,31 @@ export default function DetailPage() {
             <Heart size={18} fill={isLiked ? "#EF4444" : "none"} className={isLiked ? "text-red-500" : "text-slate-500"} />
           </button>
 
+          {/* Saya Minat button */}
           <button
-            onClick={openChat}
-            className="w-12 h-12 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-center flex-shrink-0"
+            onClick={() => setShowMinat(true)}
+            className="flex-1 h-12 rounded-2xl border border-blue-200 bg-blue-50 text-blue-700 font-semibold text-[13px] active:scale-[0.97] transition-transform flex items-center justify-center gap-2"
           >
-            <MessageCircle size={18} className="text-slate-500" />
+            <Star size={15} className="text-blue-500" />
+            Saya Minat
           </button>
 
           <button
             onClick={() => setShowSewa(true)}
-            className="flex-1 h-12 rounded-2xl bg-blue-600 text-white font-semibold text-[14px] active:scale-[0.97] transition-transform shadow-lg shadow-blue-200 flex items-center justify-center gap-2"
+            className="flex-1 h-12 rounded-2xl bg-blue-600 text-white font-semibold text-[13px] active:scale-[0.97] transition-transform shadow-lg shadow-blue-200 flex items-center justify-center gap-2"
           >
-            <Calendar size={16} />
-            Ajukan sewa
+            <Calendar size={15} />
+            Ajukan Sewa
           </button>
         </div>
       </div>
 
+      {/* ── MINAT MODAL ── */}
+      {showMinat && <MinatModal item={item} onClose={() => setShowMinat(false)} />}
+
       {/* ── CHAT MODAL ── */}
       {showChat && (
-        <div
-          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end justify-center"
-          onClick={(e) => e.target === e.currentTarget && setShowChat(false)}
-        >
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end justify-center" onClick={(e) => e.target === e.currentTarget && setShowChat(false)}>
           <div className="bg-white w-full max-w-lg rounded-t-3xl px-5 pt-3 pb-6 animate-[slideUp_0.3s_ease]">
             <div className="w-10 h-1 rounded-full bg-slate-200 mx-auto mb-4" />
             <div className="flex items-center justify-between mb-3">
@@ -720,20 +871,14 @@ export default function DetailPage() {
             </div>
 
             {chatError && (
-              <div className="bg-red-50 border border-red-100 text-red-500 text-[13px] rounded-2xl px-4 py-3 mb-3">
-                {chatError}
-              </div>
+              <div className="bg-red-50 border border-red-100 text-red-500 text-[13px] rounded-2xl px-4 py-3 mb-3">{chatError}</div>
             )}
 
             <div className="h-52 overflow-y-auto flex flex-col gap-2.5 mb-3 px-0.5">
               {chatLoading ? (
-                <div className="flex items-center justify-center h-full">
-                  <Loader2 size={22} className="text-slate-300 animate-spin" />
-                </div>
+                <div className="flex items-center justify-center h-full"><Loader2 size={22} className="text-slate-300 animate-spin" /></div>
               ) : messages.length === 0 && !chatError ? (
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-[13px] text-slate-400">Belum ada pesan. Mulai percakapan! 👋</p>
-                </div>
+                <div className="flex items-center justify-center h-full"><p className="text-[13px] text-slate-400">Belum ada pesan. Mulai percakapan! 👋</p></div>
               ) : (
                 messages.map((msg, i) => {
                   const isMe = msg.senderId === myId;
@@ -745,17 +890,10 @@ export default function DetailPage() {
                         </div>
                       )}
                       <div className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
-                        <div
-                          className={`px-3.5 py-2.5 text-[13px] leading-snug ${isMe
-                            ? "bg-blue-600 text-white rounded-[18px_18px_4px_18px]"
-                            : "bg-slate-100 text-slate-700 rounded-[4px_18px_18px_18px]"}`}
-                          style={{ maxWidth: "72%" }}
-                        >
+                        <div className={`px-3.5 py-2.5 text-[13px] leading-snug ${isMe ? "bg-blue-600 text-white rounded-[18px_18px_4px_18px]" : "bg-slate-100 text-slate-700 rounded-[4px_18px_18px_18px]"}`} style={{ maxWidth: "72%" }}>
                           {msg.message}
                         </div>
-                        <p className="text-[10px] text-slate-400 mt-1 px-1">
-                          {msg.sentAt ? fmtTime(msg.sentAt) : ""}
-                        </p>
+                        <p className="text-[10px] text-slate-400 mt-1 px-1">{msg.sentAt ? fmtTime(msg.sentAt) : ""}</p>
                       </div>
                     </div>
                   );
@@ -767,13 +905,7 @@ export default function DetailPage() {
             {!quickUsed && !chatLoading && !chatError && (
               <div className="flex gap-2 flex-wrap mb-3">
                 {QUICK_REPLIES.map((q) => (
-                  <button
-                    key={q.label}
-                    onClick={() => handleQuickReply(q)}
-                    className="text-[12px] font-semibold px-3 py-1.5 rounded-full border border-blue-100 bg-blue-50 text-blue-600"
-                  >
-                    {q.label}
-                  </button>
+                  <button key={q.label} onClick={() => handleQuickReply(q)} className="text-[12px] font-semibold px-3 py-1.5 rounded-full border border-blue-100 bg-blue-50 text-blue-600">{q.label}</button>
                 ))}
               </div>
             )}
@@ -793,10 +925,7 @@ export default function DetailPage() {
                 disabled={!chatInput.trim() || sendLoading || chatLoading || !!chatError}
                 className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm shadow-blue-200 disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                {sendLoading
-                  ? <Loader2 size={14} className="text-white animate-spin" />
-                  : <Send size={14} className="text-white" />
-                }
+                {sendLoading ? <Loader2 size={14} className="text-white animate-spin" /> : <Send size={14} className="text-white" />}
               </button>
             </div>
           </div>
@@ -808,6 +937,7 @@ export default function DetailPage() {
           from { transform: translateY(100%); opacity: 0; }
           to   { transform: translateY(0);    opacity: 1; }
         }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
       `}</style>
     </>
   );

@@ -26,6 +26,7 @@ import DashboardOwnerPage from "./pages/owner/DashboardOwnerPage";
 import CreateListingPage from "./pages/owner/CreateListingPage";
 import EditListingPage from "./pages/owner/EditListingPage";
 import DetailListingPage from "./pages/owner/DetailListingPage";
+import PropertiPage from "./pages/owner/PropertiPage";
 
 // ADMIN
 // ✅ Yang baru
@@ -207,3 +208,11 @@ export default function App() {
     </>
   );
 }
+<Route
+  path="/owner/properti"
+  element={
+    <ProtectedRoute role="pemilik">
+      <PropertiPage />
+    </ProtectedRoute>
+  }
+/>

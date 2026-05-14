@@ -3,9 +3,9 @@ import {
   User, Mail, ChevronRight, LogOut, Settings,
   Bell, Shield, HelpCircle, X, Check, Camera,
   MapPin, Map as MapIcon, Globe, Navigation,
-  ChevronLeft,
+  ChevronLeft, Home, Map, Heart, MessageCircle, Search,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 // ─── INDONESIA REGION DATA ────────────────────────────────────────────────────
 const PROVINCES = [
@@ -44,42 +44,46 @@ const CITIES = {
   "Sumatera Barat": ["Kab. Agam", "Kab. Dharmasraya", "Kab. Kepulauan Mentawai", "Kab. Lima Puluh Kota", "Kab. Padang Pariaman", "Kab. Pasaman", "Kab. Pasaman Barat", "Kab. Pesisir Selatan", "Kab. Sijunjung", "Kab. Solok", "Kab. Solok Selatan", "Kab. Tanah Datar", "Kota Bukittinggi", "Kota Padang", "Kota Padang Panjang", "Kota Pariaman", "Kota Payakumbuh", "Kota Sawahlunto", "Kota Solok"],
 };
 
-// ─── NOTIFICATION DATA (sama persis dari NotifikasiPage) ──────────────────────
-const NOTIFICATIONS = [
+const NOTIFICATIONS_DEFAULT = [
   { id: 1, unread: true },
   { id: 2, unread: true },
   { id: 3, unread: false },
   { id: 4, unread: false },
 ];
 
-// ─── MENU ITEMS ────────────────────────────────────────────────────────────────
 const menuItems = [
-  { icon: Settings, label: "Pengaturan Akun", sub: "Kelola informasi & keamanan", color: "#2563EB", bg: "#EFF6FF", path: "/settings/account" },
-  { icon: Bell, label: "Notifikasi", sub: "Atur preferensi notifikasi", color: "#D97706", bg: "#FFFBEB", path: "/notifikasi", showBadge: true },
-  { icon: Shield, label: "Privasi & Keamanan", sub: "Jaga keamanan akunmu", color: "#059669", bg: "#ECFDF5", path: "/settings/privacy" },
-  { icon: HelpCircle, label: "Bantuan & FAQ", sub: "Butuh bantuan? Kami siap", color: "#7C3AED", bg: "#F5F3FF", path: "/settings/faq" },
+  { icon: Settings,    label: "Pengaturan Akun",   sub: "Kelola informasi & keamanan",  color: "#2563EB", bg: "#EFF6FF", path: "/settings/account" },
+  // ProfilPage.jsx - ubah path Notifikasi
+{ icon: Bell, label: "Notifikasi", sub: "Atur preferensi notifikasi", color: "#D97706", bg: "#FFFBEB", path: "/settings/notifications", showBadge: true },
+  { icon: Shield,      label: "Privasi & Keamanan", sub: "Jaga keamanan akunmu",         color: "#059669", bg: "#ECFDF5", path: "/settings/privacy" },
+  { icon: HelpCircle,  label: "Bantuan & FAQ",      sub: "Butuh bantuan? Kami siap",     color: "#7C3AED", bg: "#F5F3FF", path: "/settings/faq" },
 ];
+
+// ─── NAV (sama persis dengan halaman lain) ─────────────────────────────────────
+const NAV_ITEMS = [
+  { label: "Home",    path: "/",       icon: Home,          mobile: true,  guestMobile: true  },
+  { label: "Search",  path: "/search", icon: Search,        mobile: true,  guestMobile: true  },
+  { label: "Peta",    path: "/map",    icon: Map,           mobile: true,  guestMobile: true  },
+  { label: "Favorit", path: "/like",   icon: Heart,         mobile: true,  guestMobile: false },
+  { label: "Chat",    path: "/chat",   icon: MessageCircle, mobile: false, guestMobile: false },
+  { label: "Profil",  path: "/profil", icon: User,          mobile: true,  guestMobile: false },
+];
+
+const MOBILE_NAV   = NAV_ITEMS.filter((n) => n.mobile);
+const GUEST_MOBILE = NAV_ITEMS.filter((n) => n.guestMobile);
 
 // ─── INPUT GROUP ───────────────────────────────────────────────────────────────
 function InputGroup({ label, icon, value, onChange, placeholder }) {
   return (
     <div>
-      <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#64748B", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.08em" }}>{label}</label>
-      <div style={{ position: "relative" }}>
-        <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#94A3B8", display: "flex" }}>{icon}</span>
+      <label style={{ display:"block", fontSize:11, fontWeight:700, color:"#64748B", marginBottom:6, textTransform:"uppercase", letterSpacing:"0.08em" }}>{label}</label>
+      <div style={{ position:"relative" }}>
+        <span style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", color:"#94A3B8", display:"flex" }}>{icon}</span>
         <input
-          style={{
-            width: "100%", height: 48, paddingLeft: 44, paddingRight: 16,
-            background: "#F8FAFC", border: "1.5px solid #E2E8F0",
-            borderRadius: 14, fontSize: 14, color: "#0F172A",
-            outline: "none", boxSizing: "border-box",
-            transition: "border-color 0.2s",
-          }}
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
+          style={{ width:"100%", height:48, paddingLeft:44, paddingRight:16, background:"#F8FAFC", border:"1.5px solid #E2E8F0", borderRadius:14, fontSize:14, color:"#0F172A", outline:"none", boxSizing:"border-box", transition:"border-color 0.2s" }}
+          value={value} onChange={onChange} placeholder={placeholder}
           onFocus={e => e.target.style.borderColor = "#2563EB"}
-          onBlur={e => e.target.style.borderColor = "#E2E8F0"}
+          onBlur={e  => e.target.style.borderColor = "#E2E8F0"}
         />
       </div>
     </div>
@@ -89,26 +93,18 @@ function InputGroup({ label, icon, value, onChange, placeholder }) {
 // ─── SELECT GROUP ─────────────────────────────────────────────────────────────
 function SelectGroup({ label, icon, options, value, onChange, disabled, placeholder }) {
   return (
-    <div style={{ opacity: disabled ? 0.45 : 1, transition: "opacity 0.2s" }}>
-      <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#64748B", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.08em" }}>{label}</label>
-      <div style={{ position: "relative" }}>
-        <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#94A3B8", display: "flex", zIndex: 1 }}>{icon}</span>
-        <select
-          disabled={disabled}
-          style={{
-            width: "100%", height: 48, paddingLeft: 44, paddingRight: 40,
-            background: "#F8FAFC", border: "1.5px solid #E2E8F0",
-            borderRadius: 14, fontSize: 14, color: value ? "#0F172A" : "#94A3B8",
-            outline: "none", appearance: "none", boxSizing: "border-box",
-            cursor: disabled ? "not-allowed" : "pointer",
-          }}
-          value={value}
-          onChange={onChange}
+    <div style={{ opacity: disabled ? 0.45 : 1, transition:"opacity 0.2s" }}>
+      <label style={{ display:"block", fontSize:11, fontWeight:700, color:"#64748B", marginBottom:6, textTransform:"uppercase", letterSpacing:"0.08em" }}>{label}</label>
+      <div style={{ position:"relative" }}>
+        <span style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", color:"#94A3B8", display:"flex", zIndex:1 }}>{icon}</span>
+        <select disabled={disabled}
+          style={{ width:"100%", height:48, paddingLeft:44, paddingRight:40, background:"#F8FAFC", border:"1.5px solid #E2E8F0", borderRadius:14, fontSize:14, color: value ? "#0F172A" : "#94A3B8", outline:"none", appearance:"none", boxSizing:"border-box", cursor: disabled ? "not-allowed" : "pointer" }}
+          value={value} onChange={onChange}
         >
           <option value="">{placeholder || `Pilih ${label}`}</option>
           {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
         </select>
-        <ChevronRight size={14} style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%) rotate(90deg)", color: "#94A3B8", pointerEvents: "none" }} />
+        <ChevronRight size={14} style={{ position:"absolute", right:14, top:"50%", transform:"translateY(-50%) rotate(90deg)", color:"#94A3B8", pointerEvents:"none" }} />
       </div>
     </div>
   );
@@ -116,19 +112,24 @@ function SelectGroup({ label, icon, options, value, onChange, disabled, placehol
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function ProfilPage() {
-  const navigate = useNavigate();
+  const navigate    = useNavigate();
+  const location    = useLocation();
   const fileInputRef = useRef(null);
+  const currentPath  = location.pathname;
 
-  const [userData, setUserData] = useState({ name: "", email: "", province: "", city: "", district: "", address: "" });
+  const [userData,          setUserData]         = useState({ name:"", email:"", province:"", city:"", district:"", address:"" });
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState({ name: "", email: "", province: "", city: "", district: "", address: "" });
-  const [photoUrl, setPhotoUrl] = useState(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [isEditing,         setIsEditing]         = useState(false);
+  const [editForm,          setEditForm]          = useState({ name:"", email:"", province:"", city:"", district:"", address:"" });
+  const [photoUrl,          setPhotoUrl]          = useState(null);
+  const [isSaving,          setIsSaving]          = useState(false);
+  const [saveSuccess,       setSaveSuccess]       = useState(false);
+  const [unreadCount,       setUnreadCount]       = useState(0);
+  const [unreadChat,        setUnreadChat]        = useState(0);
 
-  // ── Hitung unread notifikasi dari localStorage (atau fallback ke data statis) ──
-  const [unreadCount, setUnreadCount] = useState(0);
+  const user       = JSON.parse(localStorage.getItem("user") || "null");
+  const isLoggedIn = !!user;
+  const token      = localStorage.getItem("token");
 
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
@@ -140,15 +141,37 @@ export default function ProfilPage() {
     const savedPhoto = localStorage.getItem("atap_profile_photo");
     if (savedPhoto) setPhotoUrl(savedPhoto);
 
-    // Baca state notifikasi dari localStorage, fallback ke data default
     const savedNotifs = localStorage.getItem("atap_notifications");
     if (savedNotifs) {
-      const parsed = JSON.parse(savedNotifs);
-      setUnreadCount(parsed.filter(n => n.unread).length);
+      try { setUnreadCount(JSON.parse(savedNotifs).filter(n => n.unread).length); }
+      catch { setUnreadCount(0); }
     } else {
-      setUnreadCount(NOTIFICATIONS.filter(n => n.unread).length);
+      setUnreadCount(NOTIFICATIONS_DEFAULT.filter(n => n.unread).length);
     }
   }, []);
+
+  /* ── Unread chat ── */
+  useEffect(() => {
+    if (!isLoggedIn || !token) return;
+    const fetchUnreadChat = async () => {
+      try {
+        const res = await fetch("http://localhost:8080/chats", {
+          headers: { "Content-Type":"application/json", Authorization:`Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const json = await res.json();
+        const raw  = Array.isArray(json.data) ? json.data : [];
+        const total = raw.reduce((acc, thread) => {
+          const lm = thread.lastMessage;
+          return (lm && !lm.readAt && lm.senderId !== user?.id) ? acc + 1 : acc;
+        }, 0);
+        setUnreadChat(total);
+      } catch { /* biarkan 0 */ }
+    };
+    fetchUnreadChat();
+    const interval = setInterval(fetchUnreadChat, 30_000);
+    return () => clearInterval(interval);
+  }, [isLoggedIn, token, user?.id]);
 
   const handleSaveProfile = () => {
     setIsSaving(true);
@@ -158,10 +181,7 @@ export default function ProfilPage() {
       setUserData(updated);
       setIsSaving(false);
       setSaveSuccess(true);
-      setTimeout(() => {
-        setSaveSuccess(false);
-        setIsEditing(false);
-      }, 1000);
+      setTimeout(() => { setSaveSuccess(false); setIsEditing(false); }, 1000);
     }, 800);
   };
 
@@ -176,286 +196,274 @@ export default function ProfilPage() {
     reader.readAsDataURL(file);
   };
 
-  const initials = userData.name?.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "U";
+  const initials   = userData.name?.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "U";
   const cityOptions = CITIES[editForm.province] || [];
 
+  const css = `
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;700&display=swap');
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── BOTTOM NAV ── */
+    .profil-bottom-nav { display: none; }
+
+    /* ── dot & badge ── */
+    .profil-bn-avatar-wrap { position:relative; display:inline-flex; }
+    .profil-bn-notif-dot { position:absolute; top:-2px; right:-2px; width:7px; height:7px; background:#EF4444; border-radius:50%; border:1.5px solid white; }
+    .profil-bn-icon-wrap { position:relative; display:inline-flex; }
+    .profil-bn-chat-badge { position:absolute; top:-4px; right:-6px; min-width:14px; height:14px; background:#EF4444; border-radius:999px; border:1.5px solid white; display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:800; color:white; padding:0 3px; line-height:1; pointer-events:none; }
+
+    @media(max-width: 640px) {
+      .profil-bottom-nav {
+        display: flex;
+        position: fixed; bottom: 0; left: 0; right: 0; z-index: 300;
+        background: rgba(255,255,255,.97); backdrop-filter: blur(20px);
+        border-top: 1px solid #E2E8F0;
+        padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+        justify-content: space-around; align-items: center;
+        box-shadow: 0 -4px 20px rgba(0,0,0,.07);
+        font-family: 'DM Sans', sans-serif;
+      }
+      .profil-bn-item {
+        display: flex; flex-direction: column; align-items: center; gap: 3px;
+        padding: 6px 10px; border: none; background: none; border-radius: 12px;
+        cursor: pointer; color: #94A3B8; transition: color .15s;
+        min-width: 52px; font-family: 'DM Sans', sans-serif;
+      }
+      .profil-bn-item.active { color: #2563EB; }
+      .profil-bn-item span { font-size: 10px; font-weight: 700; letter-spacing: .1px; }
+      .profil-bn-item.active::after { content:''; display:block; width:4px; height:4px; background:#2563EB; border-radius:50%; margin-top:1px; }
+      .profil-bn-avatar { width:24px; height:24px; border-radius:50%; background:#DBEAFE; color:#1D4ED8; font-size:8px; font-weight:800; display:flex; align-items:center; justify-content:center; border:2px solid #BFDBFE; font-family:'DM Sans',sans-serif; }
+      .profil-bn-item.active .profil-bn-avatar { background:#BFDBFE; border-color:#2563EB; }
+    }
+  `;
+
   return (
-    <div style={{ minHeight: "100vh", background: "#F1F5F9", paddingBottom: 40, fontFamily: "'Inter', 'SF Pro Display', -apple-system, sans-serif" }}>
+    <>
+      <style>{css}</style>
+      <div style={{ minHeight:"100vh", background:"#F1F5F9", paddingBottom:80, fontFamily:"'DM Sans', sans-serif" }}>
 
-      {/* HERO HEADER */}
-      <div style={{
-        background: "linear-gradient(135deg, #1D4ED8 0%, #1E40AF 50%, #312E81 100%)",
-        padding: "56px 24px 80px",
-        position: "relative",
-        overflow: "hidden",
-      }}>
-        <div style={{ position: "absolute", top: -40, right: -40, width: 200, height: 200, borderRadius: "50%", background: "rgba(255,255,255,0.05)" }} />
-        <div style={{ position: "absolute", bottom: -20, left: -20, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.05)" }} />
+        {/* ── HERO HEADER ── */}
+        <div style={{
+          background:"linear-gradient(135deg, #1D4ED8 0%, #1E40AF 50%, #312E81 100%)",
+          padding:"56px 24px 80px", position:"relative", overflow:"hidden",
+        }}>
+          <div style={{ position:"absolute", top:-40, right:-40, width:200, height:200, borderRadius:"50%", background:"rgba(255,255,255,0.05)" }} />
+          <div style={{ position:"absolute", bottom:-20, left:-20, width:120, height:120, borderRadius:"50%", background:"rgba(255,255,255,0.05)" }} />
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", position: "relative" }}>
-          <button
-            onClick={() => navigate(-1)}
-            style={{
-              display: "flex", alignItems: "center", gap: 6,
-              background: "rgba(255,255,255,0.12)",
-              border: "1px solid rgba(255,255,255,0.2)",
-              borderRadius: 14, padding: "8px 14px 8px 10px",
-              cursor: "pointer", color: "#fff", fontSize: 14, fontWeight: 600,
-              transition: "background 0.2s",
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.22)"}
-            onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.12)"}
-          >
-            <ChevronLeft size={18} />
-            Kembali
-          </button>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", position:"relative" }}>
+            <button onClick={() => navigate(-1)} style={{ display:"flex", alignItems:"center", gap:6, background:"rgba(255,255,255,0.12)", border:"1px solid rgba(255,255,255,0.2)", borderRadius:14, padding:"8px 14px 8px 10px", cursor:"pointer", color:"#fff", fontSize:14, fontWeight:600 }}
+              onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.22)"}
+              onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.12)"}>
+              <ChevronLeft size={18} /> Kembali
+            </button>
 
-          <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: 12, fontWeight: 600, color: "rgba(255,255,255,0.6)", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>Akun Saya</div>
-            <h1 style={{ fontSize: 26, fontWeight: 800, color: "#fff", margin: 0, letterSpacing: "-0.5px" }}>Profil</h1>
-          </div>
-
-          <button
-            onClick={() => setShowLogoutConfirm(true)}
-            style={{
-              width: 42, height: 42,
-              background: "rgba(255,255,255,0.12)",
-              border: "1px solid rgba(255,255,255,0.2)",
-              borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center",
-              cursor: "pointer", color: "#fff", transition: "background 0.2s",
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = "rgba(239,68,68,0.7)"}
-            onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.12)"}
-          >
-            <LogOut size={18} />
-          </button>
-        </div>
-      </div>
-
-      {/* PROFILE CARD */}
-      <div style={{ margin: "0 20px", marginTop: -52, position: "relative", zIndex: 10 }}>
-        <div style={{ background: "#fff", borderRadius: 28, padding: "28px 24px 24px", boxShadow: "0 8px 40px rgba(15,23,42,0.12)" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-            <div style={{ position: "relative", flexShrink: 0 }}>
-              <div style={{ width: 80, height: 80, borderRadius: 22, overflow: "hidden", border: "3px solid #EFF6FF", boxShadow: "0 4px 12px rgba(37,99,235,0.15)" }}>
-                {photoUrl ? (
-                  <img src={photoUrl} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt="Profile" />
-                ) : (
-                  <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg, #2563EB, #4F46E5)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 26, fontWeight: 800, color: "#fff" }}>
-                    {initials}
-                  </div>
-                )}
-              </div>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                style={{ position: "absolute", bottom: -4, right: -4, width: 30, height: 30, background: "#2563EB", border: "2.5px solid #fff", borderRadius: 10, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#fff" }}
-              >
-                <Camera size={14} />
-              </button>
-              <input ref={fileInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handlePhotoChange} />
+            <div style={{ textAlign:"right" }}>
+              <div style={{ fontSize:12, fontWeight:600, color:"rgba(255,255,255,0.6)", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:4 }}>Akun Saya</div>
+              <h1 style={{ fontSize:26, fontWeight:800, color:"#fff", margin:0, letterSpacing:"-0.5px", fontFamily:"'Plus Jakarta Sans', sans-serif" }}>Profil</h1>
             </div>
 
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <h2 style={{ fontSize: 18, fontWeight: 800, color: "#0F172A", margin: 0, marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {userData.name || "Pengguna Atap"}
-              </h2>
-              <div style={{ display: "flex", alignItems: "center", gap: 5, color: "#64748B", fontSize: 13 }}>
-                <Mail size={13} />
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{userData.email || "—"}</span>
-              </div>
-              {userData.province && (
-                <div style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#EFF6FF", color: "#1D4ED8", fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 8, marginTop: 8 }}>
-                  <MapPin size={10} />
-                  <span>{userData.district ? `${userData.district}, ` : ""}{userData.city || userData.province}</span>
-                </div>
-              )}
-            </div>
+            <button onClick={() => setShowLogoutConfirm(true)} style={{ width:42, height:42, background:"rgba(255,255,255,0.12)", border:"1px solid rgba(255,255,255,0.2)", borderRadius:14, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:"#fff" }}
+              onMouseEnter={e => e.currentTarget.style.background = "rgba(239,68,68,0.7)"}
+              onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.12)"}>
+              <LogOut size={18} />
+            </button>
           </div>
-
-          <button
-            onClick={() => setIsEditing(true)}
-            style={{ marginTop: 20, width: "100%", padding: "14px 0", background: "#0F172A", color: "#fff", border: "none", borderRadius: 16, fontSize: 14, fontWeight: 700, cursor: "pointer", letterSpacing: "0.01em", transition: "background 0.2s" }}
-            onMouseEnter={e => e.currentTarget.style.background = "#2563EB"}
-            onMouseLeave={e => e.currentTarget.style.background = "#0F172A"}
-          >
-            Ubah Detail Profil
-          </button>
         </div>
-      </div>
 
-      {/* STATS ROW */}
-      <div style={{ margin: "20px 20px 0", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-        {[{ label: "Pesanan", value: "12" }, { label: "Tersimpan", value: "5" }, { label: "Ulasan", value: "8" }].map(({ label, value }) => (
-          <div key={label} style={{ background: "#fff", borderRadius: 18, padding: "16px 12px", textAlign: "center", boxShadow: "0 2px 12px rgba(15,23,42,0.06)" }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: "#0F172A" }}>{value}</div>
-            <div style={{ fontSize: 11, color: "#94A3B8", fontWeight: 600, marginTop: 2 }}>{label}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* SETTINGS MENU */}
-      <div style={{ margin: "28px 20px 0" }}>
-        <div style={{ fontSize: 11, fontWeight: 800, color: "#94A3B8", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 12, paddingLeft: 4 }}>Pengaturan Umum</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {menuItems.map(({ icon: Icon, label, sub, color, bg, path, showBadge }) => (
-            <button
-              key={label}
-              onClick={() => navigate(path)}
-              style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 18px", background: "#fff", border: "1.5px solid #F1F5F9", borderRadius: 20, cursor: "pointer", textAlign: "left", transition: "border-color 0.2s, box-shadow 0.2s", boxShadow: "0 2px 8px rgba(15,23,42,0.04)" }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = color; e.currentTarget.style.boxShadow = `0 4px 20px ${color}22`; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = "#F1F5F9"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(15,23,42,0.04)"; }}
-            >
-              {/* Icon dengan badge merah untuk Notifikasi */}
-              <div style={{ position: "relative", flexShrink: 0 }}>
-                <div style={{ width: 46, height: 46, background: bg, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <Icon size={20} color={color} />
-                </div>
-                {/* Badge merah unread count */}
-                {showBadge && unreadCount > 0 && (
-                  <div style={{
-                    position: "absolute",
-                    top: -5,
-                    right: -5,
-                    minWidth: 18,
-                    height: 18,
-                    background: "#EF4444",
-                    borderRadius: 99,
-                    border: "2px solid #fff",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: 10,
-                    fontWeight: 800,
-                    color: "#fff",
-                    padding: "0 4px",
-                    boxShadow: "0 2px 6px rgba(239,68,68,0.4)",
-                    lineHeight: 1,
-                  }}>
-                    {unreadCount > 99 ? "99+" : unreadCount}
-                  </div>
-                )}
-              </div>
-
-              <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: "#0F172A" }}>{label}</span>
-                  {/* Teks "N baru" di samping label jika ada unread */}
-                  {showBadge && unreadCount > 0 && (
-                    <span style={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      color: "#EF4444",
-                      background: "#FEF2F2",
-                      padding: "2px 7px",
-                      borderRadius: 99,
-                    }}>
-                      {unreadCount} baru
-                    </span>
+        {/* ── PROFILE CARD ── */}
+        <div style={{ margin:"0 20px", marginTop:-52, position:"relative", zIndex:10 }}>
+          <div style={{ background:"#fff", borderRadius:28, padding:"28px 24px 24px", boxShadow:"0 8px 40px rgba(15,23,42,0.12)" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:18 }}>
+              <div style={{ position:"relative", flexShrink:0 }}>
+                <div style={{ width:80, height:80, borderRadius:22, overflow:"hidden", border:"3px solid #EFF6FF", boxShadow:"0 4px 12px rgba(37,99,235,0.15)" }}>
+                  {photoUrl ? (
+                    <img src={photoUrl} style={{ width:"100%", height:"100%", objectFit:"cover" }} alt="Profile" />
+                  ) : (
+                    <div style={{ width:"100%", height:"100%", background:"linear-gradient(135deg, #2563EB, #4F46E5)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:26, fontWeight:800, color:"#fff", fontFamily:"'Plus Jakarta Sans', sans-serif" }}>
+                      {initials}
+                    </div>
                   )}
                 </div>
-                <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 1 }}>{sub}</div>
+                <button onClick={() => fileInputRef.current?.click()} style={{ position:"absolute", bottom:-4, right:-4, width:30, height:30, background:"#2563EB", border:"2.5px solid #fff", borderRadius:10, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:"#fff" }}>
+                  <Camera size={14} />
+                </button>
+                <input ref={fileInputRef} type="file" accept="image/*" style={{ display:"none" }} onChange={handlePhotoChange} />
               </div>
-              <ChevronRight size={16} color="#CBD5E1" />
+
+              <div style={{ flex:1, minWidth:0 }}>
+                <h2 style={{ fontSize:18, fontWeight:800, color:"#0F172A", margin:0, marginBottom:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", fontFamily:"'Plus Jakarta Sans', sans-serif" }}>
+                  {userData.name || "Pengguna Atap"}
+                </h2>
+                <div style={{ display:"flex", alignItems:"center", gap:5, color:"#64748B", fontSize:13 }}>
+                  <Mail size={13} />
+                  <span style={{ overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{userData.email || "—"}</span>
+                </div>
+                {userData.province && (
+                  <div style={{ display:"inline-flex", alignItems:"center", gap:4, background:"#EFF6FF", color:"#1D4ED8", fontSize:11, fontWeight:700, padding:"4px 10px", borderRadius:8, marginTop:8 }}>
+                    <MapPin size={10} />
+                    <span>{userData.district ? `${userData.district}, ` : ""}{userData.city || userData.province}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <button onClick={() => setIsEditing(true)} style={{ marginTop:20, width:"100%", padding:"14px 0", background:"#0F172A", color:"#fff", border:"none", borderRadius:16, fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"'DM Sans', sans-serif" }}
+              onMouseEnter={e => e.currentTarget.style.background = "#2563EB"}
+              onMouseLeave={e => e.currentTarget.style.background = "#0F172A"}>
+              Ubah Detail Profil
             </button>
+          </div>
+        </div>
+
+        {/* ── STATS ROW ── */}
+        <div style={{ margin:"20px 20px 0", display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12 }}>
+          {[{ label:"Pesanan", value:"12" }, { label:"Tersimpan", value:"5" }, { label:"Ulasan", value:"8" }].map(({ label, value }) => (
+            <div key={label} style={{ background:"#fff", borderRadius:18, padding:"16px 12px", textAlign:"center", boxShadow:"0 2px 12px rgba(15,23,42,0.06)" }}>
+              <div style={{ fontSize:22, fontWeight:800, color:"#0F172A", fontFamily:"'Plus Jakarta Sans', sans-serif" }}>{value}</div>
+              <div style={{ fontSize:11, color:"#94A3B8", fontWeight:600, marginTop:2 }}>{label}</div>
+            </div>
           ))}
         </div>
-      </div>
 
-      {/* EDIT MODAL */}
-      {isEditing && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 100, display: "flex", alignItems: "flex-end" }}>
-          <div style={{ position: "absolute", inset: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)" }} onClick={() => setIsEditing(false)} />
-          <div style={{ position: "relative", background: "#fff", width: "100%", borderRadius: "28px 28px 0 0", padding: "28px 24px 40px", maxHeight: "92vh", overflowY: "auto", animation: "slideUp 0.3s cubic-bezier(0.32,0.72,0,1)" }}>
-            <style>{`@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } } @keyframes spin { to { transform: rotate(360deg); } }`}</style>
-            <div style={{ width: 40, height: 4, background: "#E2E8F0", borderRadius: 2, margin: "0 auto 20px" }} />
-
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: "#0F172A", margin: 0 }}>Edit Profil & Lokasi</h3>
-              <button onClick={() => setIsEditing(false)} style={{ width: 36, height: 36, background: "#F1F5F9", border: "none", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-                <X size={18} color="#64748B" />
+        {/* ── SETTINGS MENU ── */}
+        <div style={{ margin:"28px 20px 0" }}>
+          <div style={{ fontSize:11, fontWeight:800, color:"#94A3B8", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:12, paddingLeft:4 }}>Pengaturan Umum</div>
+          <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+            {menuItems.map(({ icon:Icon, label, sub, color, bg, path, showBadge }) => (
+              <button key={label} onClick={() => navigate(path)}
+                style={{ display:"flex", alignItems:"center", gap:14, padding:"16px 18px", background:"#fff", border:"1.5px solid #F1F5F9", borderRadius:20, cursor:"pointer", textAlign:"left", transition:"border-color 0.2s, box-shadow 0.2s", boxShadow:"0 2px 8px rgba(15,23,42,0.04)" }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = color; e.currentTarget.style.boxShadow = `0 4px 20px ${color}22`; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "#F1F5F9"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(15,23,42,0.04)"; }}>
+                <div style={{ position:"relative", flexShrink:0 }}>
+                  <div style={{ width:46, height:46, background:bg, borderRadius:14, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                    <Icon size={20} color={color} />
+                  </div>
+                  {showBadge && unreadCount > 0 && (
+                    <div style={{ position:"absolute", top:-5, right:-5, minWidth:18, height:18, background:"#EF4444", borderRadius:99, border:"2px solid #fff", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:800, color:"#fff", padding:"0 4px", boxShadow:"0 2px 6px rgba(239,68,68,0.4)", lineHeight:1 }}>
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </div>
+                  )}
+                </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                    <span style={{ fontSize:14, fontWeight:700, color:"#0F172A" }}>{label}</span>
+                    {showBadge && unreadCount > 0 && (
+                      <span style={{ fontSize:10, fontWeight:700, color:"#EF4444", background:"#FEF2F2", padding:"2px 7px", borderRadius:99 }}>
+                        {unreadCount} baru
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize:12, color:"#94A3B8", marginTop:1 }}>{sub}</div>
+                </div>
+                <ChevronRight size={16} color="#CBD5E1" />
               </button>
-            </div>
+            ))}
+          </div>
+        </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              <InputGroup label="Nama Lengkap" icon={<User size={16} />} value={editForm.name}
-                onChange={e => setEditForm({ ...editForm, name: e.target.value })} placeholder="Masukkan nama lengkap" />
-              <InputGroup label="Email" icon={<Mail size={16} />} value={editForm.email}
-                onChange={e => setEditForm({ ...editForm, email: e.target.value })} placeholder="email@contoh.com" />
-
-              <div style={{ height: 1, background: "#F1F5F9" }} />
-              <div style={{ fontSize: 11, fontWeight: 800, color: "#2563EB", letterSpacing: "0.1em", textTransform: "uppercase" }}>Alamat Lengkap</div>
-
-              <SelectGroup label="Provinsi" icon={<Globe size={16} />}
-                options={PROVINCES} value={editForm.province}
-                placeholder="Pilih Provinsi"
-                onChange={e => setEditForm({ ...editForm, province: e.target.value, city: "", district: "" })} />
-
-              <SelectGroup label="Kota / Kabupaten" icon={<MapIcon size={16} />}
-                options={cityOptions} value={editForm.city}
-                disabled={!editForm.province}
-                placeholder="Pilih Kota/Kabupaten"
-                onChange={e => setEditForm({ ...editForm, city: e.target.value, district: "" })} />
-
-              <InputGroup
-                label="Kecamatan"
-                icon={<Navigation size={16} />}
-                value={editForm.district}
-                onChange={e => setEditForm({ ...editForm, district: e.target.value })}
-                placeholder="Ketik nama kecamatan"
-              />
-
-              <div>
-                <label style={{ display: "block", fontSize: 11, fontWeight: 700, color: "#64748B", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.08em" }}>Alamat Spesifik</label>
-                <textarea
-                  style={{ width: "100%", padding: "14px 16px", background: "#F8FAFC", border: "1.5px solid #E2E8F0", borderRadius: 14, fontSize: 14, color: "#0F172A", resize: "none", outline: "none", boxSizing: "border-box", fontFamily: "inherit" }}
-                  rows={3}
-                  placeholder="Contoh: Jl. Melati No. 12, RT 01/02, Blok A"
-                  value={editForm.address}
-                  onChange={e => setEditForm({ ...editForm, address: e.target.value })}
-                  onFocus={e => e.target.style.borderColor = "#2563EB"}
-                  onBlur={e => e.target.style.borderColor = "#E2E8F0"}
-                />
+        {/* ── EDIT MODAL ── */}
+        {isEditing && (
+          <div style={{ position:"fixed", inset:0, zIndex:100, display:"flex", alignItems:"flex-end" }}>
+            <div style={{ position:"absolute", inset:0, background:"rgba(15,23,42,0.5)", backdropFilter:"blur(4px)" }} onClick={() => setIsEditing(false)} />
+            <div style={{ position:"relative", background:"#fff", width:"100%", borderRadius:"28px 28px 0 0", padding:"28px 24px 40px", maxHeight:"92vh", overflowY:"auto", animation:"slideUp 0.3s cubic-bezier(0.32,0.72,0,1)" }}>
+              <div style={{ width:40, height:4, background:"#E2E8F0", borderRadius:2, margin:"0 auto 20px" }} />
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24 }}>
+                <h3 style={{ fontSize:18, fontWeight:800, color:"#0F172A", margin:0, fontFamily:"'Plus Jakarta Sans', sans-serif" }}>Edit Profil & Lokasi</h3>
+                <button onClick={() => setIsEditing(false)} style={{ width:36, height:36, background:"#F1F5F9", border:"none", borderRadius:12, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer" }}>
+                  <X size={18} color="#64748B" />
+                </button>
               </div>
+              <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+                <InputGroup label="Nama Lengkap" icon={<User size={16} />} value={editForm.name} onChange={e => setEditForm({ ...editForm, name:e.target.value })} placeholder="Masukkan nama lengkap" />
+                <InputGroup label="Email" icon={<Mail size={16} />} value={editForm.email} onChange={e => setEditForm({ ...editForm, email:e.target.value })} placeholder="email@contoh.com" />
+                <div style={{ height:1, background:"#F1F5F9" }} />
+                <div style={{ fontSize:11, fontWeight:800, color:"#2563EB", letterSpacing:"0.1em", textTransform:"uppercase" }}>Alamat Lengkap</div>
+                <SelectGroup label="Provinsi" icon={<Globe size={16} />} options={PROVINCES} value={editForm.province} placeholder="Pilih Provinsi" onChange={e => setEditForm({ ...editForm, province:e.target.value, city:"", district:"" })} />
+                <SelectGroup label="Kota / Kabupaten" icon={<MapIcon size={16} />} options={cityOptions} value={editForm.city} disabled={!editForm.province} placeholder="Pilih Kota/Kabupaten" onChange={e => setEditForm({ ...editForm, city:e.target.value, district:"" })} />
+                <InputGroup label="Kecamatan" icon={<Navigation size={16} />} value={editForm.district} onChange={e => setEditForm({ ...editForm, district:e.target.value })} placeholder="Ketik nama kecamatan" />
+                <div>
+                  <label style={{ display:"block", fontSize:11, fontWeight:700, color:"#64748B", marginBottom:6, textTransform:"uppercase", letterSpacing:"0.08em" }}>Alamat Spesifik</label>
+                  <textarea style={{ width:"100%", padding:"14px 16px", background:"#F8FAFC", border:"1.5px solid #E2E8F0", borderRadius:14, fontSize:14, color:"#0F172A", resize:"none", outline:"none", boxSizing:"border-box", fontFamily:"inherit" }} rows={3}
+                    placeholder="Contoh: Jl. Melati No. 12, RT 01/02, Blok A"
+                    value={editForm.address}
+                    onChange={e => setEditForm({ ...editForm, address:e.target.value })}
+                    onFocus={e => e.target.style.borderColor = "#2563EB"}
+                    onBlur={e  => e.target.style.borderColor = "#E2E8F0"} />
+                </div>
+                <button onClick={handleSaveProfile} disabled={isSaving}
+                  style={{ width:"100%", padding:"15px 0", background: saveSuccess ? "#059669" : "#2563EB", color:"#fff", border:"none", borderRadius:16, fontSize:15, fontWeight:700, cursor: isSaving ? "not-allowed" : "pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8, transition:"background 0.3s", opacity: isSaving ? 0.8 : 1, fontFamily:"'DM Sans', sans-serif" }}>
+                  {isSaving ? (
+                    <div style={{ width:20, height:20, border:"2.5px solid rgba(255,255,255,0.4)", borderTop:"2.5px solid #fff", borderRadius:"50%", animation:"spin 0.7s linear infinite" }} />
+                  ) : saveSuccess ? (
+                    <><Check size={18} /> Tersimpan!</>
+                  ) : (
+                    <><Check size={18} /> Simpan Perubahan</>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
-              <button
-                onClick={handleSaveProfile}
-                disabled={isSaving}
-                style={{ width: "100%", padding: "15px 0", background: saveSuccess ? "#059669" : "#2563EB", color: "#fff", border: "none", borderRadius: 16, fontSize: 15, fontWeight: 700, cursor: isSaving ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "background 0.3s", opacity: isSaving ? 0.8 : 1 }}
-              >
-                {isSaving ? (
-                  <div style={{ width: 20, height: 20, border: "2.5px solid rgba(255,255,255,0.4)", borderTop: "2.5px solid #fff", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
-                ) : saveSuccess ? (
-                  <><Check size={18} /> Tersimpan!</>
+        {/* ── LOGOUT CONFIRM ── */}
+        {showLogoutConfirm && (
+          <div style={{ position:"fixed", inset:0, zIndex:110, display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
+            <div style={{ position:"absolute", inset:0, background:"rgba(15,23,42,0.5)", backdropFilter:"blur(4px)" }} />
+            <div style={{ position:"relative", background:"#fff", width:"100%", maxWidth:340, borderRadius:28, padding:"36px 28px 28px", boxShadow:"0 20px 60px rgba(15,23,42,0.2)", textAlign:"center" }}>
+              <div style={{ width:72, height:72, background:"#FEF2F2", borderRadius:22, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px" }}>
+                <LogOut size={32} color="#EF4444" />
+              </div>
+              <h3 style={{ fontSize:18, fontWeight:800, color:"#0F172A", margin:"0 0 8px", fontFamily:"'Plus Jakarta Sans', sans-serif" }}>Yakin ingin keluar?</h3>
+              <p style={{ fontSize:14, color:"#64748B", margin:"0 0 28px", lineHeight:1.6 }}>Kamu perlu login kembali untuk mengakses fitur Atap.</p>
+              <div style={{ display:"flex", gap:10 }}>
+                <button onClick={() => setShowLogoutConfirm(false)} style={{ flex:1, padding:"13px 0", border:"1.5px solid #E2E8F0", borderRadius:14, fontWeight:700, fontSize:14, color:"#64748B", background:"#fff", cursor:"pointer", fontFamily:"'DM Sans', sans-serif" }}>
+                  Batal
+                </button>
+                <button onClick={() => { localStorage.clear(); navigate("/auth"); }} style={{ flex:1, padding:"13px 0", border:"none", borderRadius:14, fontWeight:700, fontSize:14, color:"#fff", background:"#EF4444", cursor:"pointer", boxShadow:"0 4px 16px rgba(239,68,68,0.3)", fontFamily:"'DM Sans', sans-serif" }}>
+                  Keluar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── MOBILE BOTTOM NAV ── */}
+        <nav className="profil-bottom-nav">
+          {(isLoggedIn ? MOBILE_NAV : GUEST_MOBILE).map(({ label, path, icon:Icon }) => {
+            const isActive = currentPath === path;
+            const isProfil = path === "/profil";
+            const isChat   = path === "/chat";
+            return (
+              <button key={path} className={`profil-bn-item${isActive ? " active" : ""}`} onClick={() => navigate(path)}>
+                {isProfil && isLoggedIn ? (
+                  <div className="profil-bn-avatar-wrap">
+                    <div className="profil-bn-avatar">{initials}</div>
+                    {unreadCount > 0 && <span className="profil-bn-notif-dot" />}
+                  </div>
+                ) : isChat && isLoggedIn ? (
+                  <div className="profil-bn-icon-wrap">
+                    <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
+                    {unreadChat > 0 && (
+                      <span className="profil-bn-chat-badge">{unreadChat > 99 ? "99+" : unreadChat}</span>
+                    )}
+                  </div>
                 ) : (
-                  <><Check size={18} /> Simpan Perubahan</>
+                  <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
                 )}
+                <span>{label}</span>
               </button>
-            </div>
-          </div>
-        </div>
-      )}
+            );
+          })}
+          {!isLoggedIn && (
+            <button className={`profil-bn-item${currentPath === "/auth" ? " active" : ""}`} onClick={() => navigate("/auth")}>
+              <User size={20} strokeWidth={currentPath === "/auth" ? 2.5 : 1.8} />
+              <span>Masuk</span>
+            </button>
+          )}
+        </nav>
 
-      {/* LOGOUT CONFIRM */}
-      {showLogoutConfirm && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 110, display: "flex", alignItems: "center", justifyContent: "center", padding: 24 }}>
-          <div style={{ position: "absolute", inset: 0, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)" }} />
-          <div style={{ position: "relative", background: "#fff", width: "100%", maxWidth: 340, borderRadius: 28, padding: "36px 28px 28px", boxShadow: "0 20px 60px rgba(15,23,42,0.2)", textAlign: "center" }}>
-            <div style={{ width: 72, height: 72, background: "#FEF2F2", borderRadius: 22, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px" }}>
-              <LogOut size={32} color="#EF4444" />
-            </div>
-            <h3 style={{ fontSize: 18, fontWeight: 800, color: "#0F172A", margin: "0 0 8px" }}>Yakin ingin keluar?</h3>
-            <p style={{ fontSize: 14, color: "#64748B", margin: "0 0 28px", lineHeight: 1.6 }}>Kamu perlu login kembali untuk mengakses fitur Atap.</p>
-            <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => setShowLogoutConfirm(false)} style={{ flex: 1, padding: "13px 0", border: "1.5px solid #E2E8F0", borderRadius: 14, fontWeight: 700, fontSize: 14, color: "#64748B", background: "#fff", cursor: "pointer" }}>
-                Batal
-              </button>
-              <button onClick={() => { localStorage.clear(); navigate("/auth"); }} style={{ flex: 1, padding: "13px 0", border: "none", borderRadius: 14, fontWeight: 700, fontSize: 14, color: "#fff", background: "#EF4444", cursor: "pointer", boxShadow: "0 4px 16px rgba(239,68,68,0.3)" }}>
-                Keluar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      </div>
+    </>
   );
 }
