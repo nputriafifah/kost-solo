@@ -1,19 +1,17 @@
+// pages/owner/OwnerChatPage.jsx  (updated — tambah polling notif)
 import React, { useState, useEffect, useRef } from "react";
 import {
   MessageCircle, Search, CheckCheck, Check,
-  ChevronRight, ArrowLeft, ShieldCheck,
+  ChevronRight, ShieldCheck,
 } from "lucide-react";
-import { useNavigate, useLocation } from "react-router-dom";
-import Sidebar, { NAV_ITEMS } from "./Sidebar";
-import {
-  Menu, Plus, Building2, Home, BarChart3,
-  User, Settings, LogOut,
-} from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import Sidebar, { NAV_ITEMS } from "../../components/owner/Sidebar";
+import { Menu, Building2, Home, User } from "lucide-react";
+import { useUnreadCount } from "../../hooks/useUnreadCount"; // ← import hook
 
 const API = "http://localhost:8080";
 const FILTERS = ["Semua", "Belum dibaca", "Sudah dibaca"];
 
-/* ── avatar gradient — identik dengan ChatPage user ── */
 const GRADIENTS = [
   "linear-gradient(135deg,#3B82F6,#22D3EE)",
   "linear-gradient(135deg,#8B5CF6,#22D3EE)",
@@ -30,92 +28,77 @@ function formatTime(date) {
   if (diffDays === 0)
     return date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
   if (diffDays === 1) return "Kemarin";
-  if (diffDays < 7) return date.toLocaleDateString("id-ID", { weekday: "short" });
+  if (diffDays < 7)  return date.toLocaleDateString("id-ID", { weekday: "short" });
   return date.toLocaleDateString("id-ID", { day: "2-digit", month: "short" });
 }
 
 const BOTTOM_NAV_ITEMS = [
-  { id: "home", icon: Home, label: "Beranda", path: "/owner/dashboard" },
-  { id: "properti", icon: Building2, label: "Properti", path: "/owner/properti" },
-  { id: "pesan", icon: MessageCircle, label: "Pesan", path: "/owner/chat", badge: true },
-  { id: "akun", icon: User, label: "Profil", path: null },
+  { id: "home",     icon: Home,          label: "Beranda",  path: "/owner/dashboard" },
+  { id: "properti", icon: Building2,     label: "Properti", path: "/owner/properti"  },
+  { id: "pesan",    icon: MessageCircle, label: "Pesan",    path: "/owner/chat", badge: true },
+  { id: "akun",     icon: User,          label: "Profil",   path: null               },
 ];
 
 export default function OwnerChatPage() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const menuRef = useRef(null);
 
-  const user = JSON.parse(localStorage.getItem("user") || "null");
-  const token = localStorage.getItem("token");
+  const user     = JSON.parse(localStorage.getItem("user") || "null");
+  const token    = localStorage.getItem("token");
   const initials = user?.name
     ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "OW";
 
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery,  setSearchQuery]  = useState("");
   const [activeFilter, setActiveFilter] = useState("Semua");
-  const [chats, setChats] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeNav, setActiveNav] = useState("pesan");
+  const [chats,        setChats]        = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [sidebarOpen,  setSidebarOpen]  = useState(false);
+  const [activeNav,    setActiveNav]    = useState("pesan");
 
-  /* ────────────────────────────────────────────
-     Fetch GET /chats
-     service: getMyThreads(user) — karena role OWNER,
-     displayName = student.name (calon penyewa)
-  ──────────────────────────────────────────── */
+  // ── Polling unread count (juga munculkan toast otomatis) ──────
+  const { unreadCount } = useUnreadCount(token, user?.id);
+
+  // ── Polling chat list (refresh daftar percakapan) ─────────────
+  const POLL_MS = 8_000;
   useEffect(() => {
     if (!token) { navigate("/auth"); return; }
 
-    (async () => {
+    const load = async () => {
       try {
         const res = await fetch(`${API}/chats`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-
         if (res.status === 401) {
           localStorage.removeItem("token");
           navigate("/auth");
           return;
         }
-
         const json = await res.json();
-        const raw = Array.isArray(json.data) ? json.data : [];
+        const raw  = Array.isArray(json.data) ? json.data : [];
 
         setChats(raw.map((thread) => {
           const lm = thread.lastMessage;
           return {
-            id: thread.id,
-            /*
-              Untuk OWNER: displayName = nama student (calon penyewa)
-              sudah dihitung di service getMyThreads:
-              displayName = thread.student.name
-            */
-            name: thread.displayName || thread.student?.name || "Calon Penyewa",
-            kost: thread.listing?.name || "-",
+            id:          thread.id,
+            name:        thread.displayName || thread.student?.name || "Calon Penyewa",
+            kost:        thread.listing?.name || "-",
             lastMessage: lm?.message || "Belum ada pesan",
-            time: lm?.sentAt ? formatTime(new Date(lm.sentAt)) : "",
-            unread: lm && !lm.readAt && lm.senderId !== user?.id ? 1 : 0,
-            isRead: lm ? !!lm.readAt : true,
+            time:        lm?.sentAt ? formatTime(new Date(lm.sentAt)) : "",
+            unread:      lm && !lm.readAt && lm.senderId !== user?.id ? 1 : 0,
+            isRead:      lm ? !!lm.readAt : true,
           };
         }));
       } catch (err) {
         console.error("Error fetching owner chats:", err);
-        setChats([]);
       } finally {
         setLoading(false);
       }
-    })();
-  }, [token, navigate, user?.id]);
-
-  /* close sidebar on outside click */
-  useEffect(() => {
-    const h = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) return;
     };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, []);
+
+    load();
+    const timer = setInterval(load, POLL_MS);
+    return () => clearInterval(timer);
+  }, [token, navigate, user?.id]);
 
   const filtered = chats.filter((c) => {
     const matchSearch =
@@ -128,8 +111,9 @@ export default function OwnerChatPage() {
     return matchSearch && matchFilter;
   });
 
-  const totalUnread = chats.reduce((acc, c) => acc + c.unread, 0);
-  const hasChats = chats.length > 0;
+  // Hitung totalUnread langsung dari chats (bukan dari hook, supaya sync dg list)
+  const totalUnread    = chats.reduce((acc, c) => acc + c.unread, 0);
+  const hasChats       = chats.length > 0;
   const noSearchResult = hasChats && filtered.length === 0;
 
   const handleLogout = () => {
@@ -138,19 +122,16 @@ export default function OwnerChatPage() {
     navigate("/auth");
   };
 
-  const pageTitle = NAV_ITEMS.find((n) => n.id === activeNav)?.label ?? "Pesan";
-
   return (
     <div className="flex min-h-screen bg-slate-50" style={{ fontFamily: "'Plus Jakarta Sans','Inter',sans-serif" }}>
 
-      {/* Sidebar desktop */}
+      {/* Sidebar desktop — kirim unreadCount supaya badge muncul */}
       <Sidebar
         active={activeNav}
         onChange={(id) => {
           setActiveNav(id);
-          // navigate ke route lain kalau bukan pesan
-          if (id === "home") navigate("/owner/dashboard");
-          if (id === "properti") navigate("/owner/properti");
+          if (id === "home")      navigate("/owner/dashboard");
+          if (id === "properti")  navigate("/owner/properti");
           if (id === "statistik") navigate("/owner/statistik");
         }}
         ownerName={user?.name || "Owner"}
@@ -158,17 +139,16 @@ export default function OwnerChatPage() {
         onLogout={handleLogout}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        unreadCount={unreadCount}   // ← prop yang sudah ada di Sidebar
       />
 
-      <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-screen overflow-hidden md:ml-[255px]">
 
-        {/* ── Header ── */}
+        {/* Header */}
         <header className="bg-white border-b border-slate-100 px-4 sm:px-6 py-4 flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="md:hidden w-9 h-9 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center"
-            >
+            <button onClick={() => setSidebarOpen(true)}
+              className="md:hidden w-9 h-9 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center">
               <Menu size={18} className="text-slate-500" />
             </button>
             <div>
@@ -178,23 +158,22 @@ export default function OwnerChatPage() {
               </p>
             </div>
           </div>
-          {/* Badge unread total */}
           {totalUnread > 0 && (
-            <span className="bg-red-500 text-white text-xs font-black px-2.5 py-1 rounded-full">
+            <span className="bg-red-500 text-white text-xs font-black px-2.5 py-1 rounded-full animate-pulse">
               {totalUnread} baru
             </span>
           )}
         </header>
 
-        {/* ── Hero strip ── */}
+        {/* Hero strip */}
         <div style={{
-          background: "linear-gradient(135deg, #0F172A 0%, #1E3A8A 45%, #2563EB 100%)",
+          background: "linear-gradient(135deg,#0F172A 0%,#1E3A8A 45%,#2563EB 100%)",
           padding: "24px 28px",
           display: "flex", alignItems: "center", justifyContent: "space-between",
         }}>
           <div>
             <h1 style={{
-              fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 22,
+              fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: 22,
               fontWeight: 800, color: "#fff", letterSpacing: -0.5, margin: 0,
             }}>
               Pesan<span style={{ color: "#93C5FD" }}>.</span>
@@ -207,12 +186,25 @@ export default function OwnerChatPage() {
             width: 44, height: 44, borderRadius: 14,
             background: "rgba(255,255,255,.12)", border: "1px solid rgba(255,255,255,.18)",
             display: "flex", alignItems: "center", justifyContent: "center",
+            position: "relative",
           }}>
             <MessageCircle size={20} color="rgba(255,255,255,.8)" />
+            {/* Dot notif di hero icon */}
+            {unreadCount > 0 && (
+              <span style={{
+                position: "absolute", top: -4, right: -4,
+                width: 16, height: 16, borderRadius: "50%",
+                background: "#EF4444", border: "2px solid #1E3A8A",
+                fontSize: 9, fontWeight: 800, color: "white",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
           </div>
         </div>
 
-        {/* ── Content ── */}
+        {/* Content */}
         <main className="flex-1 overflow-y-auto pb-24 md:pb-6">
           <div style={{ maxWidth: 672, margin: "0 auto", padding: "24px 20px" }}>
 
@@ -231,7 +223,7 @@ export default function OwnerChatPage() {
                   width: "100%", height: 42, paddingLeft: 40, paddingRight: 14,
                   background: "white", border: "1.5px solid #E2E8F0", borderRadius: 12,
                   fontSize: 13, outline: "none",
-                  fontFamily: "'Plus Jakarta Sans', sans-serif", color: "#0F172A",
+                  fontFamily: "'Plus Jakarta Sans',sans-serif", color: "#0F172A",
                 }}
               />
             </div>
@@ -245,7 +237,7 @@ export default function OwnerChatPage() {
                   background: activeFilter === f ? "linear-gradient(135deg,#1D4ED8,#2563EB)" : "white",
                   color: activeFilter === f ? "white" : "#64748B",
                   fontSize: 12, fontWeight: 700, cursor: "pointer",
-                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  fontFamily: "'Plus Jakarta Sans',sans-serif",
                 }}>
                   {f}
                 </button>
@@ -255,7 +247,7 @@ export default function OwnerChatPage() {
             {/* Section header */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
               <h2 style={{
-                fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 15,
+                fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: 15,
                 fontWeight: 800, letterSpacing: -0.3, margin: 0,
               }}>
                 Percakapan
@@ -268,7 +260,7 @@ export default function OwnerChatPage() {
               </span>
             </div>
 
-            {/* Loading skeletons */}
+            {/* Loading skeleton */}
             {loading && (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {[...Array(4)].map((_, i) => (
@@ -280,8 +272,8 @@ export default function OwnerChatPage() {
                     <div style={{ width: 44, height: 44, borderRadius: 12, background: "#F1F5F9", flexShrink: 0 }} />
                     <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 7 }}>
                       <div style={{ height: 11, background: "#F1F5F9", borderRadius: 999, width: "45%" }} />
-                      <div style={{ height: 9, background: "#F1F5F9", borderRadius: 999, width: "30%" }} />
-                      <div style={{ height: 9, background: "#F1F5F9", borderRadius: 999, width: "70%" }} />
+                      <div style={{ height: 9,  background: "#F1F5F9", borderRadius: 999, width: "30%" }} />
+                      <div style={{ height: 9,  background: "#F1F5F9", borderRadius: 999, width: "70%" }} />
                     </div>
                   </div>
                 ))}
@@ -290,23 +282,12 @@ export default function OwnerChatPage() {
 
             {/* Empty state */}
             {!loading && !hasChats && (
-              <div style={{
-                display: "flex", flexDirection: "column", alignItems: "center",
-                justifyContent: "center", marginTop: 56, gap: 10,
-              }}>
-                <div style={{
-                  width: 56, height: 56, borderRadius: 18,
-                  background: "#F1F5F9", display: "flex", alignItems: "center", justifyContent: "center",
-                }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", marginTop: 56, gap: 10 }}>
+                <div style={{ width: 56, height: 56, borderRadius: 18, background: "#F1F5F9", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <MessageCircle size={24} color="#CBD5E1" />
                 </div>
-                <p style={{ fontSize: 14, fontWeight: 700, color: "#475569", margin: 0 }}>
-                  Belum ada pesan masuk
-                </p>
-                <p style={{
-                  fontSize: 12, color: "#94A3B8", textAlign: "center",
-                  maxWidth: 220, lineHeight: 1.6, margin: 0,
-                }}>
+                <p style={{ fontSize: 14, fontWeight: 700, color: "#475569", margin: 0 }}>Belum ada pesan masuk</p>
+                <p style={{ fontSize: 12, color: "#94A3B8", textAlign: "center", maxWidth: 220, lineHeight: 1.6, margin: 0 }}>
                   Pesan dari calon penyewa akan muncul di sini
                 </p>
               </div>
@@ -325,26 +306,16 @@ export default function OwnerChatPage() {
                 {filtered.map((chat) => (
                   <button
                     key={chat.id}
-                    /*
-                      Navigate ke ChatDetailPage yang shared — /chat/:id
-                      ChatDetailPage sudah handle logika isOwner di dalamnya
-                    */
                     onClick={() => navigate(`/chat/${chat.id}`)}
                     style={{
                       width: "100%", display: "flex", alignItems: "center", gap: 12,
                       padding: "14px 16px", background: "white", borderRadius: 14,
                       border: chat.unread > 0 ? "1.5px solid #BFDBFE" : "1px solid #F1F5F9",
                       cursor: "pointer", textAlign: "left", transition: ".15s",
-                      fontFamily: "'Plus Jakarta Sans', sans-serif",
+                      fontFamily: "'Plus Jakarta Sans',sans-serif",
                     }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "#F8FAFC";
-                      e.currentTarget.style.borderColor = "#BFDBFE";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "white";
-                      e.currentTarget.style.borderColor = chat.unread > 0 ? "#BFDBFE" : "#F1F5F9";
-                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "#F8FAFC"; e.currentTarget.style.borderColor = "#BFDBFE"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "white"; e.currentTarget.style.borderColor = chat.unread > 0 ? "#BFDBFE" : "#F1F5F9"; }}
                   >
                     {/* Avatar */}
                     <div style={{
@@ -352,8 +323,17 @@ export default function OwnerChatPage() {
                       display: "flex", alignItems: "center", justifyContent: "center",
                       color: "white", fontWeight: 800, fontSize: 15,
                       background: avatarGradient(chat.id),
+                      position: "relative",
                     }}>
                       {chat.name?.[0]?.toUpperCase() || "?"}
+                      {/* Dot unread di avatar */}
+                      {chat.unread > 0 && (
+                        <span style={{
+                          position: "absolute", top: -3, right: -3,
+                          width: 10, height: 10, borderRadius: "50%",
+                          background: "#EF4444", border: "2px solid white",
+                        }} />
+                      )}
                     </div>
 
                     {/* Info */}
@@ -369,16 +349,17 @@ export default function OwnerChatPage() {
                           {chat.time}
                         </span>
                       </div>
-                      {/* Nama kost — info tambahan untuk owner */}
                       <p style={{
-                        fontSize: 11, color: "#3B82F6", fontWeight: 600,
+                        fontSize: 11, color: "#2563EB", fontWeight: 600,
                         overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", margin: "2px 0",
                       }}>
                         {chat.kost}
                       </p>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <p style={{
-                          fontSize: 11, color: "#94A3B8",
+                          fontSize: 11,
+                          color: chat.unread > 0 ? "#0F172A" : "#94A3B8",
+                          fontWeight: chat.unread > 0 ? 600 : 400,
                           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                           flex: 1, margin: 0,
                         }}>
@@ -417,10 +398,7 @@ export default function OwnerChatPage() {
             }}>
               <ShieldCheck size={18} color="#34D399" style={{ flexShrink: 0, marginTop: 1 }} />
               <div>
-                <h4 style={{
-                  fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 13,
-                  fontWeight: 700, color: "white", margin: 0,
-                }}>
+                <h4 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: 13, fontWeight: 700, color: "white", margin: 0 }}>
                   Transaksi aman lewat Atap
                 </h4>
                 <p style={{ fontSize: 11, color: "#64748B", margin: "3px 0 0" }}>
@@ -432,37 +410,41 @@ export default function OwnerChatPage() {
         </main>
       </div>
 
-      {/* ── Mobile Bottom Nav ── */}
+      {/* Mobile Bottom Nav */}
       <nav
         className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-100 flex md:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         {BOTTOM_NAV_ITEMS.map(({ id, icon: Icon, label, path, badge }) => {
-          const isActive = id === "pesan"; // selalu active di halaman ini
+          const isActive = id === "pesan";
           return (
-            <button
-              key={id}
-              onClick={() => path && navigate(path)}
-              className="flex-1 flex flex-col items-center justify-center py-3 gap-0.5 relative active:scale-95 transition-transform"
-            >
-              {isActive && (
-                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-indigo-600 rounded-full" />
-              )}
+            <button key={id} onClick={() => path && navigate(path)}
+              className="flex-1 flex flex-col items-center justify-center py-3 gap-0.5 relative active:scale-95 transition-transform">
+              {isActive && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-blue-600 rounded-full" />}
               <div className="relative">
                 <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8}
-                  className={isActive ? "text-indigo-600" : "text-slate-400"} />
-                {badge && totalUnread > 0 && (
-                  <span className="absolute -top-1 -right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white" />
+                  className={isActive ? "text-blue-600" : "text-slate-400"} />
+                {/* Badge unread di bottom nav */}
+                {badge && unreadCount > 0 && (
+                  <span style={{
+                    position: "absolute", top: -5, right: -7,
+                    minWidth: 16, height: 16, borderRadius: 8,
+                    background: "#EF4444", border: "2px solid white",
+                    fontSize: 9, fontWeight: 800, color: "white",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    padding: "0 3px",
+                  }}>
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
                 )}
               </div>
-              <span className={`text-[10px] font-bold ${isActive ? "text-indigo-600" : "text-slate-400"}`}>
+              <span className={`text-[10px] font-bold ${isActive ? "text-blue-600" : "text-slate-400"}`}>
                 {label}
               </span>
             </button>
           );
         })}
       </nav>
-
     </div>
   );
-} 
+}

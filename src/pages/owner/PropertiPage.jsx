@@ -4,7 +4,7 @@ import {
   MapPin, Search, ChevronLeft,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import Sidebar, { NAV_ITEMS } from "./Sidebar";
+import Sidebar, { NAV_ITEMS } from "../../components/owner/Sidebar";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
@@ -185,7 +185,7 @@ export default function PropertiPage() {
         onClose={() => setSidebarOpen(false)}
       />
 
-      <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-screen overflow-hidden md:ml-[255px]">
 
         {/* Top bar */}
         <header className="bg-white border-b border-slate-100 px-4 sm:px-6 py-4 flex items-center justify-between sticky top-0 z-30">

@@ -31,6 +31,7 @@ const NAV_ITEMS = [
   { label: "Search",  path: "/search", icon: Search,        desktop: true,  mobile: true,  guestMobile: true  },
   { label: "Peta",    path: "/map",    icon: Map,           desktop: true,  mobile: true,  guestMobile: true  },
   { label: "Favorit", path: "/like",   icon: Heart,         desktop: true,  mobile: true,  guestMobile: false },
+  { label: "Chat",    path: "/chat",   icon: MessageCircle, desktop: false, mobile: true,  guestMobile: false }, // ← tambah ini
   { label: "Profil",  path: "/profil", icon: User,          desktop: false, mobile: true,  guestMobile: false },
 ];
 
@@ -149,7 +150,9 @@ export default function MapPage() {
     if (saved) {
       try { setUnreadCount(JSON.parse(saved).filter((n) => n.unread).length); }
       catch { setUnreadCount(0); }
-    }
+    } else {
+    setUnreadCount(2); // ← tambah ini, sama seperti dashboard
+  }
   }, []);
 
   useEffect(() => {
@@ -265,14 +268,21 @@ export default function MapPage() {
   .mp-root h1,.mp-root h2,.mp-root h3 { font-family:'Plus Jakarta Sans',sans-serif; }
 
   /* ── NAVBAR ── */
-  .mp-navbar {
-    position:sticky; top:0; z-index:500;
-    height:72px; flex-shrink:0;
-    background:rgba(255,255,255,.95); backdrop-filter:blur(16px);
-    border-bottom:1px solid #EAEFF5;
-    display:flex; align-items:center; justify-content:space-between;
-    padding:0 42px;
-  }
+  /* MapPage - cek ini sudah sama dengan dashboard */
+.mp-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 500;
+  height: 72px;        /* ← sama */
+  flex-shrink: 0;      /* ← penting! tanpa ini navbar bisa mengecil */
+  background: rgba(255,255,255,.95);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid #EAEFF5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 42px;
+}
   .mp-navbar-logo { font-family:'Plus Jakarta Sans',sans-serif; font-size:25px; font-weight:800; letter-spacing:-1px; color:#0F172A; cursor:pointer; }
   .mp-navbar-logo span { color:#4F46E5; }
   .mp-navbar-links { display:flex; align-items:center; gap:4px; }
@@ -290,6 +300,22 @@ export default function MapPage() {
   .mp-chat-btn:hover { background:#EEF2FF; color:#4F46E5; border-color:#C7D2FE; }
   .mp-chat-badge { position:absolute; top:-3px; right:-3px; min-width:16px; height:16px; background:#EF4444; border-radius:999px; border:2px solid white; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:800; color:white; padding:0 3px; pointer-events:none; }
   .mp-mobile-chat { display:none; }
+  /* ── dot & badge di bottom nav ── */
+.mp-bn-avatar-wrap { position: relative; display: inline-flex; }
+.mp-bn-notif-dot {
+  position: absolute; top: -2px; right: -2px;
+  width: 7px; height: 7px;
+  background: #EF4444; border-radius: 50%; border: 1.5px solid white;
+}
+.mp-bn-icon-wrap { position: relative; display: inline-flex; }
+.mp-bn-chat-badge {
+  position: absolute; top: -4px; right: -6px;
+  min-width: 14px; height: 14px;
+  background: #EF4444; border-radius: 999px; border: 1.5px solid white;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 8px; font-weight: 800; color: white; padding: 0 3px;
+  line-height: 1; pointer-events: none;
+}
 
   .mp-dropdown-wrap { position:relative; }
   .mp-avatar-wrap { position:relative; display:inline-block; margin-left:4px; }
@@ -378,8 +404,7 @@ export default function MapPage() {
     .mp-bn-item.active { color:#4F46E5; }
     .mp-bn-item span { font-size:10px; font-weight:700; }
     .mp-bn-avatar { width:24px; height:24px; border-radius:50%; background:#EEF2FF; color:#4F46E5; font-size:8px; font-weight:800; display:flex; align-items:center; justify-content:center; border:2px solid #C7D2FE; }
-    .mp-bn-icon-wrap { position:relative; display:inline-flex; }
-    .mp-bn-chat-badge { position:absolute; top:-4px; right:-6px; min-width:14px; height:14px; background:#EF4444; border-radius:999px; border:1.5px solid white; display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:800; color:white; padding:0 3px; pointer-events:none; }
+    
     .mp-bn-avatar-wrap { position:relative; display:inline-flex; }
     .mp-bn-notif-dot { position:absolute; top:-2px; right:-2px; width:7px; height:7px; background:#EF4444; border-radius:50%; border:1.5px solid white; }
   }
