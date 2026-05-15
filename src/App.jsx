@@ -27,13 +27,15 @@ import CreateListingPage from "./pages/owner/CreateListingPage";
 import EditListingPage from "./pages/owner/EditListingPage";
 import DetailListingPage from "./pages/owner/DetailListingPage";
 import PropertiPage from "./pages/owner/PropertiPage";
+import OwnerChatPage from "./pages/owner/OwnerChatPage";
+
 
 // ADMIN
 // ✅ Yang baru
-import AdminLayout    from "./pages/admin/AdminLayout";
+import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminListings  from "./pages/admin/AdminListings";
-import AdminReports   from "./pages/admin/AdminReports";
+import AdminListings from "./pages/admin/AdminListings";
+import AdminReports from "./pages/admin/AdminReports";
 
 // COMPONENT
 import ProtectedRoute from "./components/common/ProtectedRoute";
@@ -72,7 +74,7 @@ export default function App() {
 
         {/* USER */}
         <Route path="/dashboard" element={<DashboardPage />} />
-<Route path="/semua" element={<AllListingsPage />} />
+        <Route path="/semua" element={<AllListingsPage />} />
         {/* DETAIL BOLEH TANPA LOGIN */}
         <Route path="/detail/:id" element={<DetailPage />} />
 
@@ -192,15 +194,55 @@ export default function App() {
           }
         />
 
+        <Route
+          path="/owner/edit/:id"
+          element={
+            <ProtectedRoute role="pemilik">
+              <EditListingPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/owner/listing/:id"
+          element={
+            <ProtectedRoute role="pemilik">
+              <DetailListingPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/owner/chat"
+          element={
+            <ProtectedRoute role="pemilik">
+              <OwnerChatPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* ✅ TAMBAHKAN DI SINI, sebelum fallback */}
+        <Route
+          path="/owner/properti"
+          element={
+            <ProtectedRoute role="pemilik">
+              <PropertiPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* FALLBACK */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+
         {/* ADMIN */}
         // ✅ GANTI dengan ini
-{/* ADMIN */}
-<Route path="/admin" element={<AdminLayout />}>
-  <Route index element={<Navigate to="/admin/dashboard" replace />} />
-  <Route path="dashboard" element={<AdminDashboard />} />
-  <Route path="listings"  element={<AdminListings />} />
-  <Route path="reports"   element={<AdminReports />} />
-</Route>
+        {/* ADMIN */}
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="listings" element={<AdminListings />} />
+          <Route path="reports" element={<AdminReports />} />
+        </Route>
 
         {/* FALLBACK */}
         <Route path="*" element={<Navigate to="/" replace />} />

@@ -35,29 +35,29 @@ function formatTime(date) {
 }
 
 const BOTTOM_NAV_ITEMS = [
-  { id: "home",     icon: Home,          label: "Beranda",  path: "/owner/dashboard" },
-  { id: "properti", icon: Building2,     label: "Properti", path: "/owner/properti"  },
-  { id: "pesan",    icon: MessageCircle, label: "Pesan",    path: "/owner/chat", badge: true },
-  { id: "akun",     icon: User,          label: "Profil",   path: null               },
+  { id: "home", icon: Home, label: "Beranda", path: "/owner/dashboard" },
+  { id: "properti", icon: Building2, label: "Properti", path: "/owner/properti" },
+  { id: "pesan", icon: MessageCircle, label: "Pesan", path: "/owner/chat", badge: true },
+  { id: "akun", icon: User, label: "Profil", path: null },
 ];
 
 export default function OwnerChatPage() {
-  const navigate     = useNavigate();
-  const location     = useLocation();
-  const menuRef      = useRef(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const menuRef = useRef(null);
 
-  const user       = JSON.parse(localStorage.getItem("user") || "null");
-  const token      = localStorage.getItem("token");
-  const initials   = user?.name
+  const user = JSON.parse(localStorage.getItem("user") || "null");
+  const token = localStorage.getItem("token");
+  const initials = user?.name
     ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "OW";
 
-  const [searchQuery,  setSearchQuery]  = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("Semua");
-  const [chats,        setChats]        = useState([]);
-  const [loading,      setLoading]      = useState(true);
-  const [sidebarOpen,  setSidebarOpen]  = useState(false);
-  const [activeNav,    setActiveNav]    = useState("pesan");
+  const [chats, setChats] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeNav, setActiveNav] = useState("pesan");
 
   /* ────────────────────────────────────────────
      Fetch GET /chats
@@ -80,23 +80,23 @@ export default function OwnerChatPage() {
         }
 
         const json = await res.json();
-        const raw  = Array.isArray(json.data) ? json.data : [];
+        const raw = Array.isArray(json.data) ? json.data : [];
 
         setChats(raw.map((thread) => {
           const lm = thread.lastMessage;
           return {
-            id:          thread.id,
+            id: thread.id,
             /*
               Untuk OWNER: displayName = nama student (calon penyewa)
               sudah dihitung di service getMyThreads:
               displayName = thread.student.name
             */
-            name:        thread.displayName || thread.student?.name || "Calon Penyewa",
-            kost:        thread.listing?.name || "-",
+            name: thread.displayName || thread.student?.name || "Calon Penyewa",
+            kost: thread.listing?.name || "-",
             lastMessage: lm?.message || "Belum ada pesan",
-            time:        lm?.sentAt ? formatTime(new Date(lm.sentAt)) : "",
-            unread:      lm && !lm.readAt && lm.senderId !== user?.id ? 1 : 0,
-            isRead:      lm ? !!lm.readAt : true,
+            time: lm?.sentAt ? formatTime(new Date(lm.sentAt)) : "",
+            unread: lm && !lm.readAt && lm.senderId !== user?.id ? 1 : 0,
+            isRead: lm ? !!lm.readAt : true,
           };
         }));
       } catch (err) {
@@ -128,8 +128,8 @@ export default function OwnerChatPage() {
     return matchSearch && matchFilter;
   });
 
-  const totalUnread    = chats.reduce((acc, c) => acc + c.unread, 0);
-  const hasChats       = chats.length > 0;
+  const totalUnread = chats.reduce((acc, c) => acc + c.unread, 0);
+  const hasChats = chats.length > 0;
   const noSearchResult = hasChats && filtered.length === 0;
 
   const handleLogout = () => {
@@ -149,8 +149,8 @@ export default function OwnerChatPage() {
         onChange={(id) => {
           setActiveNav(id);
           // navigate ke route lain kalau bukan pesan
-          if (id === "home")      navigate("/owner/dashboard");
-          if (id === "properti")  navigate("/owner/properti");
+          if (id === "home") navigate("/owner/dashboard");
+          if (id === "properti") navigate("/owner/properti");
           if (id === "statistik") navigate("/owner/statistik");
         }}
         ownerName={user?.name || "Owner"}
@@ -280,8 +280,8 @@ export default function OwnerChatPage() {
                     <div style={{ width: 44, height: 44, borderRadius: 12, background: "#F1F5F9", flexShrink: 0 }} />
                     <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 7 }}>
                       <div style={{ height: 11, background: "#F1F5F9", borderRadius: 999, width: "45%" }} />
-                      <div style={{ height: 9,  background: "#F1F5F9", borderRadius: 999, width: "30%" }} />
-                      <div style={{ height: 9,  background: "#F1F5F9", borderRadius: 999, width: "70%" }} />
+                      <div style={{ height: 9, background: "#F1F5F9", borderRadius: 999, width: "30%" }} />
+                      <div style={{ height: 9, background: "#F1F5F9", borderRadius: 999, width: "70%" }} />
                     </div>
                   </div>
                 ))}

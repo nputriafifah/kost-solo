@@ -19,12 +19,12 @@ const FACILITY_OPTIONS = [
 ];
 
 const STEPS = [
-  { label: "Data Kos",     desc: "Info dasar kost kamu" },
-  { label: "Lokasi",       desc: "Alamat & titik peta" },
-  { label: "Fasilitas",    desc: "Fasilitas kamar" },
+  { label: "Data Kos", desc: "Info dasar kost kamu" },
+  { label: "Lokasi", desc: "Alamat & titik peta" },
+  { label: "Fasilitas", desc: "Fasilitas kamar" },
   { label: "Ketersediaan", desc: "Jumlah kamar" },
   { label: "Detail Kamar", desc: "Tipe & harga" },
-  { label: "Foto Kamar",   desc: "Upload foto" },
+  { label: "Foto Kamar", desc: "Upload foto" },
 ];
 
 const API = "http://localhost:3000";
@@ -65,19 +65,19 @@ export default function CreateListingPage() {
   const validateStep = () => {
     const e = {};
     if (step === 1) {
-      if (form.name.trim().length < 3)        e.name = "Nama minimal 3 karakter";
+      if (form.name.trim().length < 3) e.name = "Nama minimal 3 karakter";
       if (form.description.trim().length < 10) e.description = "Deskripsi minimal 10 karakter";
       if (form.contactNumber.trim().length < 8) e.contactNumber = "Nomor kontak minimal 8 digit";
-      if (form.rules.length === 0)             e.rules = "Pilih minimal 1 peraturan";
+      if (form.rules.length === 0) e.rules = "Pilih minimal 1 peraturan";
     }
     if (step === 2) {
       if (form.address.trim().length < 10) e.address = "Alamat minimal 10 karakter";
-      if (!latLng)                          e.latLng = "Tandai lokasi di peta";
+      if (!latLng) e.latLng = "Tandai lokasi di peta";
     }
     if (step === 5) {
-      if (!room.name.trim())   e.roomName = "Nama tipe kamar wajib diisi";
-      if (!room.size.trim())   e.roomSize = "Ukuran kamar wajib diisi";
-      if (!room.price)         e.roomPrice = "Harga wajib diisi";
+      if (!room.name.trim()) e.roomName = "Nama tipe kamar wajib diisi";
+      if (!room.size.trim()) e.roomSize = "Ukuran kamar wajib diisi";
+      if (!room.price) e.roomPrice = "Harga wajib diisi";
     }
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -145,7 +145,7 @@ export default function CreateListingPage() {
         });
       }
 
-      navigate("/owner/dashboard");
+      navigate("/owner/properti");
     } catch (err) {
       alert(err.message);
     } finally {

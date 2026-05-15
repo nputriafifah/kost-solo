@@ -8,7 +8,7 @@ const API = "http://localhost:3000";
 const getToken = () => localStorage.getItem("token") || "";
 
 const STEPS = [
-  { label: "Data Kos",   desc: "Perbarui info dasar kost" },
+  { label: "Data Kos", desc: "Perbarui info dasar kost" },
   { label: "Foto Kamar", desc: "Kelola foto tiap tipe kamar" },
 ];
 
@@ -120,9 +120,9 @@ export default function EditListingPage() {
   // ---- Validasi step 1 ----
   const validate = () => {
     const e = {};
-    if (form.name.trim().length < 3)          e.name = "Nama minimal 3 karakter";
-    if (form.address.trim().length < 10)      e.address = "Alamat minimal 10 karakter";
-    if (form.description.trim().length < 10)  e.description = "Deskripsi minimal 10 karakter";
+    if (form.name.trim().length < 3) e.name = "Nama minimal 3 karakter";
+    if (form.address.trim().length < 10) e.address = "Alamat minimal 10 karakter";
+    if (form.description.trim().length < 10) e.description = "Deskripsi minimal 10 karakter";
     if (form.contactNumber.trim().length < 8) e.contactNumber = "Nomor kontak minimal 8 digit";
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -133,34 +133,26 @@ export default function EditListingPage() {
     if (!validate()) return;
     setSaving(true);
     try {
-  const res = await fetch(`${API}/owner/listings/${id}`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${getToken()}`,
-    },
-    body: JSON.stringify(form),
-  });
+      const res = await fetch(`${API}/listings/owner/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify(form),
+      });
 
-  const text = await res.text();
+      const text = await res.text();
+      let json;
+      try { json = JSON.parse(text); } catch { json = { message: text }; }
+      if (!res.ok) throw new Error(json.message || "Gagal update");
 
-  let json;
-  try {
-    json = JSON.parse(text);
-  } catch {
-    json = { message: text };
-  }
-
-  if (!res.ok) {
-    throw new Error(json.message || "Gagal update");
-  }
-
-  setStep(2);
-} catch (err) {
-  alert(err.message);
-} finally {
-  setSaving(false);
-}
+      setStep(2);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   // ---- Photo helpers ----
@@ -195,53 +187,52 @@ export default function EditListingPage() {
     const s = photoState[roomTypeId];
     setPhotoState((prev) => ({ ...prev, [roomTypeId]: { ...prev[roomTypeId], uploading: true } }));
     try {
+      // DELETE photos — route: DELETE /owner/photos/:photoId
       for (const photoId of s.deletedIds) {
-        const deleteRes = await fetch(
-  `${API}/owner/room-types/${roomTypeId}/photos/${photoId}`,
-  {
-    method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${getToken()}`,
-    },
-  }
-);
+        const deleteRes = await fetch(`${API}/owner/photos/${photoId}`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${getToken()}`,
+          },
+        });
 
-if (!deleteRes.ok) {
-  const text = await deleteRes.text();
-  throw new Error(text || "Gagal hapus foto");
-}
+        if (!deleteRes.ok) {
+          const text = await deleteRes.text();
+          let json;
+          try { json = JSON.parse(text); } catch { json = { message: text }; }
+          throw new Error(json.message || "Gagal hapus foto");
+        }
       }
+
+      // UPLOAD photos — route: POST /owner/room-types/:roomTypeId/photos
       if (s.newFiles.length > 0) {
         const fd = new FormData();
         s.newFiles.forEach((f) => fd.append("photos", f));
-        const uploadRes = await fetch(
-  `${API}/owner/room-types/${roomTypeId}/photos`,
-  {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${getToken()}`,
-    },
-    body: fd,
-  }
-);
+        const uploadRes = await fetch(`${API}/owner/room-types/${roomTypeId}/photos`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${getToken()}`,
+          },
+          body: fd,
+        });
 
-if (!uploadRes.ok) {
-  const text = await uploadRes.text();
-  throw new Error(text || "Gagal upload foto");
-}
+        if (!uploadRes.ok) {
+          const text = await uploadRes.text();
+          let json;
+          try { json = JSON.parse(text); } catch { json = { message: text }; }
+          throw new Error(json.message || "Gagal upload foto");
+        }
       }
+
       // Refresh room types
-      const res = await fetch(`${API}/listings/owner/${id}`, { headers: { Authorization: `Bearer ${getToken()}` } });
+      const res = await fetch(`${API}/listings/owner/${id}`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
       const text = await res.text();
+      let json;
+      try { json = JSON.parse(text); } catch { json = { message: text }; }
 
-let json;
-try {
-  json = JSON.parse(text);
-} catch {
-  json = { message: text };
-}
-
-const d = json.data || json;
+      const d = json.data || json;
       setRoomTypes(d.roomTypes || []);
       setPhotoState((prev) => ({
         ...prev,
@@ -254,7 +245,7 @@ const d = json.data || json;
     }
   };
 
-  const handleFinish = () => navigate(`/owner/detail/${id}`);
+  const handleFinish = () => navigate(`/owner/properti`);
 
   return (
     <>
@@ -271,7 +262,7 @@ const d = json.data || json;
             <h1 className="text-2xl font-extrabold text-slate-800" style={{ fontFamily: "Plus Jakarta Sans" }}>Edit Kost</h1>
           </div>
 
-          {/* Step indicator — mirip CreateListingPage */}
+          {/* Step indicator */}
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-4">
             <div className="flex items-center">
               {STEPS.map((s, i) => {
@@ -405,7 +396,6 @@ const d = json.data || json;
                                 <button className="clp-photo-del" style={{ opacity: 1 }} onClick={() => removeNewFile(room.id, idx)}>
                                   <X size={12} color="white" />
                                 </button>
-                                {/* "Baru" badge */}
                                 <span style={{ position: "absolute", bottom: 5, left: 5, background: "#3b82f6", color: "white", fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4 }}>BARU</span>
                               </div>
                             ))}
@@ -418,13 +408,13 @@ const d = json.data || json;
                             <span style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>JPG, PNG — bisa pilih beberapa</span>
                             <input type="file" multiple accept="image/*" style={{ display: "none" }}
                               onChange={(e) => {
-  if (e.target.files?.length) {
-    addFiles(room.id, e.target.files);
-  }
-}} />
+                                if (e.target.files?.length) {
+                                  addFiles(room.id, e.target.files);
+                                }
+                              }} />
                           </label>
 
-                          {/* Save button — muncul jika ada perubahan */}
+                          {/* Save button */}
                           {hasPhotoChanges(room.id) && (
                             <div style={{ display: "flex", justifyContent: "flex-end" }}>
                               <button
@@ -447,7 +437,7 @@ const d = json.data || json;
               )}
             </div>
 
-            {/* Footer navigasi — sama persis dengan CreateListingPage */}
+            {/* Footer navigasi */}
             <div className="flex justify-between items-center px-8 py-5" style={{ borderTop: "1px solid #f1f5f9", background: "#fafbff" }}>
               {step > 1 ? (
                 <button type="button" onClick={() => setStep(step - 1)} className="clp-btn-back flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm">
