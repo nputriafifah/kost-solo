@@ -1,43 +1,98 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
-  Search, Eye, CheckCircle, Clock, XCircle,
-  ChevronLeft, ChevronRight, Building2,
-  ThumbsUp, ThumbsDown, Star, StarOff,
+  Building2, CheckCircle, XCircle, Star, StarOff,
+  RefreshCw, AlertTriangle, Search, X, ChevronLeft,
+  ChevronRight, MapPin, User, Mail, Phone, Home,
+  Calendar, Image as ImageIcon, Layers,
 } from "lucide-react";
 
-const API = "http://localhost:3000";
-const getToken = () => localStorage.getItem("token") || localStorage.getItem("access_token") || "";
-const authFetch = (url, opts = {}) =>
-  fetch(url, { ...opts, headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}`, ...(opts.headers || {}) } });
+const BASE_URL = "http://localhost:3000";
+function getToken() { return localStorage.getItem("token"); }
 
+async function apiFetch(path, options = {}) {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${getToken()}`,
+      ...options.headers,
+    },
+  });
+  if (res.status === 401) throw new Error("UNAUTHORIZED");
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.message || "Terjadi kesalahan server");
+  }
+  return res.json();
+}
+
+// ─── Badge ─────────────────────────────────────────────────────────────────
 const STATUS_CFG = {
-  APPROVED: { bg: "bg-emerald-50", text: "text-emerald-600", icon: CheckCircle, label: "Approved" },
-  PENDING:  { bg: "bg-amber-50",   text: "text-amber-600",   icon: Clock,       label: "Pending"  },
-  REJECTED: { bg: "bg-red-50",     text: "text-red-500",     icon: XCircle,     label: "Rejected" },
+  ACTIVE:   { label: "Aktif",    bg: "#ecfdf5", color: "#059669", dot: "#10b981" },
+  PENDING:  { label: "Pending",  bg: "#fffbeb", color: "#d97706", dot: "#f59e0b" },
+  INACTIVE: { label: "Nonaktif", bg: "#f8fafc", color: "#64748b", dot: "#94a3b8" },
+  REJECTED: { label: "Ditolak", bg: "#fef2f2", color: "#dc2626", dot: "#ef4444" },
 };
 
-function StatusBadge({ status }) {
-  const c = STATUS_CFG[status?.toUpperCase()] || STATUS_CFG.PENDING;
+function Badge({ status }) {
+  const cfg = STATUS_CFG[status?.toUpperCase()] ?? { label: status ?? "-", bg: "#f3f4f6", color: "#374151", dot: "#9ca3af" };
   return (
-    <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full ${c.bg} ${c.text}`}>
-      <c.icon size={11} /> {c.label}
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 5,
+      fontSize: 12, fontWeight: 600, borderRadius: 99,
+      padding: "3px 10px", background: cfg.bg, color: cfg.color,
+    }}>
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: cfg.dot, flexShrink: 0 }} />
+      {cfg.label}
     </span>
   );
 }
 
-/* ── Confirm modal ── */
-function ConfirmModal({ title, desc, confirmLabel, confirmClass, onConfirm, onClose }) {
+// ─── Reject Modal ───────────────────────────────────────────────────────────
+function RejectModal({ listing, onConfirm, onClose, loading }) {
+  const [reason, setReason] = useState("");
   return (
-    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl p-6">
-        <h3 className="font-bold text-slate-800 mb-1">{title}</h3>
-        <p className="text-sm text-slate-500 mb-5">{desc}</p>
-        <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 h-10 rounded-xl border border-slate-200 text-sm font-semibold text-slate-500 hover:bg-slate-50">
-            Batal
-          </button>
-          <button onClick={onConfirm} className={`flex-1 h-10 rounded-xl text-white text-sm font-semibold transition-colors ${confirmClass}`}>
-            {confirmLabel}
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
+      display: "flex", alignItems: "center", justifyContent: "center", zIndex: 60,
+    }}>
+      <div style={{
+        background: "#fff", borderRadius: 16, padding: 28, width: 440,
+        boxShadow: "0 20px 60px rgba(0,0,0,0.15)",
+      }}>
+        <h3 style={{ margin: "0 0 6px", fontSize: 16, fontWeight: 700 }}>Tolak Listing</h3>
+        <p style={{ margin: "0 0 16px", fontSize: 13, color: "#64748b" }}>
+          Berikan alasan penolakan untuk <strong>{listing.name}</strong>
+        </p>
+        <textarea
+          value={reason}
+          onChange={e => setReason(e.target.value)}
+          placeholder="Contoh: Foto tidak jelas, informasi tidak lengkap..."
+          rows={3}
+          style={{
+            width: "100%", padding: "10px 12px", borderRadius: 10,
+            border: "1.5px solid #e2e8f0", fontSize: 13, resize: "none",
+            outline: "none", fontFamily: "inherit", boxSizing: "border-box", color: "#0f172a",
+          }}
+        />
+        <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+          <button onClick={onClose} style={{
+            flex: 1, padding: "10px", border: "1.5px solid #e2e8f0",
+            borderRadius: 9, background: "#fff", cursor: "pointer",
+            fontWeight: 600, fontSize: 13, color: "#475569",
+          }}>Batal</button>
+          <button
+            onClick={() => onConfirm(reason)}
+            disabled={loading || !reason.trim()}
+            style={{
+              flex: 1, padding: "10px", border: "none",
+              borderRadius: 9, background: "#ef4444", cursor: "pointer",
+              fontWeight: 600, fontSize: 13, color: "#fff",
+              opacity: loading || !reason.trim() ? 0.6 : 1,
+            }}
+          >
+            {loading ? "Memproses..." : "Tolak Listing"}
           </button>
         </div>
       </div>
@@ -45,205 +100,508 @@ function ConfirmModal({ title, desc, confirmLabel, confirmClass, onConfirm, onCl
   );
 }
 
+// ─── Photo Carousel ─────────────────────────────────────────────────────────
+function PhotoCarousel({ photos }) {
+  const [idx, setIdx] = useState(0);
+  if (!photos?.length) return (
+    <div style={{
+      width: "100%", height: 200, background: "#f1f5f9", borderRadius: 12,
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8,
+    }}>
+      <ImageIcon size={32} color="#cbd5e1" />
+      <span style={{ fontSize: 13, color: "#94a3b8" }}>Tidak ada foto</span>
+    </div>
+  );
+  return (
+    <div style={{ position: "relative", borderRadius: 12, overflow: "hidden", background: "#0f172a" }}>
+      <img
+        src={photos[idx]?.url ?? photos[idx]}
+        alt={`foto-${idx}`}
+        style={{ width: "100%", height: 220, objectFit: "cover", display: "block", opacity: 0.95 }}
+        onError={e => { e.target.style.display = "none"; }}
+      />
+      {photos.length > 1 && (
+        <>
+          <button onClick={() => setIdx(i => (i - 1 + photos.length) % photos.length)} style={{
+            position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)",
+            background: "rgba(0,0,0,0.5)", border: "none", borderRadius: "50%",
+            width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer", color: "#fff",
+          }}><ChevronLeft size={16} /></button>
+          <button onClick={() => setIdx(i => (i + 1) % photos.length)} style={{
+            position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
+            background: "rgba(0,0,0,0.5)", border: "none", borderRadius: "50%",
+            width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer", color: "#fff",
+          }}><ChevronRight size={16} /></button>
+          <div style={{
+            position: "absolute", bottom: 8, left: "50%", transform: "translateX(-50%)",
+            display: "flex", gap: 4,
+          }}>
+            {photos.map((_, i) => (
+              <div key={i} onClick={() => setIdx(i)} style={{
+                width: i === idx ? 16 : 6, height: 6, borderRadius: 99,
+                background: i === idx ? "#fff" : "rgba(255,255,255,0.5)",
+                cursor: "pointer", transition: "all 0.2s",
+              }} />
+            ))}
+          </div>
+        </>
+      )}
+      <div style={{
+        position: "absolute", top: 8, right: 8,
+        background: "rgba(0,0,0,0.55)", borderRadius: 99,
+        padding: "2px 8px", fontSize: 11, color: "#fff", fontWeight: 600,
+      }}>
+        {idx + 1} / {photos.length}
+      </div>
+    </div>
+  );
+}
+
+// ─── Detail Modal ───────────────────────────────────────────────────────────
+function DetailModal({ listing, onClose, onApprove, onReject, onPremium, actionLoading }) {
+  // Collect all photos across all room types
+  const allPhotos = (listing.roomTypes ?? []).flatMap(rt =>
+    (rt.photos ?? []).map(p => p.url ?? p)
+  );
+
+  const infoRow = (icon, label, value) => (
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "8px 0", borderBottom: "1px solid #f1f5f9" }}>
+      <div style={{ color: "#94a3b8", flexShrink: 0, marginTop: 1 }}>{icon}</div>
+      <div>
+        <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>{label}</div>
+        <div style={{ fontSize: 13, color: "#0f172a", fontWeight: 500, marginTop: 2 }}>{value || "-"}</div>
+      </div>
+    </div>
+  );
+
+  const isAppLoading = actionLoading === `approve-${listing.id}`;
+  const isRejLoading = actionLoading?.startsWith(`reject-${listing.id}`);
+  const isPreLoading = actionLoading === `premium-${listing.id}`;
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      zIndex: 50, padding: 16,
+    }}>
+      <div style={{
+        background: "#fff", borderRadius: 18, width: "100%", maxWidth: 580,
+        maxHeight: "90vh", overflowY: "auto", boxShadow: "0 24px 80px rgba(0,0,0,0.18)",
+      }}>
+        {/* Modal Header */}
+        <div style={{
+          padding: "20px 24px 16px", borderBottom: "1px solid #f1f5f9",
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          position: "sticky", top: 0, background: "#fff", zIndex: 1, borderRadius: "18px 18px 0 0",
+        }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#0f172a" }}>{listing.name ?? "-"}</h2>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+              <Badge status={listing.status} />
+              {listing.isPremium && (
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#d97706", background: "#fffbeb", padding: "2px 7px", borderRadius: 99 }}>
+                  ★ PREMIUM
+                </span>
+              )}
+            </div>
+          </div>
+          <button onClick={onClose} style={{
+            background: "#f1f5f9", border: "none", borderRadius: "50%",
+            width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center",
+            cursor: "pointer", color: "#64748b",
+          }}>
+            <X size={16} />
+          </button>
+        </div>
+
+        <div style={{ padding: "20px 24px" }}>
+          {/* Photos */}
+          <PhotoCarousel photos={allPhotos} />
+
+          {/* Info */}
+          <div style={{ marginTop: 20 }}>
+            {infoRow(<MapPin size={15} />, "Alamat", listing.address ?? listing.location)}
+            {infoRow(<User size={15} />, "Pemilik", listing.owner?.name)}
+            {infoRow(<Mail size={15} />, "Email Pemilik", listing.owner?.email)}
+            {listing.owner?.phone && infoRow(<Phone size={15} />, "No. HP Pemilik", listing.owner.phone)}
+            {infoRow(<Calendar size={15} />, "Terdaftar", listing.createdAt ? new Date(listing.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : "-")}
+            {listing.rejectionReason && infoRow(<AlertTriangle size={15} />, "Alasan Penolakan", listing.rejectionReason)}
+          </div>
+
+          {/* Room Types */}
+          {listing.roomTypes?.length > 0 && (
+            <div style={{ marginTop: 20 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>
+                Tipe Kamar ({listing.roomTypes.length})
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {listing.roomTypes.map((rt, i) => (
+                  <div key={rt.id ?? i} style={{
+                    background: "#f8fafc", borderRadius: 10, padding: "12px 14px",
+                    border: "1px solid #f1f5f9",
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div style={{ fontWeight: 600, fontSize: 13, color: "#0f172a" }}>
+                        {rt.name ?? `Tipe ${i + 1}`}
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "#6366f1" }}>
+                        {rt.price ? `Rp ${Number(rt.price).toLocaleString("id-ID")}` : "-"}
+                        {rt.priceUnit && <span style={{ fontSize: 11, fontWeight: 400, color: "#94a3b8" }}>/{rt.priceUnit}</span>}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 12, marginTop: 6, fontSize: 12, color: "#64748b" }}>
+                      {rt.size && <span><Home size={11} style={{ marginRight: 3 }} />{rt.size} m²</span>}
+                      {rt.stock !== undefined && <span><Layers size={11} style={{ marginRight: 3 }} />{rt.stock} kamar</span>}
+                      <span><ImageIcon size={11} style={{ marginRight: 3 }} />{rt.photos?.length ?? 0} foto</span>
+                    </div>
+                    {rt.description && (
+                      <p style={{ margin: "6px 0 0", fontSize: 12, color: "#64748b", lineHeight: 1.5 }}>{rt.description}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div style={{ marginTop: 24, display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button
+              onClick={() => onPremium(listing.id, !listing.isPremium)}
+              disabled={isPreLoading}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "9px 16px", fontSize: 13, fontWeight: 600,
+                border: listing.isPremium ? "1.5px solid #fde68a" : "1.5px solid #e2e8f0",
+                background: listing.isPremium ? "#fffbeb" : "#f8fafc",
+                color: listing.isPremium ? "#d97706" : "#475569",
+                borderRadius: 9, cursor: "pointer", opacity: isPreLoading ? 0.6 : 1,
+              }}
+            >
+              {listing.isPremium ? <Star size={14} fill="#f59e0b" color="#f59e0b" /> : <StarOff size={14} />}
+              {listing.isPremium ? "Hapus Premium" : "Set Premium"}
+            </button>
+
+            <button
+              onClick={() => onApprove(listing.id)}
+              disabled={isAppLoading}
+              style={{
+                flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                padding: "9px 16px", fontSize: 13, fontWeight: 600,
+                border: "1.5px solid #bbf7d0", background: "#f0fdf4",
+                color: "#16a34a", borderRadius: 9, cursor: "pointer",
+                opacity: isAppLoading ? 0.6 : 1,
+              }}
+            >
+              <CheckCircle size={14} />
+              {isAppLoading ? "Memproses..." : "Approve"}
+            </button>
+
+            <button
+              onClick={() => { onClose(); onReject(listing); }}
+              disabled={isRejLoading}
+              style={{
+                flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                padding: "9px 16px", fontSize: 13, fontWeight: 600,
+                border: "1.5px solid #fecaca", background: "#fef2f2",
+                color: "#dc2626", borderRadius: 9, cursor: "pointer",
+                opacity: isRejLoading ? 0.6 : 1,
+              }}
+            >
+              <XCircle size={14} />
+              Tolak
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main ───────────────────────────────────────────────────────────────────
 export default function AdminListings() {
-  const [listings, setListings] = useState([]);
-  const [loading,  setLoading]  = useState(true);
-  const [search,   setSearch]   = useState("");
-  const [page,     setPage]     = useState(1);
-  const [total,    setTotal]    = useState(0);
-  const [confirm,  setConfirm]  = useState(null); // { type, id, name }
-  const [actioning, setActioning] = useState(null); // id sedang diproses
-  const LIMIT = 10;
+  const navigate = useNavigate();
+  const [listings, setListings]           = useState([]);
+  const [loading, setLoading]             = useState(true);
+  const [error, setError]                 = useState("");
+  const [search, setSearch]               = useState("");
+  const [actionLoading, setActionLoading] = useState(null);
+  const [rejectTarget, setRejectTarget]   = useState(null);
+  const [detailTarget, setDetailTarget]   = useState(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = async () => {
+    setLoading(true); setError("");
     try {
-      const params = new URLSearchParams({ page, limit: LIMIT, ...(search && { search }) });
-      const res = await authFetch(`${API}/admin/listings/pending?${params}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const j = await res.json();
-      setListings(j.data || j || []);
-      setTotal(j.total || (j.data?.length ?? 0));
-    } catch (e) {
-      console.error("Gagal memuat listings:", e);
-    } finally {
-      setLoading(false);
-    }
-  }, [page, search]);
-
-  useEffect(() => { load(); }, [load]);
-
-  /* Action handler */
-  const doAction = async (type, id) => {
-    setActioning(id);
-    try {
-      const urlMap = {
-        approve: `${API}/admin/listings/${id}/approve`,
-        reject:  `${API}/admin/listings/${id}/reject`,
-        premium: `${API}/admin/listings/${id}/premium`,
-      };
-      const res = await authFetch(urlMap[type], { method: "PATCH" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      load();
-    } catch (e) {
-      alert(`Gagal melakukan aksi: ${e.message}`);
-    } finally {
-      setActioning(null);
-      setConfirm(null);
-    }
+      const res = await apiFetch("/admin/listings/pending");
+      setListings(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      if (err.message === "UNAUTHORIZED") { localStorage.removeItem("token"); navigate("/auth"); }
+      else setError(err.message);
+    } finally { setLoading(false); }
   };
 
-  const totalPages = Math.ceil(total / LIMIT) || 1;
+  useEffect(() => { load(); }, []);
 
-  const actionBtn = (icon, tooltip, colorClass, onClick) => (
-    <button
-      onClick={onClick}
-      title={tooltip}
-      className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors text-slate-400 ${colorClass}`}
-    >
-      {icon}
-    </button>
+  const handleApprove = async (id) => {
+    setActionLoading(`approve-${id}`);
+    try { await apiFetch(`/admin/listings/${id}/approve`, { method: "PATCH" }); await load(); }
+    catch (err) { alert(err.message); }
+    finally { setActionLoading(null); setDetailTarget(null); }
+  };
+
+  const handleReject = async (reason) => {
+    if (!rejectTarget) return;
+    setActionLoading(`reject-${rejectTarget.id}`);
+    try {
+      await apiFetch(`/admin/listings/${rejectTarget.id}/reject`, {
+        method: "PATCH", body: JSON.stringify({ rejectionReason: reason }),
+      });
+      setRejectTarget(null); await load();
+    } catch (err) { alert(err.message); }
+    finally { setActionLoading(null); }
+  };
+
+  const handlePremium = async (id, isPremium) => {
+    setActionLoading(`premium-${id}`);
+    try {
+      await apiFetch(`/admin/listings/${id}/premium`, {
+        method: "PATCH", body: JSON.stringify({ isPremium }),
+      });
+      await load();
+      // update detailTarget jika sedang dibuka
+      setDetailTarget(prev => prev?.id === id ? { ...prev, isPremium } : prev);
+    } catch (err) { alert(err.message); }
+    finally { setActionLoading(null); }
+  };
+
+  const filtered = listings.filter(l =>
+    (l.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
+    (l.owner?.name ?? "").toLowerCase().includes(search.toLowerCase())
+  );
+
+  const thStyle = {
+    textAlign: "left", padding: "11px 16px", color: "#64748b",
+    fontWeight: 600, fontSize: 11.5, letterSpacing: "0.04em",
+    textTransform: "uppercase", borderBottom: "1px solid #f1f5f9",
+    background: "#f8fafc",
+  };
+  const tdStyle = {
+    padding: "14px 16px", color: "#475569",
+    borderBottom: "1px solid #f8fafc", verticalAlign: "middle", fontSize: 13,
+  };
+
+  if (loading) return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh", flexDirection: "column", gap: 12 }}>
+      <div style={{ width: 32, height: 32, borderRadius: "50%", border: "2.5px solid #e2e8f0", borderTop: "2.5px solid #6366f1", animation: "spin 0.8s linear infinite" }} />
+      <span style={{ color: "#94a3b8", fontSize: 13 }}>Memuat listing...</span>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+
+  if (error) return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "60vh", gap: 12 }}>
+      <AlertTriangle size={36} color="#f87171" />
+      <p style={{ color: "#ef4444", fontWeight: 600, margin: 0 }}>{error}</p>
+      <button onClick={load} style={{ padding: "8px 20px", background: "#6366f1", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 600 }}>Coba Lagi</button>
+    </div>
   );
 
   return (
-    <div className="space-y-5">
+    <div style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif", color: "#0f172a" }}>
+
       {/* Header */}
-      <div>
-        <h1 className="text-xl font-bold text-slate-800">Kelola Listing</h1>
-        <p className="text-sm text-slate-400 mt-0.5">Listing menunggu persetujuan · {total} item</p>
+      <div style={{ marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div>
+          <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Kelola Listing</h1>
+          <p style={{ margin: "4px 0 0", color: "#64748b", fontSize: 13 }}>
+            {listings.length} listing menunggu persetujuan
+          </p>
+        </div>
+        <button onClick={load} style={{
+          display: "flex", alignItems: "center", gap: 6,
+          padding: "7px 14px", background: "#fff",
+          border: "1px solid #e2e8f0", borderRadius: 9,
+          fontSize: 13, fontWeight: 500, cursor: "pointer", color: "#475569",
+          boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+        }}>
+          <RefreshCw size={14} /> Refresh
+        </button>
       </div>
 
       {/* Search */}
-      <div className="relative max-w-xs">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+      <div style={{ position: "relative", marginBottom: 16 }}>
+        <Search size={15} color="#94a3b8" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
         <input
           value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-          placeholder="Cari nama kost..."
-          className="w-full pl-9 pr-4 py-2 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-200"
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Cari nama kost atau pemilik..."
+          style={{
+            width: "100%", padding: "10px 12px 10px 36px",
+            border: "1px solid #e2e8f0", borderRadius: 10,
+            fontSize: 13, outline: "none", background: "#fff",
+            boxSizing: "border-box", color: "#0f172a",
+            boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+          }}
         />
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-        {loading ? (
-          <div className="p-5 space-y-3">{[...Array(5)].map((_, i) => <div key={i} className="h-12 bg-slate-100 animate-pulse rounded-xl" />)}</div>
-        ) : listings.length === 0 ? (
-          <div className="py-20 text-center">
-            <Building2 size={32} className="mx-auto text-slate-200 mb-3" />
-            <p className="text-sm text-slate-400">Tidak ada listing pending</p>
+      <div style={{ background: "#fff", border: "1px solid #f1f5f9", borderRadius: 14, overflow: "hidden", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+        {filtered.length === 0 ? (
+          <div style={{ padding: "60px 24px", textAlign: "center", color: "#94a3b8" }}>
+            <Building2 size={40} color="#e2e8f0" style={{ margin: "0 auto 12px" }} />
+            <p style={{ margin: 0, fontWeight: 600, fontSize: 14 }}>
+              {search ? "Tidak ada hasil pencarian" : "Tidak ada listing pending"}
+            </p>
+            <p style={{ margin: "4px 0 0", fontSize: 13 }}>Semua listing sudah ditinjau</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-xs text-slate-400 font-semibold bg-slate-50/80 border-b border-slate-100">
-                  <th className="text-left px-5 py-3">Nama</th>
-                  <th className="text-left px-5 py-3 hidden md:table-cell">Pemilik</th>
-                  <th className="text-left px-5 py-3 hidden lg:table-cell">Lokasi</th>
-                  <th className="text-left px-5 py-3 hidden sm:table-cell">Tipe</th>
-                  <th className="text-left px-5 py-3">Status</th>
-                  <th className="px-5 py-3 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {listings.map((l) => {
-                  const isProcessing = actioning === l.id;
-                  const isPremium = l.isPremium;
-                  return (
-                    <tr key={l.id} className={`transition-colors ${isProcessing ? "opacity-50" : "hover:bg-slate-50/60"}`}>
-                      <td className="px-5 py-3.5 font-medium text-slate-700 max-w-[160px]">
-                        <div className="flex items-center gap-1.5">
-                          {isPremium && <Star size={12} className="text-amber-400 fill-amber-400 flex-shrink-0" />}
-                          <span className="block truncate">{l.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3.5 hidden md:table-cell text-xs text-slate-400">
-                        {l.owner?.name || l.owner?.email || "—"}
-                      </td>
-                      <td className="px-5 py-3.5 hidden lg:table-cell text-xs text-slate-400 max-w-[150px]">
-                        <span className="block truncate">{l.address || "—"}</span>
-                      </td>
-                      <td className="px-5 py-3.5 hidden sm:table-cell">
-                        <span className="text-xs capitalize bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full font-medium">
-                          {l.genderType || "Umum"}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <StatusBadge status={l.status} />
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center justify-end gap-1">
-                          {/* Lihat */}
-                          {actionBtn(
-                            <Eye size={14} />, "Lihat Detail",
-                            "hover:bg-blue-50 hover:text-blue-500",
-                            () => window.open(`/detail/${l.id}`, "_blank")
-                          )}
-                          {/* Approve */}
-                          {actionBtn(
-                            <ThumbsUp size={14} />, "Approve",
-                            "hover:bg-emerald-50 hover:text-emerald-500",
-                            () => setConfirm({ type: "approve", id: l.id, name: l.name })
-                          )}
-                          {/* Reject */}
-                          {actionBtn(
-                            <ThumbsDown size={14} />, "Reject",
-                            "hover:bg-red-50 hover:text-red-500",
-                            () => setConfirm({ type: "reject", id: l.id, name: l.name })
-                          )}
-                          {/* Premium toggle */}
-                          {actionBtn(
-                            isPremium ? <StarOff size={14} /> : <Star size={14} />,
-                            isPremium ? "Hapus Premium" : "Set Premium",
-                            "hover:bg-amber-50 hover:text-amber-500",
-                            () => setConfirm({ type: "premium", id: l.id, name: l.name })
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                <th style={thStyle}>Nama Kost</th>
+                <th style={thStyle}>Pemilik</th>
+                <th style={thStyle}>Lokasi</th>
+                <th style={thStyle}>Tipe Kamar</th>
+                <th style={thStyle}>Foto</th>
+                <th style={thStyle}>Status</th>
+                <th style={thStyle}>Premium</th>
+                <th style={thStyle}>Terdaftar</th>
+                <th style={thStyle}>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((l) => {
+                const allPhotos = (l.roomTypes ?? []).flatMap(rt => rt.photos ?? []);
+                const firstPhoto = allPhotos[0]?.url ?? allPhotos[0];
+                const isAppLoading = actionLoading === `approve-${l.id}`;
+                const isRejLoading = actionLoading === `reject-${l.id}`;
+                const isPreLoading = actionLoading === `premium-${l.id}`;
 
-        {/* Pagination */}
-        {!loading && totalPages > 1 && (
-          <div className="flex items-center justify-between px-5 py-3 border-t border-slate-50">
-            <span className="text-xs text-slate-400">Halaman {page} dari {totalPages}</span>
-            <div className="flex gap-1.5">
-              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed">
-                <ChevronLeft size={14} />
-              </button>
-              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed">
-                <ChevronRight size={14} />
-              </button>
-            </div>
-          </div>
+                return (
+                  <tr key={l.id}
+                    style={{ transition: "background 0.15s", cursor: "pointer" }}
+                    onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
+                    onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                    onClick={() => setDetailTarget(l)}
+                  >
+                    <td style={{ ...tdStyle, fontWeight: 600, color: "#0f172a" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        {/* Thumbnail */}
+                        <div style={{
+                          width: 36, height: 36, borderRadius: 10, background: "#f1f5f9",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          flexShrink: 0, overflow: "hidden",
+                        }}>
+                          {firstPhoto
+                            ? <img src={firstPhoto} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.target.style.display = "none"; }} />
+                            : <Building2 size={16} color="#94a3b8" />
+                          }
+                        </div>
+                        <div>
+                          <div>{l.name ?? "-"}</div>
+                          {l.isPremium && (
+                            <span style={{ fontSize: 10, fontWeight: 700, color: "#d97706", background: "#fffbeb", padding: "1px 6px", borderRadius: 99 }}>PREMIUM</span>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td style={tdStyle}>
+                      <div style={{ fontWeight: 500, color: "#0f172a" }}>{l.owner?.name ?? "-"}</div>
+                      <div style={{ fontSize: 12, color: "#94a3b8" }}>{l.owner?.email ?? ""}</div>
+                    </td>
+                    <td style={{ ...tdStyle, maxWidth: 160 }}>
+                      <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {l.address ?? l.location ?? "-"}
+                      </div>
+                    </td>
+                    <td style={{ ...tdStyle, textAlign: "center" }}>
+                      <span style={{ background: "#f1f5f9", color: "#475569", fontSize: 12, fontWeight: 600, borderRadius: 99, padding: "3px 10px" }}>
+                        {l.roomTypes?.length ?? 0} tipe
+                      </span>
+                    </td>
+                    {/* Foto count */}
+                    <td style={{ ...tdStyle, textAlign: "center" }}>
+                      <span style={{ background: allPhotos.length > 0 ? "#eff6ff" : "#f8fafc", color: allPhotos.length > 0 ? "#3b82f6" : "#94a3b8", fontSize: 12, fontWeight: 600, borderRadius: 99, padding: "3px 10px" }}>
+                        {allPhotos.length} foto
+                      </span>
+                    </td>
+                    <td style={tdStyle}><Badge status={l.status} /></td>
+                    <td style={{ ...tdStyle, textAlign: "center" }}>
+                      <button
+                        onClick={e => { e.stopPropagation(); handlePremium(l.id, !l.isPremium); }}
+                        disabled={isPreLoading}
+                        title={l.isPremium ? "Hapus Premium" : "Set Premium"}
+                        style={{ background: "none", border: "none", cursor: "pointer", padding: 4, opacity: isPreLoading ? 0.5 : 1 }}
+                      >
+                        {l.isPremium
+                          ? <Star size={18} color="#f59e0b" fill="#f59e0b" />
+                          : <StarOff size={18} color="#cbd5e1" />
+                        }
+                      </button>
+                    </td>
+                    <td style={{ ...tdStyle, color: "#94a3b8", fontSize: 12 }}>
+                      {l.createdAt ? new Date(l.createdAt).toLocaleDateString("id-ID") : "-"}
+                    </td>
+                    <td style={tdStyle}>
+                      <div style={{ display: "flex", gap: 6 }} onClick={e => e.stopPropagation()}>
+                        <button
+                          onClick={() => handleApprove(l.id)}
+                          disabled={isAppLoading}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 5,
+                            padding: "6px 12px", fontSize: 12, fontWeight: 600,
+                            border: "1px solid #bbf7d0", background: "#f0fdf4",
+                            color: "#16a34a", borderRadius: 8, cursor: "pointer",
+                            fontFamily: "inherit", opacity: isAppLoading ? 0.6 : 1,
+                          }}
+                        >
+                          <CheckCircle size={13} />
+                          {isAppLoading ? "..." : "Approve"}
+                        </button>
+                        <button
+                          onClick={() => setRejectTarget(l)}
+                          disabled={isRejLoading}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 5,
+                            padding: "6px 12px", fontSize: 12, fontWeight: 600,
+                            border: "1px solid #fecaca", background: "#fef2f2",
+                            color: "#dc2626", borderRadius: 8, cursor: "pointer",
+                            fontFamily: "inherit", opacity: isRejLoading ? 0.6 : 1,
+                          }}
+                        >
+                          <XCircle size={13} /> Tolak
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         )}
       </div>
 
-      {/* Confirm modal */}
-      {confirm && (
-        <ConfirmModal
-          title={{
-            approve: "Approve Listing?",
-            reject:  "Reject Listing?",
-            premium: "Ubah Status Premium?",
-          }[confirm.type]}
-          desc={`Listing: "${confirm.name}"`}
-          confirmLabel={{ approve: "Ya, Approve", reject: "Ya, Reject", premium: "Ya, Ubah" }[confirm.type]}
-          confirmClass={{
-            approve: "bg-emerald-500 hover:bg-emerald-600",
-            reject:  "bg-red-500 hover:bg-red-600",
-            premium: "bg-amber-500 hover:bg-amber-600",
-          }[confirm.type]}
-          onConfirm={() => doAction(confirm.type, confirm.id)}
-          onClose={() => setConfirm(null)}
+      {/* Detail Modal */}
+      {detailTarget && (
+        <DetailModal
+          listing={detailTarget}
+          onClose={() => setDetailTarget(null)}
+          onApprove={handleApprove}
+          onReject={(l) => setRejectTarget(l)}
+          onPremium={handlePremium}
+          actionLoading={actionLoading}
+        />
+      )}
+
+      {/* Reject Modal */}
+      {rejectTarget && (
+        <RejectModal
+          listing={rejectTarget}
+          onConfirm={handleReject}
+          onClose={() => setRejectTarget(null)}
+          loading={!!actionLoading?.startsWith("reject")}
         />
       )}
     </div>

@@ -163,12 +163,18 @@ export default function DashboardPage() {
       const raw = Array.isArray(json) ? json : Array.isArray(json.data) ? json.data : [];
       setData(raw.map((item) => {
         const room = item.roomTypes?.[0] || {};
+        // ✅ FIX: ambil foto dari roomTypes[].photos[].url
+        const allPhotos = (item.roomTypes ?? []).flatMap(rt => rt.photos ?? []);
+        const firstPhotoUrl = allPhotos[0]?.url || null;
         return {
-          id: String(item.id), name: item.name || "Tanpa Nama",
+          id: String(item.id),
+          name: item.name || "Tanpa Nama",
           location: item.address || "Lokasi tidak tersedia",
-          price: room.price ?? 0, gender: (item.genderType || "").toLowerCase(),
-          image: room.photos?.[0]?.url || "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267",
-          available: room.availableCount ?? 0, isPremium: item.isPremium || false,
+          price: room.price ?? item.cheapestPrice ?? 0,
+          gender: (item.genderType || "").toLowerCase(),
+          image: firstPhotoUrl || "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80",
+          available: room.availableCount ?? 0,
+          isPremium: item.isPremium || false,
         };
       }));
     } catch { setError("Gagal memuat data"); }
@@ -281,7 +287,6 @@ export default function DashboardPage() {
   .atap-search-btn { height: 44px; border: none; cursor: pointer; border-radius: 14px; padding: 0 18px; background: white; color: #2563EB; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; transition: 0.2s; font-family: 'DM Sans', sans-serif; }
   .atap-search-btn:hover { transform: translateY(-1px); }
 
-  /* STATS BOXES */
   .atap-stats-section { max-width: 1180px; margin: -40px auto 0; position: relative; z-index: 10; padding: 0 28px; }
   .atap-stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
   .atap-stat-box { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 18px; padding: 22px; display: flex; align-items: center; gap: 16px; box-shadow: var(--card-shadow); transition: 0.2s; }

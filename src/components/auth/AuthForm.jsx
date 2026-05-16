@@ -82,6 +82,7 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
 
       setLoading(true);
 
+      // ── LOGIN PEMILIK (OTP) ──────────────────────────────────────────────────
       if (isLogin && role === "pemilik") {
         const res = await fetch("http://localhost:3000/auth/owner/request-otp", {
           method: "POST",
@@ -95,18 +96,43 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
         return;
       }
 
+      // ── LOGIN PENCARI (+ deteksi admin otomatis) ─────────────────────────────
       if (isLogin) {
+        // Coba login sebagai admin dulu lewat /auth/admin/login
+        try {
+          const adminRes = await fetch("http://localhost:3000/auth/admin/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: form.email, password: form.password }),
+          });
+          const adminJson = await adminRes.json();
+
+          if (adminRes.ok) {
+            const token = adminJson.token;
+const user  = adminJson.user;
+            if (token) localStorage.setItem("token", token);
+            if (user)  localStorage.setItem("user", JSON.stringify(user));
+            setSuccess("Login sebagai admin berhasil...");
+            setTimeout(() => navigate("/admin/dashboard"), 800);
+            return;
+          }
+        } catch {
+          // Bukan admin atau network error → lanjut login biasa
+        }
+
+        // Login biasa sebagai pencari
         const action = getAuthAction(role, true);
         const result = await action({ email: form.email, password: form.password });
         const token = result.token || result?.data?.token;
-        const user = result.user || result?.data?.user;
+        const user  = result.user  || result?.data?.user;
         if (token) localStorage.setItem("token", token);
-        if (user) localStorage.setItem("user", JSON.stringify(user));
+        if (user)  localStorage.setItem("user", JSON.stringify(user));
         setSuccess("Login berhasil...");
         setTimeout(() => navigate("/dashboard"), 800);
         return;
       }
 
+      // ── REGISTER PENCARI ─────────────────────────────────────────────────────
       if (role === "pencari") {
         const res = await fetch("http://localhost:3000/auth/user/register", {
           method: "POST",
@@ -120,6 +146,7 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
         return;
       }
 
+      // ── REGISTER PEMILIK ─────────────────────────────────────────────────────
       if (role === "pemilik") {
         const res = await fetch("http://localhost:3000/auth/owner/register", {
           method: "POST",
@@ -139,6 +166,7 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
         setTimeout(() => navigate("/verify-otp", { state: { role: "pemilik", phone: formattedPhone } }), 800);
         return;
       }
+
     } catch (err) {
       setError(err.message);
     } finally {
@@ -192,7 +220,7 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
         </button>
       </div>
 
-      {/* ── FORM — submit button is INSIDE here ── */}
+      {/* FORM */}
       <form className="space-y-3" onSubmit={handleSubmit}>
 
         {/* NAMA */}
@@ -321,7 +349,7 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
           </div>
         )}
 
-        {/* SUBMIT — inside form, hidden on owner step 1 */}
+        {/* SUBMIT */}
         {!(role === "pemilik" && !isLogin && ownerStep === 1) && (
           <button
             type="submit"

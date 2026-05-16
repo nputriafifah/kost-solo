@@ -5,14 +5,15 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import {
   ArrowLeft, MapPin, Heart, MessageCircle, Home, Ruler,
-  ShieldCheck, ChevronLeft, ChevronRight, X, User, Phone,
-  Calendar, MessageSquare, Wifi, Wind, ShowerHead, Car,
-  DoorOpen, Clock, UserX, CigaretteOff, VolumeX, FileText,
+  ShieldCheck, ChevronLeft, ChevronRight, X, Phone,
+  Calendar, Wifi, Wind, ShowerHead, Car,
+  DoorOpen, Clock, UserX, CigaretteOff, VolumeX,
   LayoutGrid, Send, Loader2, Share2, BadgeCheck, Star,
   Zap, Tv, Coffee, Utensils, Dumbbell, Package, Droplets,
   Thermometer, BookOpen, TreePine, WashingMachine, Lock,
-  Bookmark, ChevronRight as ChevRight, Timer, Globe,
+  ChevronRight as ChevRight, Globe,
   CheckCircle2, AlertCircle, Navigation, Info, HelpCircle,
+  Flag,
 } from "lucide-react";
 
 /* ── Fix Leaflet default icon ──────────────────────────────────────────── */
@@ -116,6 +117,14 @@ const QUICK_REPLIES = [
   { label: "Tanya fasilitas", text: "Fasilitas apa saja yang tersedia?" },
 ];
 
+const REPORT_REASONS = [
+  "Informasi tidak akurat",
+  "Foto menyesatkan",
+  "Penipuan / scam",
+  "Sudah tidak tersedia",
+  "Lainnya",
+];
+
 const API = "http://localhost:3000";
 const getToken = () => localStorage.getItem("token") || "";
 const getCurrentUserId = () => {
@@ -127,9 +136,9 @@ const authFetch = (url, opts = {}) =>
 
 const SERVICE_FEE = 250_000;
 
-/* ══════════════════════════════════════════════════════════════════════════
-   AjukanSewaPage — Desktop two-column layout
-══════════════════════════════════════════════════════════════════════════ */
+/* ─────────────────────────────────────────────────────────────────────────
+   AjukanSewaPage
+───────────────────────────────────────────────────────────────────────── */
 function AjukanSewaPage({ item, onBack, onSubmit }) {
   const today = new Date().toISOString().split("T")[0];
   const [masuk, setMasuk] = useState(today);
@@ -147,8 +156,6 @@ function AjukanSewaPage({ item, onBack, onSubmit }) {
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         .asw * { box-sizing: border-box; margin: 0; padding: 0; }
         .asw { font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; background: #f8f9fb; min-height: 100vh; color: #0f172a; }
-
-        /* NAV */
         .asw-nav { background: white; border-bottom: 1px solid #e8eaf2; padding: 0 48px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 30; }
         .asw-nav-brand { font-size: 18px; font-weight: 800; color: #1d4ed8; letter-spacing: -0.5px; }
         .asw-nav-links { display: flex; gap: 32px; list-style: none; }
@@ -156,31 +163,18 @@ function AjukanSewaPage({ item, onBack, onSubmit }) {
         .asw-nav-links a.active { color: #1d4ed8; border-bottom: 2px solid #1d4ed8; padding-bottom: 2px; }
         .asw-btn-list { font-size: 13px; font-weight: 700; color: #1d4ed8; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 8px 16px; cursor: pointer; font-family: inherit; }
         .asw-btn-list:hover { background: #dbeafe; }
-
-        /* PAGE HEADER */
         .asw-page-header { max-width: 1120px; margin: 0 auto; padding: 36px 48px 0; }
         .asw-breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #94a3b8; font-weight: 500; margin-bottom: 10px; }
         .asw-breadcrumb a { color: #1d4ed8; text-decoration: none; cursor: pointer; font-weight: 600; }
         .asw-page-title { font-size: 28px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px; margin-bottom: 6px; }
         .asw-page-sub { font-size: 14px; color: #64748b; font-weight: 500; }
-
-        /* LAYOUT */
         .asw-layout { max-width: 1120px; margin: 0 auto; padding: 32px 48px 80px; display: grid; grid-template-columns: 1fr 380px; gap: 32px; align-items: start; }
-        @media (max-width: 900px) {
-          .asw-layout { grid-template-columns: 1fr; padding: 24px 20px; }
-          .asw-nav { padding: 0 20px; }
-          .asw-page-header { padding: 24px 20px 0; }
-          .asw-sidebar { position: static !important; }
-        }
-
-        /* CARDS */
+        @media (max-width: 900px) { .asw-layout { grid-template-columns: 1fr; padding: 24px 20px; } .asw-nav { padding: 0 20px; } .asw-page-header { padding: 24px 20px 0; } .asw-sidebar { position: static !important; } }
         .asw-left { display: flex; flex-direction: column; gap: 20px; }
         .asw-card { background: white; border: 1px solid #e8eaf2; border-radius: 16px; padding: 28px; }
         .asw-section-title { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
         .asw-step-badge { width: 28px; height: 28px; border-radius: 50%; background: #1d4ed8; color: white; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .asw-section-title h2 { font-size: 16px; font-weight: 700; color: #0f172a; }
-
-        /* FIELDS */
         .asw-date-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
         .asw-field-label { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: #64748b; margin-bottom: 8px; display: block; }
         .asw-input { width: 100%; padding: 11px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 14px; color: #0f172a; background: #fafbff; font-family: inherit; font-weight: 500; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
@@ -195,8 +189,6 @@ function AjukanSewaPage({ item, onBack, onSubmit }) {
         .asw-textarea:focus { border-color: #3b82f6; background: white; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
         .asw-textarea::placeholder { color: #cbd5e1; }
         .asw-textarea-hint { font-size: 12px; color: #94a3b8; margin-top: 8px; font-weight: 500; }
-
-        /* PAYMENT TABLE */
         .asw-pay-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
         .asw-pay-table thead th { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: #94a3b8; padding: 0 0 12px; text-align: left; border-bottom: 1px solid #f1f5f9; }
         .asw-pay-table thead th:last-child { text-align: right; }
@@ -208,8 +200,6 @@ function AjukanSewaPage({ item, onBack, onSubmit }) {
         .asw-pay-total td { padding-top: 18px !important; border-top: 2px solid #e8eaf2 !important; border-bottom: none !important; }
         .asw-pay-total-label { font-size: 15px; font-weight: 800; color: #0f172a; }
         .asw-pay-total-amt { font-size: 17px; font-weight: 800; color: #1d4ed8; text-align: right; }
-
-        /* SIDEBAR */
         .asw-sidebar { position: sticky; top: 80px; display: flex; flex-direction: column; gap: 16px; }
         .asw-prop-card { background: white; border: 1px solid #e8eaf2; border-radius: 16px; overflow: hidden; }
         .asw-prop-img-wrap { position: relative; }
@@ -227,22 +217,15 @@ function AjukanSewaPage({ item, onBack, onSubmit }) {
         .asw-detail-row:last-child { border-bottom: none; }
         .asw-detail-key { color: #64748b; font-weight: 500; }
         .asw-detail-val { font-weight: 700; color: #0f172a; }
-
-        /* CTA */
         .asw-cta-card { background: white; border: 1px solid #e8eaf2; border-radius: 16px; padding: 20px; }
         .asw-btn-submit { width: 100%; padding: 15px; border-radius: 12px; background: #1d4ed8; color: white; font-size: 15px; font-weight: 700; border: none; cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s, transform 0.15s; box-shadow: 0 6px 20px rgba(29,78,216,0.3); margin-bottom: 12px; }
-        .asw-btn-submit:hover { background: #1e40af; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(29,78,216,0.35); }
-        .asw-btn-submit:active { transform: translateY(0); }
+        .asw-btn-submit:hover { background: #1e40af; transform: translateY(-1px); }
         .asw-tos-note { font-size: 11.5px; color: #94a3b8; text-align: center; line-height: 1.6; }
         .asw-tos-note a { color: #3b82f6; text-decoration: underline; cursor: pointer; }
-
-        /* HELP */
         .asw-help-card { background: white; border: 1px solid #e8eaf2; border-radius: 16px; padding: 18px 20px; display: flex; align-items: flex-start; gap: 14px; }
         .asw-help-icon { width: 40px; height: 40px; border-radius: 12px; background: #eff6ff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #1d4ed8; }
         .asw-help-title { font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
         .asw-help-sub { font-size: 12px; color: #64748b; line-height: 1.5; font-weight: 500; }
-
-        /* FOOTER */
         .asw-footer { background: #0f172a; padding: 48px; }
         .asw-footer-inner { max-width: 1120px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; }
         @media (max-width: 900px) { .asw-footer-inner { grid-template-columns: 1fr 1fr; gap: 24px; } .asw-footer { padding: 32px 20px; } }
@@ -257,7 +240,6 @@ function AjukanSewaPage({ item, onBack, onSubmit }) {
       `}</style>
 
       <div className="asw">
-        {/* NAV */}
         <nav className="asw-nav">
           <span className="asw-nav-brand">Atap</span>
           <ul className="asw-nav-links">
@@ -269,7 +251,6 @@ function AjukanSewaPage({ item, onBack, onSubmit }) {
           <button className="asw-btn-list">List Properti</button>
         </nav>
 
-        {/* PAGE HEADER */}
         <div className="asw-page-header">
           <div className="asw-breadcrumb">
             <a onClick={onBack}>Properti</a>
@@ -282,13 +263,8 @@ function AjukanSewaPage({ item, onBack, onSubmit }) {
           <p className="asw-page-sub">Lengkapi detail berikut untuk mengirim permohonan sewa kepada pemilik.</p>
         </div>
 
-        {/* TWO-COLUMN LAYOUT */}
         <div className="asw-layout">
-
-          {/* ── LEFT: FORM ── */}
           <div className="asw-left">
-
-            {/* 1. Detail Sewa */}
             <div className="asw-card">
               <div className="asw-section-title">
                 <div className="asw-step-badge">1</div>
@@ -297,79 +273,55 @@ function AjukanSewaPage({ item, onBack, onSubmit }) {
               <div className="asw-date-row">
                 <div>
                   <label className="asw-field-label">Tanggal Masuk</label>
-                  <input type="date" className="asw-input" value={masuk}
-                    onChange={(e) => setMasuk(e.target.value)} />
+                  <input type="date" className="asw-input" value={masuk} onChange={(e) => setMasuk(e.target.value)} />
                 </div>
                 <div>
                   <label className="asw-field-label">Tanggal Keluar</label>
-                  <input type="text" className="asw-input asw-input-ro"
-                    value={fmtDate(keluar)} readOnly />
+                  <input type="text" className="asw-input asw-input-ro" value={fmtDate(keluar)} readOnly />
                 </div>
               </div>
-
               <div className="asw-info-note">
                 <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
-                <span>Durasi sewa minimal untuk unit ini adalah 6 bulan. Anda dapat mengajukan negosiasi durasi di langkah berikutnya.</span>
+                <span>Durasi sewa minimal untuk unit ini adalah 6 bulan.</span>
               </div>
-
               <label className="asw-field-label" style={{ marginTop: 20, display: "block" }}>Durasi Sewa</label>
               <div className="asw-durasi-grid">
                 {[3, 6, 12, 24].map((bln) => (
-                  <button key={bln} type="button"
-                    className={`asw-durasi-pill${durasi === bln ? " active" : ""}`}
-                    onClick={() => setDurasi(bln)}>
+                  <button key={bln} type="button" className={`asw-durasi-pill${durasi === bln ? " active" : ""}`} onClick={() => setDurasi(bln)}>
                     {bln} bulan
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* 2. Pesan */}
             <div className="asw-card">
               <div className="asw-section-title">
                 <div className="asw-step-badge">2</div>
                 <h2>Pesan untuk Pemilik</h2>
               </div>
               <label className="asw-field-label">Catatan Tambahan</label>
-              <textarea className="asw-textarea" rows={5}
-                placeholder="Halo, saya tertarik dengan unit Anda. Apakah bisa menjadwalkan kunjungan sebelum melakukan pembayaran deposit?.."
-                value={pesan} onChange={(e) => setPesan(e.target.value)} />
-              <p className="asw-textarea-hint">Pemilik lebih cenderung menerima pengajuan dengan perkenalan yang sopan dan jelas.</p>
+              <textarea className="asw-textarea" rows={5} placeholder="Halo, saya tertarik dengan unit Anda..." value={pesan} onChange={(e) => setPesan(e.target.value)} />
+              <p className="asw-textarea-hint">Pemilik lebih cenderung menerima pengajuan dengan perkenalan yang sopan.</p>
             </div>
 
-            {/* 3. Rincian Pembayaran */}
             <div className="asw-card">
               <div className="asw-section-title">
                 <div className="asw-step-badge">3</div>
                 <h2>Rincian Pembayaran</h2>
               </div>
               <table className="asw-pay-table">
-                <thead>
-                  <tr>
-                    <th>Deskripsi</th>
-                    <th>Jumlah</th>
-                  </tr>
-                </thead>
+                <thead><tr><th>Deskripsi</th><th>Jumlah</th></tr></thead>
                 <tbody>
                   <tr>
-                    <td>
-                      <div className="asw-pay-name">Sewa Bulan Pertama</div>
-                      <div className="asw-pay-sub">Unit {item?.size || "—"} · {item?.name}</div>
-                    </td>
+                    <td><div className="asw-pay-name">Sewa Bulan Pertama</div><div className="asw-pay-sub">Unit {item?.size || "—"} · {item?.name}</div></td>
                     <td className="asw-pay-amt">{fmtRp(price)}</td>
                   </tr>
                   <tr>
-                    <td>
-                      <div className="asw-pay-name">Deposit Keamanan</div>
-                      <div className="asw-pay-sub">Dapat dikembalikan di akhir masa sewa</div>
-                    </td>
+                    <td><div className="asw-pay-name">Deposit Keamanan</div><div className="asw-pay-sub">Dapat dikembalikan di akhir masa sewa</div></td>
                     <td className="asw-pay-amt">{fmtRp(deposit)}</td>
                   </tr>
                   <tr>
-                    <td>
-                      <div className="asw-pay-name">Biaya Layanan Atap</div>
-                      <div className="asw-pay-sub">Termasuk perlindungan penyewa</div>
-                    </td>
+                    <td><div className="asw-pay-name">Biaya Layanan Atap</div><div className="asw-pay-sub">Termasuk perlindungan penyewa</div></td>
                     <td className="asw-pay-amt">{fmtRp(SERVICE_FEE)}</td>
                   </tr>
                   <tr className="asw-pay-total">
@@ -379,13 +331,9 @@ function AjukanSewaPage({ item, onBack, onSubmit }) {
                 </tbody>
               </table>
             </div>
-
           </div>
 
-          {/* ── RIGHT: SIDEBAR ── */}
           <div className="asw-sidebar">
-
-            {/* Property card */}
             <div className="asw-prop-card">
               <div className="asw-prop-img-wrap">
                 {item?.images?.[0]
@@ -396,57 +344,25 @@ function AjukanSewaPage({ item, onBack, onSubmit }) {
               </div>
               <div className="asw-prop-body">
                 <h3 className="asw-prop-name">{item?.name}</h3>
-                <div className="asw-prop-loc">
-                  <MapPin size={12} style={{ flexShrink: 0 }} />
-                  <span>{item?.location}</span>
-                </div>
+                <div className="asw-prop-loc"><MapPin size={12} style={{ flexShrink: 0 }} /><span>{item?.location}</span></div>
                 <div className="asw-stat-grid">
-                  <div className="asw-stat-cell">
-                    <div className="asw-stat-label">Luas</div>
-                    <div className="asw-stat-val">{item?.size || "—"}</div>
-                  </div>
-                  <div className="asw-stat-cell">
-                    <div className="asw-stat-label">Tipe</div>
-                    <div className="asw-stat-val">
-                      {item?.gender
-                        ? item.gender[0].toUpperCase() + item.gender.slice(1).toLowerCase()
-                        : "—"}
-                    </div>
-                  </div>
-                  <div className="asw-stat-cell">
-                    <div className="asw-stat-label">Kamar</div>
-                    <div className="asw-stat-val">{item?.availableRooms ?? "—"}</div>
-                  </div>
+                  <div className="asw-stat-cell"><div className="asw-stat-label">Luas</div><div className="asw-stat-val">{item?.size || "—"}</div></div>
+                  <div className="asw-stat-cell"><div className="asw-stat-label">Tipe</div><div className="asw-stat-val">{item?.gender ? item.gender[0].toUpperCase() + item.gender.slice(1).toLowerCase() : "—"}</div></div>
+                  <div className="asw-stat-cell"><div className="asw-stat-label">Kamar</div><div className="asw-stat-val">{item?.availableRooms ?? "—"}</div></div>
                 </div>
                 <div>
-                  <div className="asw-detail-row">
-                    <span className="asw-detail-key">Check-in</span>
-                    <span className="asw-detail-val">{fmtDate(masuk)}</span>
-                  </div>
-                  <div className="asw-detail-row">
-                    <span className="asw-detail-key">Durasi</span>
-                    <span className="asw-detail-val">{durasi} Bulan</span>
-                  </div>
-                  <div className="asw-detail-row" style={{ borderBottom: "none" }}>
-                    <span className="asw-detail-key">Harga/Bulan</span>
-                    <span className="asw-detail-val" style={{ color: "#1d4ed8" }}>{fmtRp(price)}</span>
-                  </div>
+                  <div className="asw-detail-row"><span className="asw-detail-key">Check-in</span><span className="asw-detail-val">{fmtDate(masuk)}</span></div>
+                  <div className="asw-detail-row"><span className="asw-detail-key">Durasi</span><span className="asw-detail-val">{durasi} Bulan</span></div>
+                  <div className="asw-detail-row" style={{ borderBottom: "none" }}><span className="asw-detail-key">Harga/Bulan</span><span className="asw-detail-val" style={{ color: "#1d4ed8" }}>{fmtRp(price)}</span></div>
                 </div>
               </div>
             </div>
-
-            {/* CTA */}
             <div className="asw-cta-card">
-              <button className="asw-btn-submit"
-                onClick={() => onSubmit({ masuk, durasi, keluar, pesan })}>
+              <button className="asw-btn-submit" onClick={() => onSubmit({ masuk, durasi, keluar, pesan })}>
                 Kirim Pengajuan <ChevronRight size={18} />
               </button>
-              <p className="asw-tos-note">
-                Dengan mengklik tombol di atas, Anda menyetujui <a>Syarat &amp; Ketentuan</a> serta kebijakan privasi Atap.
-              </p>
+              <p className="asw-tos-note">Dengan mengklik tombol di atas, Anda menyetujui <a>Syarat &amp; Ketentuan</a> Atap.</p>
             </div>
-
-            {/* Help */}
             <div className="asw-help-card">
               <div className="asw-help-icon"><HelpCircle size={20} /></div>
               <div>
@@ -454,41 +370,27 @@ function AjukanSewaPage({ item, onBack, onSubmit }) {
                 <p className="asw-help-sub">Tim sukses penyewa kami siap membantu proses pengajuan Anda.</p>
               </div>
             </div>
-
           </div>
         </div>
 
-        {/* FOOTER */}
         <footer className="asw-footer">
           <div className="asw-footer-inner">
-            <div>
-              <div className="asw-footer-brand">Atap</div>
-              <p className="asw-footer-tagline">Platform sewa properti modern yang mengutamakan transparansi dan kemudahan bagi penyewa generasi baru.</p>
-            </div>
-            <div className="asw-footer-col">
-              <h4>Product</h4>
-              <ul><li><a href="#">About Us</a></li><li><a href="#">Careers</a></li></ul>
-            </div>
-            <div className="asw-footer-col">
-              <h4>Support</h4>
-              <ul><li><a href="#">Help Center</a></li><li><a href="#">Terms of Service</a></li></ul>
-            </div>
-            <div className="asw-footer-col">
-              <h4>Legal</h4>
-              <ul><li><a href="#">Privacy Policy</a></li><li><a href="#">Security</a></li></ul>
-            </div>
+            <div><div className="asw-footer-brand">Atap</div><p className="asw-footer-tagline">Platform sewa properti modern untuk penyewa generasi baru.</p></div>
+            <div className="asw-footer-col"><h4>Product</h4><ul><li><a href="#">About Us</a></li></ul></div>
+            <div className="asw-footer-col"><h4>Support</h4><ul><li><a href="#">Help Center</a></li></ul></div>
+            <div className="asw-footer-col"><h4>Legal</h4><ul><li><a href="#">Privacy Policy</a></li></ul></div>
           </div>
           <hr className="asw-footer-divider" />
-          <div className="asw-footer-inner">
-            <p className="asw-footer-bottom">© 2024 Atap Property Group. Built for the next generation of renters.</p>
-          </div>
+          <div className="asw-footer-inner"><p className="asw-footer-bottom">© 2024 Atap Property Group.</p></div>
         </footer>
       </div>
     </>
   );
 }
 
-/* ── MinatModal ───────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────────────────────
+   MinatModal
+───────────────────────────────────────────────────────────────────────── */
 function MinatModal({ item, onClose }) {
   const token = getToken();
   const userId = getCurrentUserId();
@@ -530,7 +432,7 @@ function MinatModal({ item, onClose }) {
             </div>
             <div>
               <h3 className="text-[17px] font-bold text-slate-800 mb-1">WhatsApp terbuka!</h3>
-              <p className="text-[13px] text-slate-500 leading-relaxed">Lanjutkan percakapan di WhatsApp. Pemilik kost akan segera merespons pesanmu.</p>
+              <p className="text-[13px] text-slate-500 leading-relaxed">Lanjutkan percakapan di WhatsApp.</p>
             </div>
             <button onClick={onClose} className="w-full h-12 rounded-2xl bg-blue-600 text-white font-semibold text-[14px]">Tutup</button>
           </div>
@@ -599,9 +501,158 @@ function MinatModal({ item, onClose }) {
   );
 }
 
-/* ══════════════════════════════════════════════════════════════════════════
-   DetailPage — unchanged
-══════════════════════════════════════════════════════════════════════════ */
+/* ─────────────────────────────────────────────────────────────────────────
+   ReportModal
+───────────────────────────────────────────────────────────────────────── */
+function ReportModal({ item, onClose }) {
+  const [reason, setReason] = useState("");
+  const [note, setNote] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState(null); // 'success' | 'error'
+  const [errMsg, setErrMsg] = useState("");
+
+  const handleSubmit = async () => {
+    if (!reason) { setErrMsg("Pilih alasan laporan terlebih dahulu"); return; }
+    setErrMsg(""); setLoading(true);
+    try {
+      const res = await authFetch(`${API}/reports`, {
+        method: "POST",
+        body: JSON.stringify({
+          listingId: item.id,
+          reason,
+          note: note.trim() || undefined,
+        }),
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        throw new Error(e.message || "Gagal mengirim laporan");
+      }
+      setStatus("success");
+    } catch (e) {
+      setErrMsg(e.message || "Terjadi kesalahan, coba lagi");
+      setStatus("error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClose = () => {
+    setStatus(null); setReason(""); setNote(""); setErrMsg("");
+    onClose();
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center px-4"
+      onClick={(e) => e.target === e.currentTarget && handleClose()}
+    >
+      <div className="bg-white w-full max-w-md rounded-2xl overflow-hidden animate-[slideUp_0.25s_ease] shadow-xl" style={{ maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
+
+        {status === "success" ? (
+          <div className="flex flex-col items-center px-5 py-8 gap-4 text-center">
+            <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center">
+              <CheckCircle2 size={32} className="text-emerald-500" />
+            </div>
+            <div>
+              <h3 className="text-[17px] font-bold text-slate-800 mb-1">Laporan terkirim!</h3>
+              <p className="text-[13px] text-slate-500 leading-relaxed">Tim kami akan meninjau laporan ini dalam 1x24 jam.</p>
+            </div>
+            <button onClick={handleClose} className="w-full h-12 rounded-2xl bg-blue-600 text-white font-semibold text-[14px]">
+              Tutup
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Header */}
+            <div className="px-5 pt-5 pb-4 border-b border-slate-100 flex-shrink-0 flex items-center justify-between">
+              <div>
+                <h3 className="text-[16px] font-bold text-slate-800">Laporkan Listing</h3>
+                <p className="text-[12px] text-slate-400 mt-0.5">
+                  Melaporkan <span className="font-semibold text-slate-600">{item?.name}</span>
+                </p>
+              </div>
+              <button onClick={handleClose} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
+                <X size={16} className="text-slate-500" />
+              </button>
+            </div>
+
+            {/* Scrollable body */}
+            <div className="px-5 py-4 overflow-y-auto" style={{ flex: 1 }}>
+              <div className="flex items-center gap-3 bg-slate-50 rounded-2xl p-3 mb-5 border border-slate-100">
+                {item?.images?.[0] ? (
+                  <img src={item.images[0]} alt={item.name} className="w-11 h-11 rounded-xl object-cover flex-shrink-0" />
+                ) : (
+                  <div className="w-11 h-11 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
+                    <Flag size={16} className="text-red-300" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-bold text-slate-800 truncate">{item?.name}</p>
+                  <p className="text-[11px] text-slate-400 truncate">{item?.location}</p>
+                </div>
+              </div>
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Alasan Laporan</p>
+              <div className="space-y-2 mb-4">
+                {REPORT_REASONS.map((r) => (
+                  <label
+                    key={r}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-colors ${
+                      reason === r ? "bg-red-50 border-red-200" : "bg-slate-50 border-slate-100"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="report_reason"
+                      value={r}
+                      checked={reason === r}
+                      onChange={() => { setReason(r); setErrMsg(""); }}
+                      className="accent-red-500"
+                    />
+                    <span className={`text-[13px] font-medium ${reason === r ? "text-red-700" : "text-slate-600"}`}>
+                      {r}
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide block mb-2">
+                Keterangan Tambahan <span className="text-slate-300 font-normal normal-case">(opsional)</span>
+              </label>
+              <textarea
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[13.5px] text-slate-700 placeholder-slate-400 outline-none focus:border-red-300 focus:ring-2 focus:ring-red-50 resize-none"
+                rows={3}
+                placeholder="Jelaskan lebih detail..."
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 pt-3 pb-5 border-t border-slate-100 flex-shrink-0">
+              {errMsg && (
+                <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-4 py-2.5 mb-3">
+                  <AlertCircle size={14} className="text-red-400 flex-shrink-0" />
+                  <p className="text-[12px] text-red-500">{errMsg}</p>
+                </div>
+              )}
+              <button
+                onClick={handleSubmit}
+                disabled={!reason || loading}
+                className="w-full py-3.5 rounded-2xl bg-red-500 text-white font-bold text-[14px] flex items-center justify-center gap-2 active:scale-[0.97] transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? <Loader2 size={16} className="animate-spin" /> : <Flag size={15} />}
+                {loading ? "Mengirim..." : "Kirim Laporan"}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   DetailPage (main export)
+───────────────────────────────────────────────────────────────────────── */
 export default function DetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -612,7 +663,7 @@ export default function DetailPage() {
   const [activeImg, setActiveImg] = useState(0);
   const [showSewa, setShowSewa] = useState(false);
   const [showMinat, setShowMinat] = useState(false);
-
+  const [showReport, setShowReport] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [threadId, setThreadId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -657,6 +708,12 @@ export default function DetailPage() {
         const { data } = await res.json();
         if (!data) return;
         const room = data.roomTypes?.[0];
+
+        const allPhotos = (data.roomTypes ?? [])
+          .flatMap((rt) => rt.photos ?? [])
+          .map((p) => p.url)
+          .filter(Boolean);
+
         setItem({
           id: data.id,
           name: data.name || "Tanpa nama",
@@ -667,10 +724,10 @@ export default function DetailPage() {
           contactNumber: data.contactNumber || "",
           ownerId: data.owner?.id || "",
           ownerName: data.owner?.name || "Pemilik",
-          price: data.cheapestPrice || 0,
+          price: room?.price || data.cheapestPrice || 0,
           size: room?.size || "-",
-          facilities: data.facilities || room?.facilities || [],
-          images: (data.photos || []).map((p) => p.url),
+          facilities: room?.facilities || data.facilities || [],
+          images: allPhotos,
           rating: data.rating || 4.8,
           reviewCount: data.reviewCount || 32,
           isVerified: data.isVerified !== false,
@@ -746,7 +803,6 @@ export default function DetailPage() {
     touchStartX.current = null;
   };
 
-  // ── Render AjukanSewa (full page replacement) ──
   if (showSewa && item) {
     return <AjukanSewaPage item={item} onBack={() => setShowSewa(false)} onSubmit={handleSewaSubmit} />;
   }
@@ -789,8 +845,7 @@ export default function DetailPage() {
   return (
     <>
       <div className="min-h-screen bg-white pb-36">
-
-        {/* ── HERO IMAGE ── */}
+        {/* ── Image gallery ── */}
         <div className="relative overflow-hidden bg-slate-100">
           <div className="relative h-72" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
             <img src={images[activeImg]} alt={item.name} className="w-full h-full object-cover transition-opacity duration-300" />
@@ -839,8 +894,9 @@ export default function DetailPage() {
           )}
         </div>
 
-        {/* ── MAIN CONTENT ── */}
+        {/* ── Main content ── */}
         <div className="px-5 pt-5">
+          {/* Badges + rating */}
           <div className="flex items-center gap-2 mb-3 flex-wrap">
             {item.isFeatured && <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-amber-400 text-amber-900 tracking-wide">UNGGULAN</span>}
             {item.isVerified && (
@@ -862,6 +918,7 @@ export default function DetailPage() {
             <span className="text-[13px] text-slate-500 leading-none">{item.location}</span>
           </div>
 
+          {/* Price banner */}
           <div className="rounded-2xl px-5 py-4 mb-5 flex items-center justify-between" style={{ background: "linear-gradient(135deg, #1E40AF 0%, #2563EB 50%, #3B82F6 100%)" }}>
             <div>
               <p className="text-[11px] text-blue-200 font-medium mb-0.5">Mulai dari</p>
@@ -878,6 +935,7 @@ export default function DetailPage() {
             </div>
           </div>
 
+          {/* Quick stats */}
           <div className="grid grid-cols-3 gap-2.5 mb-6">
             {[
               { icon: <Ruler size={14} className="text-blue-500" />, label: "Luas Kamar", value: item.size, bg: "#EFF6FF" },
@@ -892,6 +950,7 @@ export default function DetailPage() {
             ))}
           </div>
 
+          {/* Description */}
           {item.description && (
             <div className="mb-6">
               <h2 className="text-[16px] font-bold text-slate-800 mb-3">Tentang hunian ini</h2>
@@ -899,6 +958,7 @@ export default function DetailPage() {
             </div>
           )}
 
+          {/* Facilities */}
           {item.facilities.length > 0 && (
             <div className="mb-6">
               <h2 className="text-[16px] font-bold text-slate-800 mb-4">Fasilitas</h2>
@@ -918,6 +978,7 @@ export default function DetailPage() {
             </div>
           )}
 
+          {/* Map */}
           {item.latitude && item.longitude && (
             <div className="mb-6">
               <h2 className="text-[16px] font-bold text-slate-800 mb-4">Lokasi Hunian</h2>
@@ -932,12 +993,13 @@ export default function DetailPage() {
                 <Navigation size={14} className="text-blue-500 flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="text-[12px] font-semibold text-blue-700">📍 {item.location}</p>
-                  <p className="text-[11px] text-blue-600 mt-1">Tap map untuk melihat petunjuk arah lengkap atau rute dari lokasi kamu.</p>
+                  <p className="text-[11px] text-blue-600 mt-1">Tap map untuk melihat petunjuk arah lengkap.</p>
                 </div>
               </div>
             </div>
           )}
 
+          {/* Rules */}
           {item.rules.length > 0 && (
             <div className="mb-6">
               <h2 className="text-[16px] font-bold text-slate-800 mb-4">Peraturan Kost</h2>
@@ -952,6 +1014,7 @@ export default function DetailPage() {
             </div>
           )}
 
+          {/* Owner section */}
           <div className="mb-6">
             <h2 className="text-[16px] font-bold text-slate-800 mb-3">Pemilik Kost</h2>
             <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4">
@@ -969,7 +1032,8 @@ export default function DetailPage() {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2.5">
-                <button onClick={() => window.open(`https://wa.me/${formatPhone(item.contactNumber)}?text=Halo kak, saya tertarik dengan kost ${encodeURIComponent(item.name)}`, "_blank")}
+                <button
+                  onClick={() => window.open(`https://wa.me/${formatPhone(item.contactNumber)}?text=Halo kak, saya tertarik dengan kost ${encodeURIComponent(item.name)}`, "_blank")}
                   className="flex items-center justify-center gap-2 h-11 rounded-xl font-semibold text-[13px] text-white active:scale-[0.97] transition-transform"
                   style={{ background: "linear-gradient(135deg, #25D366, #128C7E)" }}>
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
@@ -985,10 +1049,21 @@ export default function DetailPage() {
               </div>
             </div>
           </div>
+
+          {/* Report link */}
+          <div className="mb-6 flex justify-center">
+            <button
+              onClick={() => setShowReport(true)}
+              className="flex items-center gap-1.5 text-[12px] text-slate-400 hover:text-red-400 transition-colors"
+            >
+              <Flag size={13} />
+              Laporkan listing ini
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* ── CTA BAR ── */}
+      {/* ── Bottom bar ── */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-100 px-4 py-3" style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}>
         <div className="flex items-center gap-2.5 max-w-xl mx-auto">
           <button onClick={toggleLike} className={`w-12 h-12 rounded-2xl border flex items-center justify-center flex-shrink-0 transition-colors ${isLiked ? "bg-red-50 border-red-200" : "bg-slate-50 border-slate-200"}`}>
@@ -1000,11 +1075,21 @@ export default function DetailPage() {
           <button onClick={() => setShowSewa(true)} className="flex-1 h-12 rounded-2xl bg-blue-600 text-white font-semibold text-[13px] active:scale-[0.97] transition-transform shadow-lg shadow-blue-200 flex items-center justify-center gap-2">
             <Calendar size={15} /> Ajukan Sewa
           </button>
+          <button
+            onClick={() => setShowReport(true)}
+            className="w-12 h-12 rounded-2xl bg-red-50 border border-red-100 flex items-center justify-center flex-shrink-0 active:scale-[0.97] transition-transform"
+            title="Laporkan listing"
+          >
+            <Flag size={17} className="text-red-400" />
+          </button>
         </div>
       </div>
 
+      {/* ── Modals ── */}
       {showMinat && <MinatModal item={item} onClose={() => setShowMinat(false)} />}
+      {showReport && <ReportModal item={item} onClose={() => setShowReport(false)} />}
 
+      {/* ── Chat modal ── */}
       {showChat && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end justify-center" onClick={(e) => e.target === e.currentTarget && setShowChat(false)}>
           <div className="bg-white w-full max-w-lg rounded-t-3xl px-5 pt-3 pb-6 animate-[slideUp_0.3s_ease]">

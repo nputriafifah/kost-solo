@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -21,17 +21,65 @@ const navItems = [
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [checking, setChecking]       = useState(true);
+  const [adminName, setAdminName]     = useState("Admin");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const userRaw = localStorage.getItem("user");
+
+    // Tidak ada token → ke /auth
+    if (!token) {
+      navigate("/auth", { replace: true });
+      return;
+    }
+
+    // Cek role dari localStorage (sudah disimpan saat login)
+    try {
+      const user = JSON.parse(userRaw || "{}");
+      if (user?.role !== "ADMIN") {
+        // Bukan admin → jangan hapus token, cukup redirect
+        navigate("/auth", { replace: true });
+        return;
+      }
+      if (user?.name) setAdminName(user.name);
+    } catch {
+      navigate("/auth", { replace: true });
+      return;
+    }
+
+    setChecking(false);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/auth", { replace: true });
+  };
+
+  if (checking) return (
+    <div style={{
+      display: "flex", alignItems: "center", justifyContent: "center",
+      height: "100vh", background: "#F0F2F7", flexDirection: "column", gap: 12,
+    }}>
+      <div style={{
+        width: 36, height: 36, borderRadius: "50%",
+        border: "3px solid #e5e7eb", borderTop: "3px solid #3b82f6",
+        animation: "spin 0.8s linear infinite",
+      }} />
+      <span style={{ color: "#9ca3af", fontSize: 13, fontFamily: "Outfit, sans-serif" }}>
+        Memverifikasi akses...
+      </span>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
 
   return (
     <div className="flex h-screen bg-[#F0F2F7] font-[Outfit,sans-serif] overflow-hidden">
 
       {/* ── Sidebar ── */}
-      <aside
-        className={`flex flex-col bg-[#0F1729] transition-all duration-300 ${
-          sidebarOpen ? "w-60" : "w-[68px]"
-        } flex-shrink-0`}
-      >
+      <aside className={`flex flex-col bg-[#0F1729] transition-all duration-300 ${sidebarOpen ? "w-60" : "w-[68px]"} flex-shrink-0`}>
         {/* Logo */}
         <div className="flex items-center gap-3 px-4 py-5 border-b border-white/5">
           <div className="w-9 h-9 rounded-xl bg-blue-500 flex items-center justify-center flex-shrink-0">
@@ -74,7 +122,7 @@ export default function AdminLayout() {
         {/* Logout */}
         <div className="px-2 py-4 border-t border-white/5">
           <button
-            onClick={() => navigate("/login")}
+            onClick={handleLogout}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-all"
           >
             <LogOut size={18} className="flex-shrink-0" />
@@ -85,7 +133,6 @@ export default function AdminLayout() {
 
       {/* ── Main ── */}
       <div className="flex-1 flex flex-col overflow-hidden">
-
         {/* Topbar */}
         <header className="h-14 bg-white border-b border-slate-200/80 flex items-center justify-between px-5 flex-shrink-0">
           <button
@@ -103,10 +150,10 @@ export default function AdminLayout() {
 
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold">
-                A
+                {adminName.charAt(0).toUpperCase()}
               </div>
               <div className="hidden sm:block">
-                <p className="text-xs font-semibold text-slate-700">Admin</p>
+                <p className="text-xs font-semibold text-slate-700">{adminName}</p>
                 <p className="text-[10px] text-slate-400">Superadmin</p>
               </div>
             </div>

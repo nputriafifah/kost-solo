@@ -1130,7 +1130,7 @@ export default function CreateListingPage() {
                       <p className="clp-upload-sub">JPG, PNG — bisa pilih beberapa sekaligus</p>
                     </div>
                     <input type="file" multiple accept="image/*" style={{ display: "none" }}
-                      onChange={(e) => setRoomPhotos([...e.target.files])} />
+                      onChange={(e) => setRoomPhotos([...roomPhotos, ...e.target.files])} />
                   </label>
 
                   {roomPhotos.length > 0 && (
