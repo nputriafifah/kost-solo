@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, TrendingUp, Wallet, ArrowDownCircle, CheckCircle, Clock, ChevronRight, Banknote, Building2 } from "lucide-react";
 
 const DUMMY_BALANCE = 4_750_000;
-const DUMMY_TOTAL   = 18_200_000;
+const DUMMY_TOTAL = 18_200_000;
 
 const DUMMY_HISTORY = [
   { id: "w1", amount: 2_500_000, bank: "BCA", account: "••••3821", date: "2025-06-30", status: "success" },
@@ -12,30 +12,30 @@ const DUMMY_HISTORY = [
 ];
 
 const DUMMY_INCOME = [
-  { id: "i1", kost: "Kost Melati Indah",  penyewa: "Budi S.",   bulan: "Juli 2025",  amount: 750_000,  status: "masuk"  },
-  { id: "i2", kost: "Kost Putra Mandiri", penyewa: "Siti R.",   bulan: "Juli 2025",  amount: 1_200_000,status: "masuk"  },
-  { id: "i3", kost: "Kost Melati Indah",  penyewa: "Ahmad F.",  bulan: "Juni 2025",  amount: 750_000,  status: "masuk"  },
-  { id: "i4", kost: "Kost Bunda Asri",    penyewa: "Dewi K.",   bulan: "Juni 2025",  amount: 900_000,  status: "masuk"  },
+  { id: "i1", kost: "Kost Melati Indah", penyewa: "Budi S.", bulan: "Juli 2025", amount: 750_000, status: "masuk" },
+  { id: "i2", kost: "Kost Putra Mandiri", penyewa: "Siti R.", bulan: "Juli 2025", amount: 1_200_000, status: "masuk" },
+  { id: "i3", kost: "Kost Melati Indah", penyewa: "Ahmad F.", bulan: "Juni 2025", amount: 750_000, status: "masuk" },
+  { id: "i4", kost: "Kost Bunda Asri", penyewa: "Dewi K.", bulan: "Juni 2025", amount: 900_000, status: "masuk" },
 ];
 
-const BANKS = ["BCA","Mandiri","BNI","BRI","CIMB Niaga","Jago","SeaBank"];
+const BANKS = ["BCA", "Mandiri", "BNI", "BRI", "CIMB Niaga", "Jago", "SeaBank"];
 
 const fmt = (n) => n.toLocaleString("id-ID");
 
 export default function PendapatanPage() {
   const navigate = useNavigate();
-  const [tab, setTab]       = useState("ringkasan"); // ringkasan | tarik | riwayat
+  const [tab, setTab] = useState("ringkasan"); // ringkasan | tarik | riwayat
   const [balance, setBalance] = useState(DUMMY_BALANCE);
-  const [form, setForm]     = useState({ bank: "", account: "", amount: "" });
-  const [step, setStep]     = useState("form"); // form | confirm | done
-  const [error, setError]   = useState("");
+  const [form, setForm] = useState({ bank: "", account: "", amount: "" });
+  const [step, setStep] = useState("form"); // form | confirm | done
+  const [error, setError] = useState("");
 
   const handleWithdraw = () => {
     const amt = parseInt(form.amount.replace(/\D/g, ""), 10);
-    if (!form.bank)           { setError("Pilih bank tujuan."); return; }
-    if (!form.account)        { setError("Masukkan nomor rekening."); return; }
+    if (!form.bank) { setError("Pilih bank tujuan."); return; }
+    if (!form.account) { setError("Masukkan nomor rekening."); return; }
     if (!amt || amt < 50_000) { setError("Minimal penarikan Rp 50.000."); return; }
-    if (amt > balance)        { setError("Saldo tidak cukup."); return; }
+    if (amt > balance) { setError("Saldo tidak cukup."); return; }
     setError("");
     setStep("confirm");
   };
@@ -53,13 +53,13 @@ export default function PendapatanPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50" style={{ fontFamily: "'Plus Jakarta Sans','Inter',sans-serif" }}>
+    <div className="min-h-screen bg-slate-50" style={{ fontFamily: "'Plus Jakarta Sans','DM Sans','Inter',sans-serif" }}>
       {/* Header */}
       <div className="relative rounded-b-3xl px-5 pt-12 pb-6 overflow-hidden"
-        style={{ background: "linear-gradient(135deg,#064E3B 0%,#065F46 45%,#10B981 100%)" }}>
-        <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-emerald-400/30" />
+        style={{ background: "linear-gradient(135deg,#0F172A 0%,#1E3A8A 45%,#2563EB 100%)" }}>
+        <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-blue-400/30" />
         <div className="relative z-10">
-          <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-emerald-200 text-sm font-semibold mb-4">
+          <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-blue-200 text-sm font-semibold mb-4">
             <ArrowLeft size={16} /> Kembali
           </button>
           <div className="flex items-center gap-3 mb-4">
@@ -68,20 +68,20 @@ export default function PendapatanPage() {
             </div>
             <div>
               <h1 className="text-white font-black text-xl">Pendapatan</h1>
-              <p className="text-emerald-200 text-xs">Saldo & penarikan kos kamu</p>
+              <p className="text-blue-200 text-xs">Saldo & penarikan kos kamu</p>
             </div>
           </div>
           {/* Balance card */}
           <div className="bg-white/15 backdrop-blur rounded-2xl p-4 border border-white/10">
-            <p className="text-emerald-200 text-[11px] font-bold uppercase tracking-widest mb-1">Saldo Tersedia</p>
+            <p className="text-blue-200 text-[11px] font-bold uppercase tracking-widest mb-1">Saldo Tersedia</p>
             <p className="text-white font-black text-3xl">Rp {fmt(balance)}</p>
             <div className="flex items-center justify-between mt-3">
               <div>
-                <p className="text-emerald-200 text-[10px] font-semibold">Total pendapatan</p>
+                <p className="text-blue-200 text-[10px] font-semibold">Total pendapatan</p>
                 <p className="text-white font-black text-sm">Rp {fmt(DUMMY_TOTAL)}</p>
               </div>
               <button onClick={() => setTab("tarik")}
-                className="bg-white text-emerald-700 text-xs font-black px-4 py-2 rounded-xl flex items-center gap-1.5 active:scale-95 transition-transform shadow">
+                className="bg-white text-blue-700 text-xs font-black px-4 py-2 rounded-xl flex items-center gap-1.5 active:scale-95 transition-transform shadow">
                 <ArrowDownCircle size={14} /> Tarik Dana
               </button>
             </div>
@@ -93,12 +93,12 @@ export default function PendapatanPage() {
       <div className="px-5 mt-5">
         <div className="flex bg-white rounded-2xl border border-slate-100 p-1 shadow-sm">
           {[
-            { id:"ringkasan", label:"Ringkasan" },
-            { id:"tarik",     label:"Tarik Dana" },
-            { id:"riwayat",   label:"Riwayat" },
+            { id: "ringkasan", label: "Ringkasan" },
+            { id: "tarik", label: "Tarik Dana" },
+            { id: "riwayat", label: "Riwayat" },
           ].map(t => (
             <button key={t.id} onClick={() => { setTab(t.id); setStep("form"); }}
-              className={`flex-1 py-2.5 rounded-xl text-xs font-black transition-all ${tab === t.id ? "bg-emerald-600 text-white shadow" : "text-slate-400"}`}>
+              className={`flex-1 py-2.5 rounded-xl text-xs font-black transition-all ${tab === t.id ? "bg-blue-600 text-white shadow" : "text-slate-400"}`}>
               {t.label}
             </button>
           ))}
@@ -112,10 +112,10 @@ export default function PendapatanPage() {
           <>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { label:"Saldo tersedia",  value: `Rp ${fmt(balance)}`,      color:"text-emerald-600 bg-emerald-50" },
-                { label:"Total pendapatan",value: `Rp ${fmt(DUMMY_TOTAL)}`,  color:"text-blue-600 bg-blue-50"       },
-                { label:"Sudah ditarik",   value: `Rp ${fmt(DUMMY_TOTAL - balance)}`, color:"text-amber-600 bg-amber-50" },
-                { label:"Pemasukan bulan ini", value: `Rp ${fmt(1_950_000)}`, color:"text-pink-600 bg-pink-50"      },
+                { label: "Saldo tersedia", value: `Rp ${fmt(balance)}`, color: "text-blue-600 bg-blue-50" },
+                { label: "Total pendapatan", value: `Rp ${fmt(DUMMY_TOTAL)}`, color: "text-indigo-600 bg-indigo-50" },
+                { label: "Sudah ditarik", value: `Rp ${fmt(DUMMY_TOTAL - balance)}`, color: "text-cyan-600 bg-cyan-50" },
+                { label: "Pemasukan bulan ini", value: `Rp ${fmt(1_950_000)}`, color: "text-sky-600 bg-sky-50" },
               ].map(s => (
                 <div key={s.label} className={`rounded-2xl px-4 py-4 ${s.color}`}>
                   <p className="text-lg font-black leading-tight">{s.value}</p>
@@ -129,14 +129,14 @@ export default function PendapatanPage() {
               <div className="space-y-3">
                 {DUMMY_INCOME.map(inc => (
                   <div key={inc.id} className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                      <Building2 size={15} className="text-emerald-500" />
+                    <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                      <Building2 size={15} className="text-blue-500" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-black text-slate-800 truncate">{inc.kost}</p>
                       <p className="text-[10px] text-slate-400">{inc.penyewa} · {inc.bulan}</p>
                     </div>
-                    <p className="text-sm font-black text-emerald-600">+Rp {fmt(inc.amount)}</p>
+                    <p className="text-sm font-black text-blue-600">+Rp {fmt(inc.amount)}</p>
                   </div>
                 ))}
               </div>
@@ -149,17 +149,17 @@ export default function PendapatanPage() {
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
             {step === "form" && (
               <div className="space-y-4">
-                <div className="bg-emerald-50 rounded-xl px-4 py-3 flex items-center justify-between">
-                  <span className="text-xs font-black text-emerald-600">Saldo tersedia</span>
-                  <span className="text-base font-black text-emerald-700">Rp {fmt(balance)}</span>
+                <div className="bg-blue-50 rounded-xl px-4 py-3 flex items-center justify-between">
+                  <span className="text-xs font-black text-blue-600">Saldo tersedia</span>
+                  <span className="text-base font-black text-blue-700">Rp {fmt(balance)}</span>
                 </div>
 
                 {error && <p className="text-xs font-bold text-red-500 bg-red-50 px-3 py-2 rounded-xl">{error}</p>}
 
                 <div>
                   <label className="text-xs font-black text-slate-500 mb-1.5 block">Bank Tujuan</label>
-                  <select value={form.bank} onChange={e => setForm(p => ({...p, bank: e.target.value}))}
-                    className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 bg-white transition-all">
+                  <select value={form.bank} onChange={e => setForm(p => ({ ...p, bank: e.target.value }))}
+                    className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50 bg-white transition-all">
                     <option value="">Pilih bank...</option>
                     {BANKS.map(b => <option key={b} value={b}>{b}</option>)}
                   </select>
@@ -167,9 +167,9 @@ export default function PendapatanPage() {
 
                 <div>
                   <label className="text-xs font-black text-slate-500 mb-1.5 block">Nomor Rekening</label>
-                  <input value={form.account} onChange={e => setForm(p => ({...p, account: e.target.value}))}
+                  <input value={form.account} onChange={e => setForm(p => ({ ...p, account: e.target.value }))}
                     placeholder="Contoh: 1234567890" type="number"
-                    className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 transition-all" />
+                    className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50 transition-all" />
                 </div>
 
                 <div>
@@ -178,23 +178,23 @@ export default function PendapatanPage() {
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-black text-slate-400">Rp</span>
                     <input
                       value={form.amount}
-                      onChange={e => setForm(p => ({...p, amount: e.target.value}))}
+                      onChange={e => setForm(p => ({ ...p, amount: e.target.value }))}
                       placeholder="0"
                       type="number"
-                      className="w-full border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-sm font-semibold text-slate-800 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 transition-all" />
+                      className="w-full border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-sm font-semibold text-slate-800 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50 transition-all" />
                   </div>
                   <div className="flex gap-2 mt-2">
                     {[100_000, 500_000, 1_000_000, 2_000_000].map(v => (
-                      <button key={v} onClick={() => setForm(p => ({...p, amount: String(v)}))}
-                        className="flex-1 py-1.5 rounded-lg border border-slate-200 text-[10px] font-black text-slate-500 hover:border-emerald-400 hover:text-emerald-600 transition-all">
-                        {v >= 1_000_000 ? `${v/1_000_000}jt` : `${v/1_000}rb`}
+                      <button key={v} onClick={() => setForm(p => ({ ...p, amount: String(v) }))}
+                        className="flex-1 py-1.5 rounded-lg border border-slate-200 text-[10px] font-black text-slate-500 hover:border-blue-400 hover:text-blue-600 transition-all">
+                        {v >= 1_000_000 ? `${v / 1_000_000}jt` : `${v / 1_000}rb`}
                       </button>
                     ))}
                   </div>
                 </div>
 
                 <button onClick={handleWithdraw}
-                  className="w-full bg-emerald-600 text-white font-black py-3.5 rounded-xl text-sm shadow-lg shadow-emerald-100 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                  className="w-full bg-blue-600 text-white font-black py-3.5 rounded-xl text-sm shadow-lg shadow-blue-100 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
                   <ArrowDownCircle size={16} /> Lanjutkan Penarikan
                 </button>
               </div>
@@ -205,9 +205,9 @@ export default function PendapatanPage() {
                 <p className="text-sm font-black text-slate-700">Konfirmasi Penarikan</p>
                 <div className="bg-slate-50 rounded-xl p-4 space-y-2.5">
                   {[
-                    { label: "Bank",     value: form.bank },
-                    { label: "Rekening",value: form.account },
-                    { label: "Jumlah",  value: `Rp ${fmt(parseInt(form.amount))}` },
+                    { label: "Bank", value: form.bank },
+                    { label: "Rekening", value: form.account },
+                    { label: "Jumlah", value: `Rp ${fmt(parseInt(form.amount))}` },
                   ].map(r => (
                     <div key={r.label} className="flex justify-between">
                       <span className="text-xs text-slate-400 font-semibold">{r.label}</span>
@@ -221,7 +221,7 @@ export default function PendapatanPage() {
                     Batal
                   </button>
                   <button onClick={handleConfirm}
-                    className="flex-1 py-3 rounded-xl bg-emerald-600 text-white text-sm font-black shadow-lg shadow-emerald-100 active:scale-[0.98]">
+                    className="flex-1 py-3 rounded-xl bg-blue-600 text-white text-sm font-black shadow-lg shadow-blue-100 active:scale-[0.98]">
                     Ya, Tarik
                   </button>
                 </div>
@@ -230,13 +230,13 @@ export default function PendapatanPage() {
 
             {step === "done" && (
               <div className="py-6 text-center space-y-3">
-                <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto">
-                  <CheckCircle size={32} className="text-emerald-500" />
+                <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto">
+                  <CheckCircle size={32} className="text-blue-500" />
                 </div>
                 <p className="text-base font-black text-slate-800">Penarikan Berhasil!</p>
                 <p className="text-xs text-slate-400">Dana akan masuk ke rekening kamu dalam 1×24 jam kerja.</p>
                 <button onClick={resetForm}
-                  className="mt-2 bg-emerald-600 text-white font-black px-6 py-2.5 rounded-xl text-sm">
+                  className="mt-2 bg-blue-600 text-white font-black px-6 py-2.5 rounded-xl text-sm">
                   Lihat Riwayat
                 </button>
               </div>
@@ -250,16 +250,16 @@ export default function PendapatanPage() {
             <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Riwayat Penarikan</p>
             {DUMMY_HISTORY.map(h => (
               <div key={h.id} className="flex items-center gap-3 py-2 border-b border-slate-50 last:border-0">
-                <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                  <Banknote size={15} className="text-emerald-500" />
+                <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+                  <Banknote size={15} className="text-blue-500" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-black text-slate-800">{h.bank} {h.account}</p>
-                  <p className="text-[10px] text-slate-400">{new Date(h.date).toLocaleDateString("id-ID",{day:"2-digit",month:"short",year:"numeric"})}</p>
+                  <p className="text-[10px] text-slate-400">{new Date(h.date).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-black text-slate-800">Rp {fmt(h.amount)}</p>
-                  <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">Berhasil</span>
+                  <span className="text-[9px] font-black text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">Berhasil</span>
                 </div>
               </div>
             ))}

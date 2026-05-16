@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import {
   ArrowLeft, MapPin, Heart, MessageCircle, Home, Ruler,
   ShieldCheck, ChevronLeft, ChevronRight, X, User, Phone,
@@ -9,10 +12,39 @@ import {
   Zap, Tv, Coffee, Utensils, Dumbbell, Package, Droplets,
   Thermometer, BookOpen, TreePine, WashingMachine, Lock,
   Bookmark, ChevronRight as ChevRight, Timer, Globe,
-  CheckCircle2, AlertCircle,
+  CheckCircle2, AlertCircle, Navigation, Info, HelpCircle,
 } from "lucide-react";
 
-/* ── Helpers ──────────────────────────────────────────────────────────────── */
+/* ── Fix Leaflet default icon ──────────────────────────────────────────── */
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+});
+
+function createPriceIcon(price, active = false) {
+  const label = price >= 1_000_000
+    ? `Rp ${(price / 1_000_000).toFixed(1).replace(".0", "")}jt`
+    : `Rp ${Math.round(price / 1_000)}rb`;
+  const bg = active ? "#4F46E5" : "#ffffff";
+  const color = active ? "#ffffff" : "#1A1A1A";
+  const border = active ? "#4338CA" : "#CBD5E1";
+  const shadow = active ? "0 4px 18px rgba(79,70,229,.55)" : "0 2px 10px rgba(0,0,0,.20)";
+  const tip = active ? "#4F46E5" : "#ffffff";
+  return L.divIcon({
+    className: "",
+    html: `<div style="position:relative;display:inline-flex;align-items:center;justify-content:center;background:${bg};color:${color};padding:5px 12px;border-radius:999px;font-size:12px;font-weight:800;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;white-space:nowrap;cursor:pointer;box-shadow:${shadow};border:2px solid ${border};line-height:1.2;user-select:none;letter-spacing:-0.2px;">${label}<span style="position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:7px solid ${border};display:block;"></span><span style="position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid ${tip};display:block;"></span></div>`,
+    iconSize: [90, 32], iconAnchor: [45, 39], popupAnchor: [0, -42],
+  });
+}
+
+function MapCenter({ lat, lng }) {
+  const map = useMap();
+  useEffect(() => { if (lat && lng) map.setView([lat, lng], 15, { animate: true }); }, [lat, lng, map]);
+  return null;
+}
+
 const facilityMap = [
   { keys: ["wifi", "internet"], icon: Wifi, color: "#3B82F6", bg: "#EFF6FF", label_color: "#1D4ED8" },
   { keys: ["ac", "kipas", "pendingin"], icon: Thermometer, color: "#06B6D4", bg: "#ECFEFF", label_color: "#0E7490" },
@@ -48,8 +80,8 @@ const ruleIcon = (rule = "") => {
 };
 
 const genderConfig = {
-  putra:  { label: "Putra",  bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE", dot: "#3B82F6" },
-  putri:  { label: "Putri",  bg: "#FDF2F8", text: "#9D174D", border: "#FBCFE8", dot: "#EC4899" },
+  putra: { label: "Putra", bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE", dot: "#3B82F6" },
+  putri: { label: "Putri", bg: "#FDF2F8", text: "#9D174D", border: "#FBCFE8", dot: "#EC4899" },
   campur: { label: "Campur", bg: "#F0FDF4", text: "#166534", border: "#BBF7D0", dot: "#22C55E" },
 };
 
@@ -75,172 +107,406 @@ const fmtDate = (iso) => {
   return `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1).toString().padStart(2, "0")}/${d.getFullYear()}`;
 };
 
+const fmtRp = (n) => `Rp ${Number(n || 0).toLocaleString("id-ID")}`;
+
 const QUICK_REPLIES = [
   { label: "Masih tersedia?", text: "Apakah kamar masih tersedia?" },
-  { label: "Mau survey",      text: "Boleh survey dulu kak?" },
-  { label: "Nego harga?",     text: "Apakah bisa nego harga?" },
+  { label: "Mau survey", text: "Boleh survey dulu kak?" },
+  { label: "Nego harga?", text: "Apakah bisa nego harga?" },
   { label: "Tanya fasilitas", text: "Fasilitas apa saja yang tersedia?" },
 ];
 
 const API = "http://localhost:3000";
-
 const getToken = () => localStorage.getItem("token") || "";
 const getCurrentUserId = () => {
-  try {
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    return user.id || "";
-  } catch { return ""; }
+  try { const user = JSON.parse(localStorage.getItem("user") || "{}"); return user.id || ""; }
+  catch { return ""; }
 };
 const authFetch = (url, opts = {}) =>
-  fetch(url, {
-    ...opts,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${getToken()}`,
-      ...(opts.headers || {}),
-    },
-  });
+  fetch(url, { ...opts, headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}`, ...(opts.headers || {}) } });
 
-/* ── AjukanSewa Full Page ─────────────────────────────────────────────────── */
+const SERVICE_FEE = 250_000;
+
+/* ══════════════════════════════════════════════════════════════════════════
+   AjukanSewaPage — Desktop two-column layout
+══════════════════════════════════════════════════════════════════════════ */
 function AjukanSewaPage({ item, onBack, onSubmit }) {
   const today = new Date().toISOString().split("T")[0];
-  const [masuk,  setMasuk]  = useState(today);
+  const [masuk, setMasuk] = useState(today);
   const [durasi, setDurasi] = useState(6);
-  const [pesan,  setPesan]  = useState("");
-  const [saved,  setSaved]  = useState(false);
+  const [pesan, setPesan] = useState("");
 
   const keluar = addMonths(masuk, durasi);
-  const gender = genderConfig[item?.gender?.toLowerCase()];
+  const price = Number(item?.price || 0);
+  const deposit = price;
+  const total = price + deposit + SERVICE_FEE;
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-28" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-      <div className="bg-white border-b border-slate-100 px-4 pt-12 pb-4 sticky top-0 z-30">
-        <div className="flex items-center justify-between">
-          <button onClick={onBack} className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center">
-            <ArrowLeft size={17} className="text-slate-700" />
-          </button>
-          <h1 className="text-[16px] font-bold text-slate-900">Ajukan sewa</h1>
-          <button onClick={() => setSaved(!saved)} className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center">
-            <Bookmark size={17} className={saved ? "text-blue-600 fill-blue-600" : "text-slate-500"} />
-          </button>
-        </div>
-      </div>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        .asw * { box-sizing: border-box; margin: 0; padding: 0; }
+        .asw { font-family: 'Plus Jakarta Sans', -apple-system, sans-serif; background: #f8f9fb; min-height: 100vh; color: #0f172a; }
 
-      <div className="px-4 py-4 space-y-4">
-        <div className="bg-white rounded-2xl border border-slate-100 p-4 flex items-center gap-3 shadow-sm">
-          {item?.images?.[0] ? (
-            <img src={item.images[0]} alt={item.name} className="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
-          ) : (
-            <div className="w-16 h-16 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
-              <Home size={24} className="text-indigo-300" />
-            </div>
-          )}
-          <div className="flex-1 min-w-0">
-            <h2 className="text-[14px] font-bold text-slate-900 truncate">{item?.name}</h2>
-            <p className="text-[12px] text-slate-400 truncate mb-1">
-              {item?.location}
-              {gender && (
-                <span className="ml-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border" style={{ background: gender.bg, color: gender.text, borderColor: gender.border }}>
-                  {gender.label}
-                </span>
-              )}
-            </p>
-            <p className="text-[14px] font-bold text-blue-600">
-              Rp {Number(item?.price || 0).toLocaleString("id-ID")}
-              <span className="text-[11px] text-slate-400 font-medium"> /bulan</span>
-            </p>
+        /* NAV */
+        .asw-nav { background: white; border-bottom: 1px solid #e8eaf2; padding: 0 48px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 30; }
+        .asw-nav-brand { font-size: 18px; font-weight: 800; color: #1d4ed8; letter-spacing: -0.5px; }
+        .asw-nav-links { display: flex; gap: 32px; list-style: none; }
+        .asw-nav-links a { font-size: 13px; font-weight: 600; color: #64748b; text-decoration: none; }
+        .asw-nav-links a.active { color: #1d4ed8; border-bottom: 2px solid #1d4ed8; padding-bottom: 2px; }
+        .asw-btn-list { font-size: 13px; font-weight: 700; color: #1d4ed8; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 8px 16px; cursor: pointer; font-family: inherit; }
+        .asw-btn-list:hover { background: #dbeafe; }
+
+        /* PAGE HEADER */
+        .asw-page-header { max-width: 1120px; margin: 0 auto; padding: 36px 48px 0; }
+        .asw-breadcrumb { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #94a3b8; font-weight: 500; margin-bottom: 10px; }
+        .asw-breadcrumb a { color: #1d4ed8; text-decoration: none; cursor: pointer; font-weight: 600; }
+        .asw-page-title { font-size: 28px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px; margin-bottom: 6px; }
+        .asw-page-sub { font-size: 14px; color: #64748b; font-weight: 500; }
+
+        /* LAYOUT */
+        .asw-layout { max-width: 1120px; margin: 0 auto; padding: 32px 48px 80px; display: grid; grid-template-columns: 1fr 380px; gap: 32px; align-items: start; }
+        @media (max-width: 900px) {
+          .asw-layout { grid-template-columns: 1fr; padding: 24px 20px; }
+          .asw-nav { padding: 0 20px; }
+          .asw-page-header { padding: 24px 20px 0; }
+          .asw-sidebar { position: static !important; }
+        }
+
+        /* CARDS */
+        .asw-left { display: flex; flex-direction: column; gap: 20px; }
+        .asw-card { background: white; border: 1px solid #e8eaf2; border-radius: 16px; padding: 28px; }
+        .asw-section-title { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+        .asw-step-badge { width: 28px; height: 28px; border-radius: 50%; background: #1d4ed8; color: white; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .asw-section-title h2 { font-size: 16px; font-weight: 700; color: #0f172a; }
+
+        /* FIELDS */
+        .asw-date-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+        .asw-field-label { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: #64748b; margin-bottom: 8px; display: block; }
+        .asw-input { width: 100%; padding: 11px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 14px; color: #0f172a; background: #fafbff; font-family: inherit; font-weight: 500; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+        .asw-input:focus { border-color: #3b82f6; background: white; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+        .asw-input-ro { background: #f1f5f9; color: #64748b; cursor: default; }
+        .asw-info-note { display: flex; align-items: flex-start; gap: 10px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px; padding: 12px 14px; margin-top: 16px; font-size: 12.5px; color: #0369a1; font-weight: 500; line-height: 1.5; }
+        .asw-durasi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 12px; }
+        .asw-durasi-pill { padding: 12px 8px; border-radius: 10px; border: 1.5px solid #e2e8f0; background: #fafbff; font-size: 13px; font-weight: 700; color: #475569; cursor: pointer; text-align: center; transition: all 0.18s; font-family: inherit; }
+        .asw-durasi-pill:hover { border-color: #93c5fd; }
+        .asw-durasi-pill.active { background: #1d4ed8; border-color: #1d4ed8; color: white; box-shadow: 0 4px 12px rgba(29,78,216,0.25); }
+        .asw-textarea { width: 100%; padding: 13px 14px; border: 1.5px solid #e2e8f0; border-radius: 10px; font-size: 14px; color: #0f172a; background: #fafbff; font-family: inherit; font-weight: 500; outline: none; resize: none; transition: border-color 0.2s, box-shadow 0.2s; line-height: 1.6; }
+        .asw-textarea:focus { border-color: #3b82f6; background: white; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+        .asw-textarea::placeholder { color: #cbd5e1; }
+        .asw-textarea-hint { font-size: 12px; color: #94a3b8; margin-top: 8px; font-weight: 500; }
+
+        /* PAYMENT TABLE */
+        .asw-pay-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+        .asw-pay-table thead th { font-size: 11px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: #94a3b8; padding: 0 0 12px; text-align: left; border-bottom: 1px solid #f1f5f9; }
+        .asw-pay-table thead th:last-child { text-align: right; }
+        .asw-pay-table tbody td { padding: 14px 0; border-bottom: 1px solid #f8faff; vertical-align: top; }
+        .asw-pay-table tbody tr:last-child td { border-bottom: none; }
+        .asw-pay-name { font-size: 14px; font-weight: 600; color: #1e293b; }
+        .asw-pay-sub { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+        .asw-pay-amt { font-size: 14px; font-weight: 700; color: #1e293b; text-align: right; white-space: nowrap; }
+        .asw-pay-total td { padding-top: 18px !important; border-top: 2px solid #e8eaf2 !important; border-bottom: none !important; }
+        .asw-pay-total-label { font-size: 15px; font-weight: 800; color: #0f172a; }
+        .asw-pay-total-amt { font-size: 17px; font-weight: 800; color: #1d4ed8; text-align: right; }
+
+        /* SIDEBAR */
+        .asw-sidebar { position: sticky; top: 80px; display: flex; flex-direction: column; gap: 16px; }
+        .asw-prop-card { background: white; border: 1px solid #e8eaf2; border-radius: 16px; overflow: hidden; }
+        .asw-prop-img-wrap { position: relative; }
+        .asw-prop-img { width: 100%; height: 200px; object-fit: cover; display: block; }
+        .asw-prop-img-ph { width: 100%; height: 200px; background: linear-gradient(135deg, #1d4ed8, #3b82f6); display: flex; align-items: center; justify-content: center; color: white; font-size: 48px; font-weight: 800; }
+        .asw-verified-badge { position: absolute; top: 12px; left: 12px; background: #1d4ed8; color: white; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
+        .asw-prop-body { padding: 20px; }
+        .asw-prop-name { font-size: 16px; font-weight: 800; color: #0f172a; margin-bottom: 6px; letter-spacing: -0.3px; }
+        .asw-prop-loc { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #64748b; margin-bottom: 16px; }
+        .asw-stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: #e8eaf2; border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
+        .asw-stat-cell { background: #f8f9fb; padding: 12px 8px; text-align: center; }
+        .asw-stat-label { font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #94a3b8; margin-bottom: 4px; }
+        .asw-stat-val { font-size: 14px; font-weight: 800; color: #0f172a; }
+        .asw-detail-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid #f1f5f9; font-size: 13px; }
+        .asw-detail-row:last-child { border-bottom: none; }
+        .asw-detail-key { color: #64748b; font-weight: 500; }
+        .asw-detail-val { font-weight: 700; color: #0f172a; }
+
+        /* CTA */
+        .asw-cta-card { background: white; border: 1px solid #e8eaf2; border-radius: 16px; padding: 20px; }
+        .asw-btn-submit { width: 100%; padding: 15px; border-radius: 12px; background: #1d4ed8; color: white; font-size: 15px; font-weight: 700; border: none; cursor: pointer; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s, transform 0.15s; box-shadow: 0 6px 20px rgba(29,78,216,0.3); margin-bottom: 12px; }
+        .asw-btn-submit:hover { background: #1e40af; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(29,78,216,0.35); }
+        .asw-btn-submit:active { transform: translateY(0); }
+        .asw-tos-note { font-size: 11.5px; color: #94a3b8; text-align: center; line-height: 1.6; }
+        .asw-tos-note a { color: #3b82f6; text-decoration: underline; cursor: pointer; }
+
+        /* HELP */
+        .asw-help-card { background: white; border: 1px solid #e8eaf2; border-radius: 16px; padding: 18px 20px; display: flex; align-items: flex-start; gap: 14px; }
+        .asw-help-icon { width: 40px; height: 40px; border-radius: 12px; background: #eff6ff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #1d4ed8; }
+        .asw-help-title { font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+        .asw-help-sub { font-size: 12px; color: #64748b; line-height: 1.5; font-weight: 500; }
+
+        /* FOOTER */
+        .asw-footer { background: #0f172a; padding: 48px; }
+        .asw-footer-inner { max-width: 1120px; margin: 0 auto; display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; }
+        @media (max-width: 900px) { .asw-footer-inner { grid-template-columns: 1fr 1fr; gap: 24px; } .asw-footer { padding: 32px 20px; } }
+        .asw-footer-brand { font-size: 20px; font-weight: 800; color: white; margin-bottom: 12px; letter-spacing: -0.5px; }
+        .asw-footer-tagline { font-size: 13px; color: #64748b; line-height: 1.6; font-weight: 500; }
+        .asw-footer-col h4 { font-size: 12px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: #94a3b8; margin-bottom: 14px; }
+        .asw-footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+        .asw-footer-col ul li a { font-size: 13px; color: #475569; text-decoration: none; font-weight: 500; }
+        .asw-footer-col ul li a:hover { color: white; }
+        .asw-footer-divider { max-width: 1120px; margin: 32px auto 0; border: none; border-top: 1px solid #1e293b; }
+        .asw-footer-bottom { max-width: 1120px; margin: 0 auto; padding-top: 20px; font-size: 12px; color: #475569; font-weight: 500; }
+      `}</style>
+
+      <div className="asw">
+        {/* NAV */}
+        <nav className="asw-nav">
+          <span className="asw-nav-brand">Atap</span>
+          <ul className="asw-nav-links">
+            <li><a href="#">Beranda</a></li>
+            <li><a href="#" className="active">Properti</a></li>
+            <li><a href="#">Maps</a></li>
+            <li><a href="#">Pesan</a></li>
+          </ul>
+          <button className="asw-btn-list">List Properti</button>
+        </nav>
+
+        {/* PAGE HEADER */}
+        <div className="asw-page-header">
+          <div className="asw-breadcrumb">
+            <a onClick={onBack}>Properti</a>
+            <ChevronRight size={12} />
+            <a onClick={onBack}>{item?.name}</a>
+            <ChevronRight size={12} />
+            <span>Ajukan Sewa</span>
           </div>
+          <h1 className="asw-page-title">Ajukan Sewa</h1>
+          <p className="asw-page-sub">Lengkapi detail berikut untuk mengirim permohonan sewa kepada pemilik.</p>
         </div>
 
-        <div className="flex items-center gap-2">
-          {item?.isVerified && (
-            <div className="flex items-center gap-1.5 bg-white border border-slate-100 rounded-full px-3 py-1.5 shadow-sm">
-              <BadgeCheck size={13} className="text-emerald-500" />
-              <span className="text-[11px] font-semibold text-slate-600">Verified</span>
-            </div>
-          )}
-          <div className="flex items-center gap-1.5 bg-white border border-slate-100 rounded-full px-3 py-1.5 shadow-sm">
-            <Timer size={13} className="text-blue-500" />
-            <span className="text-[11px] font-semibold text-slate-600">Respon ~8 m</span>
-          </div>
-        </div>
+        {/* TWO-COLUMN LAYOUT */}
+        <div className="asw-layout">
 
-        <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0">1</div>
-            <h3 className="text-[15px] font-bold text-slate-800">Tanggal masuk & durasi</h3>
-          </div>
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div>
-              <p className="text-[11px] text-slate-400 font-semibold mb-1.5">Masuk</p>
-              <input type="date" value={masuk} onChange={(e) => setMasuk(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-[13px] font-semibold text-slate-700 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50 appearance-none" />
-            </div>
-            <div>
-              <p className="text-[11px] text-slate-400 font-semibold mb-1.5">Keluar (perkiraan)</p>
-              <div className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 flex items-center gap-2">
-                <Calendar size={13} className="text-slate-400 flex-shrink-0" />
-                <span className="text-[13px] font-semibold text-slate-500">{fmtDate(keluar)}</span>
+          {/* ── LEFT: FORM ── */}
+          <div className="asw-left">
+
+            {/* 1. Detail Sewa */}
+            <div className="asw-card">
+              <div className="asw-section-title">
+                <div className="asw-step-badge">1</div>
+                <h2>Detail Sewa</h2>
+              </div>
+              <div className="asw-date-row">
+                <div>
+                  <label className="asw-field-label">Tanggal Masuk</label>
+                  <input type="date" className="asw-input" value={masuk}
+                    onChange={(e) => setMasuk(e.target.value)} />
+                </div>
+                <div>
+                  <label className="asw-field-label">Tanggal Keluar</label>
+                  <input type="text" className="asw-input asw-input-ro"
+                    value={fmtDate(keluar)} readOnly />
+                </div>
+              </div>
+
+              <div className="asw-info-note">
+                <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+                <span>Durasi sewa minimal untuk unit ini adalah 6 bulan. Anda dapat mengajukan negosiasi durasi di langkah berikutnya.</span>
+              </div>
+
+              <label className="asw-field-label" style={{ marginTop: 20, display: "block" }}>Durasi Sewa</label>
+              <div className="asw-durasi-grid">
+                {[3, 6, 12, 24].map((bln) => (
+                  <button key={bln} type="button"
+                    className={`asw-durasi-pill${durasi === bln ? " active" : ""}`}
+                    onClick={() => setDurasi(bln)}>
+                    {bln} bulan
+                  </button>
+                ))}
               </div>
             </div>
+
+            {/* 2. Pesan */}
+            <div className="asw-card">
+              <div className="asw-section-title">
+                <div className="asw-step-badge">2</div>
+                <h2>Pesan untuk Pemilik</h2>
+              </div>
+              <label className="asw-field-label">Catatan Tambahan</label>
+              <textarea className="asw-textarea" rows={5}
+                placeholder="Halo, saya tertarik dengan unit Anda. Apakah bisa menjadwalkan kunjungan sebelum melakukan pembayaran deposit?.."
+                value={pesan} onChange={(e) => setPesan(e.target.value)} />
+              <p className="asw-textarea-hint">Pemilik lebih cenderung menerima pengajuan dengan perkenalan yang sopan dan jelas.</p>
+            </div>
+
+            {/* 3. Rincian Pembayaran */}
+            <div className="asw-card">
+              <div className="asw-section-title">
+                <div className="asw-step-badge">3</div>
+                <h2>Rincian Pembayaran</h2>
+              </div>
+              <table className="asw-pay-table">
+                <thead>
+                  <tr>
+                    <th>Deskripsi</th>
+                    <th>Jumlah</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <div className="asw-pay-name">Sewa Bulan Pertama</div>
+                      <div className="asw-pay-sub">Unit {item?.size || "—"} · {item?.name}</div>
+                    </td>
+                    <td className="asw-pay-amt">{fmtRp(price)}</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div className="asw-pay-name">Deposit Keamanan</div>
+                      <div className="asw-pay-sub">Dapat dikembalikan di akhir masa sewa</div>
+                    </td>
+                    <td className="asw-pay-amt">{fmtRp(deposit)}</td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div className="asw-pay-name">Biaya Layanan Atap</div>
+                      <div className="asw-pay-sub">Termasuk perlindungan penyewa</div>
+                    </td>
+                    <td className="asw-pay-amt">{fmtRp(SERVICE_FEE)}</td>
+                  </tr>
+                  <tr className="asw-pay-total">
+                    <td><span className="asw-pay-total-label">Total Pembayaran Awal</span></td>
+                    <td><span className="asw-pay-total-amt">{fmtRp(total)}</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
           </div>
-          <div>
-            <p className="text-[11px] text-slate-400 font-semibold mb-2">Durasi sewa</p>
-            <div className="grid grid-cols-4 gap-2">
-              {[3, 6, 12, 24].map((bln) => (
-                <button key={bln} onClick={() => setDurasi(bln)} className={`py-2.5 rounded-xl text-[13px] font-bold transition-all active:scale-95 ${durasi === bln ? "bg-blue-600 text-white shadow-lg shadow-blue-200" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>
-                  {bln} bln
-                </button>
-              ))}
+
+          {/* ── RIGHT: SIDEBAR ── */}
+          <div className="asw-sidebar">
+
+            {/* Property card */}
+            <div className="asw-prop-card">
+              <div className="asw-prop-img-wrap">
+                {item?.images?.[0]
+                  ? <img src={item.images[0]} alt={item.name} className="asw-prop-img" />
+                  : <div className="asw-prop-img-ph">{item?.name?.[0]?.toUpperCase() || "K"}</div>
+                }
+                {item?.isVerified && <span className="asw-verified-badge">✓ Verified Unit</span>}
+              </div>
+              <div className="asw-prop-body">
+                <h3 className="asw-prop-name">{item?.name}</h3>
+                <div className="asw-prop-loc">
+                  <MapPin size={12} style={{ flexShrink: 0 }} />
+                  <span>{item?.location}</span>
+                </div>
+                <div className="asw-stat-grid">
+                  <div className="asw-stat-cell">
+                    <div className="asw-stat-label">Luas</div>
+                    <div className="asw-stat-val">{item?.size || "—"}</div>
+                  </div>
+                  <div className="asw-stat-cell">
+                    <div className="asw-stat-label">Tipe</div>
+                    <div className="asw-stat-val">
+                      {item?.gender
+                        ? item.gender[0].toUpperCase() + item.gender.slice(1).toLowerCase()
+                        : "—"}
+                    </div>
+                  </div>
+                  <div className="asw-stat-cell">
+                    <div className="asw-stat-label">Kamar</div>
+                    <div className="asw-stat-val">{item?.availableRooms ?? "—"}</div>
+                  </div>
+                </div>
+                <div>
+                  <div className="asw-detail-row">
+                    <span className="asw-detail-key">Check-in</span>
+                    <span className="asw-detail-val">{fmtDate(masuk)}</span>
+                  </div>
+                  <div className="asw-detail-row">
+                    <span className="asw-detail-key">Durasi</span>
+                    <span className="asw-detail-val">{durasi} Bulan</span>
+                  </div>
+                  <div className="asw-detail-row" style={{ borderBottom: "none" }}>
+                    <span className="asw-detail-key">Harga/Bulan</span>
+                    <span className="asw-detail-val" style={{ color: "#1d4ed8" }}>{fmtRp(price)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* CTA */}
+            <div className="asw-cta-card">
+              <button className="asw-btn-submit"
+                onClick={() => onSubmit({ masuk, durasi, keluar, pesan })}>
+                Kirim Pengajuan <ChevronRight size={18} />
+              </button>
+              <p className="asw-tos-note">
+                Dengan mengklik tombol di atas, Anda menyetujui <a>Syarat &amp; Ketentuan</a> serta kebijakan privasi Atap.
+              </p>
+            </div>
+
+            {/* Help */}
+            <div className="asw-help-card">
+              <div className="asw-help-icon"><HelpCircle size={20} /></div>
+              <div>
+                <p className="asw-help-title">Butuh bantuan?</p>
+                <p className="asw-help-sub">Tim sukses penyewa kami siap membantu proses pengajuan Anda.</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        {/* FOOTER */}
+        <footer className="asw-footer">
+          <div className="asw-footer-inner">
+            <div>
+              <div className="asw-footer-brand">Atap</div>
+              <p className="asw-footer-tagline">Platform sewa properti modern yang mengutamakan transparansi dan kemudahan bagi penyewa generasi baru.</p>
+            </div>
+            <div className="asw-footer-col">
+              <h4>Product</h4>
+              <ul><li><a href="#">About Us</a></li><li><a href="#">Careers</a></li></ul>
+            </div>
+            <div className="asw-footer-col">
+              <h4>Support</h4>
+              <ul><li><a href="#">Help Center</a></li><li><a href="#">Terms of Service</a></li></ul>
+            </div>
+            <div className="asw-footer-col">
+              <h4>Legal</h4>
+              <ul><li><a href="#">Privacy Policy</a></li><li><a href="#">Security</a></li></ul>
             </div>
           </div>
-        </div>
-
-        <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-[11px] font-bold flex-shrink-0">2</div>
-            <h3 className="text-[15px] font-bold text-slate-800">Pesan ke pemilik</h3>
+          <hr className="asw-footer-divider" />
+          <div className="asw-footer-inner">
+            <p className="asw-footer-bottom">© 2024 Atap Property Group. Built for the next generation of renters.</p>
           </div>
-          <textarea rows={4} placeholder="Perkenalkan diri kamu dan ceritakan kebutuhan kamu..." value={pesan} onChange={(e) => setPesan(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[13.5px] text-slate-700 placeholder-slate-400 outline-none resize-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50" />
-        </div>
-
-        <div className="bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3 flex items-start gap-3">
-          <ShieldCheck size={15} className="text-blue-400 flex-shrink-0 mt-0.5" />
-          <p className="text-[12px] text-blue-600 leading-relaxed">Kamu akan dihubungi pemilik setelah permintaan dikirim. Tidak ada pembayaran di muka.</p>
-        </div>
+        </footer>
       </div>
-
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-4 py-4" style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}>
-        <button onClick={() => onSubmit({ masuk, durasi, keluar, pesan })} className="w-full h-14 rounded-2xl bg-blue-600 text-white font-bold text-[15px] flex items-center justify-center gap-2 active:scale-[0.97] transition-transform shadow-lg shadow-blue-200">
-          Kirim permintaan sewa
-          <ChevRight size={18} />
-        </button>
-      </div>
-    </div>
+    </>
   );
 }
 
-/* ── Lead / Minat Modal ───────────────────────────────────────────────────── */
+/* ── MinatModal ───────────────────────────────────────────────────────────── */
 function MinatModal({ item, onClose }) {
   const token = getToken();
   const userId = getCurrentUserId();
   const isLoggedIn = !!token && !!userId;
-
-  const [name,    setName]    = useState("");
-  const [phone,   setPhone]   = useState("");
-  const [email,   setEmail]   = useState("");
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [status,  setStatus]  = useState(null); // "success" | "error" | null
-  const [errMsg,  setErrMsg]  = useState("");
+  const [status, setStatus] = useState(null);
+  const [errMsg, setErrMsg] = useState("");
 
   const handleSubmit = async () => {
-    // Validation for guest
     if (!isLoggedIn) {
       if (name.trim().length < 2) { setErrMsg("Nama minimal 2 karakter"); return; }
       if (phone.trim().length < 8) { setErrMsg("Nomor HP tidak valid"); return; }
       if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setErrMsg("Format email tidak valid"); return; }
     }
-    setErrMsg("");
-    setLoading(true);
+    setErrMsg(""); setLoading(true);
     try {
       const waNum = formatPhone(item.contactNumber);
       const waMsg = isLoggedIn
@@ -248,22 +514,15 @@ function MinatModal({ item, onClose }) {
         : `Halo kak, saya *${name.trim()}* tertarik dengan kost *${item.name}* di ${item.location}. Apakah masih tersedia?`;
       window.open(`https://wa.me/${waNum}?text=${encodeURIComponent(waMsg)}`, "_blank");
       setStatus("success");
-    } catch (e) {
-      setErrMsg(e.message || "Terjadi kesalahan");
-      setStatus("error");
-    } finally {
-      setLoading(false);
-    }
+    } catch (e) { setErrMsg(e.message || "Terjadi kesalahan"); setStatus("error"); }
+    finally { setLoading(false); }
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end justify-center"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end justify-center"
+      onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="bg-white w-full max-w-lg rounded-t-3xl px-5 pt-3 pb-8 animate-[slideUp_0.3s_ease]">
         <div className="w-10 h-1 rounded-full bg-slate-200 mx-auto mb-5" />
-
         {status === "success" ? (
           <div className="flex flex-col items-center py-6 gap-4 text-center">
             <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center">
@@ -284,8 +543,6 @@ function MinatModal({ item, onClose }) {
               </button>
             </div>
             <p className="text-[12px] text-slate-400 mb-5">Informasi kamu akan diteruskan ke pemilik kost</p>
-
-            {/* Kost summary */}
             <div className="flex items-center gap-3 bg-slate-50 rounded-2xl p-3 mb-5 border border-slate-100">
               {item?.images?.[0] ? (
                 <img src={item.images[0]} alt={item.name} className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
@@ -298,11 +555,8 @@ function MinatModal({ item, onClose }) {
                 <p className="text-[13px] font-bold text-slate-800 truncate">{item?.name}</p>
                 <p className="text-[11px] text-slate-400 truncate">{item?.location}</p>
               </div>
-              <p className="text-[13px] font-bold text-blue-600 flex-shrink-0">
-                Rp {Number(item?.price || 0).toLocaleString("id-ID")}
-              </p>
+              <p className="text-[13px] font-bold text-blue-600 flex-shrink-0">Rp {Number(item?.price || 0).toLocaleString("id-ID")}</p>
             </div>
-
             {isLoggedIn ? (
               <div className="bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3 flex items-start gap-3 mb-5">
                 <ShieldCheck size={15} className="text-blue-400 flex-shrink-0 mt-0.5" />
@@ -312,49 +566,29 @@ function MinatModal({ item, onClose }) {
               <div className="space-y-3 mb-5">
                 <div>
                   <label className="text-[11px] font-semibold text-slate-500 block mb-1.5">Nama Lengkap <span className="text-red-400">*</span></label>
-                  <input
-                    type="text"
-                    placeholder="contoh: Budi Santoso"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[13.5px] text-slate-700 placeholder-slate-400 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50"
-                  />
+                  <input type="text" placeholder="contoh: Budi Santoso" value={name} onChange={(e) => setName(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[13.5px] text-slate-700 placeholder-slate-400 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50" />
                 </div>
                 <div>
                   <label className="text-[11px] font-semibold text-slate-500 block mb-1.5">Nomor HP (WhatsApp) <span className="text-red-400">*</span></label>
-                  <input
-                    type="tel"
-                    placeholder="contoh: 08123456789"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[13.5px] text-slate-700 placeholder-slate-400 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50"
-                  />
+                  <input type="tel" placeholder="contoh: 08123456789" value={phone} onChange={(e) => setPhone(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[13.5px] text-slate-700 placeholder-slate-400 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50" />
                 </div>
                 <div>
                   <label className="text-[11px] font-semibold text-slate-500 block mb-1.5">Email <span className="text-slate-400 font-normal">(opsional)</span></label>
-                  <input
-                    type="email"
-                    placeholder="contoh: budi@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[13.5px] text-slate-700 placeholder-slate-400 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50"
-                  />
+                  <input type="email" placeholder="contoh: budi@email.com" value={email} onChange={(e) => setEmail(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[13.5px] text-slate-700 placeholder-slate-400 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50" />
                 </div>
               </div>
             )}
-
             {errMsg && (
               <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-4 py-2.5 mb-4">
                 <AlertCircle size={14} className="text-red-400 flex-shrink-0" />
                 <p className="text-[12px] text-red-500">{errMsg}</p>
               </div>
             )}
-
-            <button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="w-full h-13 py-3.5 rounded-2xl bg-blue-600 text-white font-bold text-[14px] flex items-center justify-center gap-2 active:scale-[0.97] transition-transform shadow-lg shadow-blue-200 disabled:opacity-60"
-            >
+            <button onClick={handleSubmit} disabled={loading}
+              className="w-full h-13 py-3.5 rounded-2xl bg-blue-600 text-white font-bold text-[14px] flex items-center justify-center gap-2 active:scale-[0.97] transition-transform shadow-lg shadow-blue-200 disabled:opacity-60">
               {loading ? <Loader2 size={16} className="animate-spin" /> : null}
               {loading ? "Mengirim..." : "Kirim Minat Saya"}
             </button>
@@ -365,29 +599,31 @@ function MinatModal({ item, onClose }) {
   );
 }
 
-/* ══════════════════════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════════════
+   DetailPage — unchanged
+══════════════════════════════════════════════════════════════════════════ */
 export default function DetailPage() {
-  const { id }   = useParams();
+  const { id } = useParams();
   const navigate = useNavigate();
 
-  const [item,      setItem]      = useState(null);
-  const [loading,   setLoading]   = useState(true);
-  const [isLiked,   setIsLiked]   = useState(false);
+  const [item, setItem] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [isLiked, setIsLiked] = useState(false);
   const [activeImg, setActiveImg] = useState(0);
-  const [showSewa,  setShowSewa]  = useState(false);
+  const [showSewa, setShowSewa] = useState(false);
   const [showMinat, setShowMinat] = useState(false);
 
-  const [showChat,    setShowChat]    = useState(false);
-  const [threadId,    setThreadId]    = useState(null);
-  const [messages,    setMessages]    = useState([]);
-  const [chatInput,   setChatInput]   = useState("");
+  const [showChat, setShowChat] = useState(false);
+  const [threadId, setThreadId] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
   const [sendLoading, setSendLoading] = useState(false);
-  const [quickUsed,   setQuickUsed]   = useState(false);
-  const [chatError,   setChatError]   = useState(null);
-  const chatEndRef    = useRef(null);
-  const thumbsRef     = useRef(null);
-  const pollRef       = useRef(null);
+  const [quickUsed, setQuickUsed] = useState(false);
+  const [chatError, setChatError] = useState(null);
+  const chatEndRef = useRef(null);
+  const thumbsRef = useRef(null);
+  const pollRef = useRef(null);
 
   const myId = getCurrentUserId();
 
@@ -395,7 +631,6 @@ export default function DetailPage() {
     if (showChat) chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, showChat]);
 
-  // Scroll thumbnail strip to keep active thumb visible
   useEffect(() => {
     if (!thumbsRef.current) return;
     const el = thumbsRef.current.children[activeImg];
@@ -409,7 +644,7 @@ export default function DetailPage() {
 
   const toggleLike = () => {
     const favs = JSON.parse(localStorage.getItem("atap_favorites") || "[]");
-    const next  = isLiked ? favs.filter((f) => f !== id) : [...favs, id];
+    const next = isLiked ? favs.filter((f) => f !== id) : [...favs, id];
     localStorage.setItem("atap_favorites", JSON.stringify(next));
     setIsLiked(!isLiked);
   };
@@ -421,38 +656,31 @@ export default function DetailPage() {
         if (!res.ok) throw new Error("Gagal fetch");
         const { data } = await res.json();
         if (!data) return;
-
         const room = data.roomTypes?.[0];
-        const cheapestPrice = data.roomTypes?.length
-          ? Math.min(...data.roomTypes.map((r) => r.price ?? Infinity))
-          : 0;
-
         setItem({
-          id:             data.id,
-          name:           data.name || "Tanpa nama",
-          location:       data.address || "Lokasi tidak tersedia",
-          description:    data.description || "",
-          rules:          Array.isArray(data.rules) ? data.rules : data.rules ? [data.rules] : [],
-          gender:         data.genderType,
-          contactNumber:  data.contactNumber || "",
-          ownerId:        data.owner?.id || "",
-          ownerName:      data.owner?.name || "Pemilik",
-          price:          data.cheapestPrice || 0,
-          size:           room?.size || "-",
-          facilities:     data.facilities || room?.facilities || [],
-          // BE returns flat photos array
-          images:         (data.photos || []).map((p) => p.url),
-          rating:         data.rating       || 4.8,
-          reviewCount:    data.reviewCount  || 32,
-          isVerified:     data.isVerified   !== false,
-          isFeatured:     data.isPremium    || false,
+          id: data.id,
+          name: data.name || "Tanpa nama",
+          location: data.address || "Lokasi tidak tersedia",
+          description: data.description || "",
+          rules: Array.isArray(data.rules) ? data.rules : data.rules ? [data.rules] : [],
+          gender: data.genderType,
+          contactNumber: data.contactNumber || "",
+          ownerId: data.owner?.id || "",
+          ownerName: data.owner?.name || "Pemilik",
+          price: data.cheapestPrice || 0,
+          size: room?.size || "-",
+          facilities: data.facilities || room?.facilities || [],
+          images: (data.photos || []).map((p) => p.url),
+          rating: data.rating || 4.8,
+          reviewCount: data.reviewCount || 32,
+          isVerified: data.isVerified !== false,
+          isFeatured: data.isPremium || false,
           availableRooms: data.roomTypes?.reduce((sum, r) => sum + (r.availableCount || 0), 0) || 0,
+          latitude: data.latitude ? Number(data.latitude) : null,
+          longitude: data.longitude ? Number(data.longitude) : null,
         });
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
+      } catch (err) { console.error(err); }
+      finally { setLoading(false); }
     };
     fetchDetail();
     window.scrollTo(0, 0);
@@ -461,32 +689,21 @@ export default function DetailPage() {
   const openChat = async () => {
     setShowChat(true);
     if (threadId) return;
-    setChatLoading(true);
-    setChatError(null);
+    setChatLoading(true); setChatError(null);
     try {
-      const res = await authFetch(`${API}/chats/start`, {
-        method: "POST",
-        body: JSON.stringify({ listingId: id }),
-      });
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}));
-        throw new Error(errJson.message || "Gagal membuat thread");
-      }
-      const json   = await res.json();
+      const res = await authFetch(`${API}/chats/start`, { method: "POST", body: JSON.stringify({ listingId: id }) });
+      if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.message || "Gagal membuat thread"); }
+      const json = await res.json();
       const thread = json.data || json;
       setThreadId(thread.id);
       await fetchMessages(thread.id);
-    } catch (e) {
-      console.error(e);
-      setChatError("Gagal memuat chat. Pastikan kamu sudah login.");
-    } finally {
-      setChatLoading(false);
-    }
+    } catch (e) { console.error(e); setChatError("Gagal memuat chat. Pastikan kamu sudah login."); }
+    finally { setChatLoading(false); }
   };
 
   const fetchMessages = async (tid) => {
     try {
-      const res  = await authFetch(`${API}/chats/${tid}`);
+      const res = await authFetch(`${API}/chats/${tid}`);
       if (!res.ok) return;
       const json = await res.json();
       const thread = json.data || json;
@@ -495,25 +712,18 @@ export default function DetailPage() {
   };
 
   useEffect(() => {
-    if (showChat && threadId) {
-      pollRef.current = setInterval(() => fetchMessages(threadId), 3000);
-    }
+    if (showChat && threadId) { pollRef.current = setInterval(() => fetchMessages(threadId), 3000); }
     return () => clearInterval(pollRef.current);
   }, [showChat, threadId]);
 
   const sendMessage = async (text) => {
     if (!text.trim() || !threadId || sendLoading) return;
-    setSendLoading(true);
-    setChatInput("");
+    setSendLoading(true); setChatInput("");
     try {
-      const res = await authFetch(`${API}/chats/${threadId}/messages`, {
-        method: "POST",
-        body: JSON.stringify({ message: text.trim() }),
-      });
+      const res = await authFetch(`${API}/chats/${threadId}/messages`, { method: "POST", body: JSON.stringify({ message: text.trim() }) });
       if (!res.ok) throw new Error("Gagal kirim");
-      const json   = await res.json();
-      const newMsg = json.data || json;
-      setMessages((prev) => [...prev, newMsg]);
+      const json = await res.json();
+      setMessages((prev) => [...prev, json.data || json]);
     } catch (e) { console.error(e); }
     finally { setSendLoading(false); }
   };
@@ -524,10 +734,9 @@ export default function DetailPage() {
     setShowSewa(false);
   };
 
-  // Touch / swipe handling for hero image
   const touchStartX = useRef(null);
   const handleTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
-  const handleTouchEnd   = (e) => {
+  const handleTouchEnd = (e) => {
     if (touchStartX.current === null) return;
     const diff = touchStartX.current - e.changedTouches[0].clientX;
     if (Math.abs(diff) > 40) {
@@ -537,12 +746,11 @@ export default function DetailPage() {
     touchStartX.current = null;
   };
 
-  /* ── Sewa page ── */
+  // ── Render AjukanSewa (full page replacement) ──
   if (showSewa && item) {
     return <AjukanSewaPage item={item} onBack={() => setShowSewa(false)} onSubmit={handleSewaSubmit} />;
   }
 
-  /* ── Loading skeleton ── */
   if (loading) {
     return (
       <div className="min-h-screen bg-white">
@@ -583,24 +791,10 @@ export default function DetailPage() {
       <div className="min-h-screen bg-white pb-36">
 
         {/* ── HERO IMAGE ── */}
-        <div
-          className="relative overflow-hidden bg-slate-100"
-          style={{ height: "auto" }}
-        >
-          {/* Main photo */}
-          <div
-            className="relative h-72"
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
-          >
-            <img
-              src={images[activeImg]}
-              alt={item.name}
-              className="w-full h-full object-cover transition-opacity duration-300"
-            />
+        <div className="relative overflow-hidden bg-slate-100">
+          <div className="relative h-72" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+            <img src={images[activeImg]} alt={item.name} className="w-full h-full object-cover transition-opacity duration-300" />
             <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent pointer-events-none" />
-
-            {/* Top nav */}
             <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12 pb-3">
               <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-sm">
                 <ArrowLeft size={17} className="text-slate-800" />
@@ -609,16 +803,11 @@ export default function DetailPage() {
                 <button className="w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-sm">
                   <Share2 size={15} className="text-slate-700" />
                 </button>
-                <button
-                  onClick={toggleLike}
-                  className={`w-9 h-9 rounded-full flex items-center justify-center shadow-sm transition-all ${isLiked ? "bg-red-500" : "bg-white/90 backdrop-blur-sm"}`}
-                >
+                <button onClick={toggleLike} className={`w-9 h-9 rounded-full flex items-center justify-center shadow-sm transition-all ${isLiked ? "bg-red-500" : "bg-white/90 backdrop-blur-sm"}`}>
                   <Heart size={15} fill={isLiked ? "white" : "none"} className={isLiked ? "text-white" : "text-slate-700"} />
                 </button>
               </div>
             </div>
-
-            {/* Prev / Next arrows */}
             {images.length > 1 && (
               <>
                 <button onClick={() => setActiveImg((p) => (p - 1 + images.length) % images.length)} className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center">
@@ -629,8 +818,6 @@ export default function DetailPage() {
                 </button>
               </>
             )}
-
-            {/* Dot indicator + counter */}
             {images.length > 1 && (
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
                 {images.map((_, i) => (
@@ -638,25 +825,13 @@ export default function DetailPage() {
                 ))}
               </div>
             )}
-
-            <div className="absolute bottom-4 right-4 bg-black/40 backdrop-blur-sm text-white text-[11px] font-medium px-2.5 py-1 rounded-full">
-              {activeImg + 1} / {images.length}
-            </div>
+            <div className="absolute bottom-4 right-4 bg-black/40 backdrop-blur-sm text-white text-[11px] font-medium px-2.5 py-1 rounded-full">{activeImg + 1} / {images.length}</div>
           </div>
 
-          {/* ── THUMBNAIL STRIP (only when >1 image) ── */}
           {images.length > 1 && (
-            <div
-              ref={thumbsRef}
-              className="flex gap-2 overflow-x-auto px-4 py-3 bg-white border-b border-slate-100 scrollbar-hide"
-              style={{ scrollbarWidth: "none" }}
-            >
+            <div ref={thumbsRef} className="flex gap-2 overflow-x-auto px-4 py-3 bg-white border-b border-slate-100 scrollbar-hide" style={{ scrollbarWidth: "none" }}>
               {images.map((src, i) => (
-                <button
-                  key={i}
-                  onClick={() => setActiveImg(i)}
-                  className={`flex-shrink-0 w-16 h-14 rounded-xl overflow-hidden border-2 transition-all ${i === activeImg ? "border-blue-500 shadow-md shadow-blue-100" : "border-transparent opacity-60"}`}
-                >
+                <button key={i} onClick={() => setActiveImg(i)} className={`flex-shrink-0 w-16 h-14 rounded-xl overflow-hidden border-2 transition-all ${i === activeImg ? "border-blue-500 shadow-md shadow-blue-100" : "border-transparent opacity-60"}`}>
                   <img src={src} alt={`foto ${i + 1}`} className="w-full h-full object-cover" />
                 </button>
               ))}
@@ -666,21 +841,14 @@ export default function DetailPage() {
 
         {/* ── MAIN CONTENT ── */}
         <div className="px-5 pt-5">
-
           <div className="flex items-center gap-2 mb-3 flex-wrap">
-            {item.isFeatured && (
-              <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-amber-400 text-amber-900 tracking-wide">UNGGULAN</span>
-            )}
+            {item.isFeatured && <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-amber-400 text-amber-900 tracking-wide">UNGGULAN</span>}
             {item.isVerified && (
               <span className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
                 <BadgeCheck size={12} /> Terverifikasi
               </span>
             )}
-            {gender && (
-              <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full border" style={{ background: gender.bg, color: gender.text, borderColor: gender.border }}>
-                {gender.label}
-              </span>
-            )}
+            {gender && <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full border" style={{ background: gender.bg, color: gender.text, borderColor: gender.border }}>{gender.label}</span>}
             <div className="flex items-center gap-1 ml-auto">
               <Star size={12} className="text-amber-400 fill-amber-400" />
               <span className="text-[12px] font-semibold text-slate-700">{item.rating}</span>
@@ -712,9 +880,9 @@ export default function DetailPage() {
 
           <div className="grid grid-cols-3 gap-2.5 mb-6">
             {[
-              { icon: <Ruler size={14} className="text-blue-500" />,       label: "Luas Kamar", value: item.size,           bg: "#EFF6FF" },
-              { icon: <Home size={14} className="text-purple-500" />,      label: "Tipe Kost",  value: gender?.label || "Umum", bg: "#F5F3FF" },
-              { icon: <DoorOpen size={14} className="text-emerald-500" />, label: "Status",     value: "Tersedia",           bg: "#F0FDF4" },
+              { icon: <Ruler size={14} className="text-blue-500" />, label: "Luas Kamar", value: item.size, bg: "#EFF6FF" },
+              { icon: <Home size={14} className="text-purple-500" />, label: "Tipe Kost", value: gender?.label || "Umum", bg: "#F5F3FF" },
+              { icon: <DoorOpen size={14} className="text-emerald-500" />, label: "Status", value: "Tersedia", bg: "#F0FDF4" },
             ].map((s, i) => (
               <div key={i} className="rounded-2xl p-3.5" style={{ background: s.bg }}>
                 <div className="mb-2">{s.icon}</div>
@@ -750,6 +918,26 @@ export default function DetailPage() {
             </div>
           )}
 
+          {item.latitude && item.longitude && (
+            <div className="mb-6">
+              <h2 className="text-[16px] font-bold text-slate-800 mb-4">Lokasi Hunian</h2>
+              <div className="rounded-2xl overflow-hidden border border-slate-100 shadow-sm" style={{ height: 280 }}>
+                <MapContainer center={[item.latitude, item.longitude]} zoom={15} style={{ width: "100%", height: "100%" }} zoomControl={false}>
+                  <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                  <Marker position={[item.latitude, item.longitude]} icon={createPriceIcon(item.price, true)} />
+                  <MapCenter lat={item.latitude} lng={item.longitude} />
+                </MapContainer>
+              </div>
+              <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-start gap-2">
+                <Navigation size={14} className="text-blue-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-[12px] font-semibold text-blue-700">📍 {item.location}</p>
+                  <p className="text-[11px] text-blue-600 mt-1">Tap map untuk melihat petunjuk arah lengkap atau rute dari lokasi kamu.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {item.rules.length > 0 && (
             <div className="mb-6">
               <h2 className="text-[16px] font-bold text-slate-800 mb-4">Peraturan Kost</h2>
@@ -764,7 +952,6 @@ export default function DetailPage() {
             </div>
           )}
 
-          {/* ── OWNER CARD with WA + Web buttons ── */}
           <div className="mb-6">
             <h2 className="text-[16px] font-bold text-slate-800 mb-3">Pemilik Kost</h2>
             <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4">
@@ -781,71 +968,43 @@ export default function DetailPage() {
                   <span className="text-[11px] text-emerald-600 font-medium">Online</span>
                 </div>
               </div>
-
-              {/* Contact buttons */}
               <div className="grid grid-cols-2 gap-2.5">
-                {/* WhatsApp */}
-                <button
-                  onClick={() => window.open(`https://wa.me/${formatPhone(item.contactNumber)}?text=Halo kak, saya tertarik dengan kost ${encodeURIComponent(item.name)}`, "_blank")}
+                <button onClick={() => window.open(`https://wa.me/${formatPhone(item.contactNumber)}?text=Halo kak, saya tertarik dengan kost ${encodeURIComponent(item.name)}`, "_blank")}
                   className="flex items-center justify-center gap-2 h-11 rounded-xl font-semibold text-[13px] text-white active:scale-[0.97] transition-transform"
-                  style={{ background: "linear-gradient(135deg, #25D366, #128C7E)" }}
-                >
-                  {/* WhatsApp icon inline SVG */}
+                  style={{ background: "linear-gradient(135deg, #25D366, #128C7E)" }}>
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-                    <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.555 4.126 1.527 5.858L.057 23.617a.75.75 0 0 0 .92.92l5.818-1.488A11.946 11.946 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.75 9.75 0 0 1-4.964-1.358l-.356-.214-3.695.945.962-3.617-.232-.371A9.75 9.75 0 1 1 12 21.75z"/>
+                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+                    <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.555 4.126 1.527 5.858L.057 23.617a.75.75 0 0 0 .92.92l5.818-1.488A11.946 11.946 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.75 9.75 0 0 1-4.964-1.358l-.356-.214-3.695.945.962-3.617-.232-.371A9.75 9.75 0 1 1 12 21.75z" />
                   </svg>
                   WhatsApp
                 </button>
-
-                {/* Chat in-app */}
-                <button
-                  onClick={openChat}
-                  className="flex items-center justify-center gap-2 h-11 rounded-xl font-semibold text-[13px] text-blue-700 bg-blue-50 border border-blue-100 active:scale-[0.97] transition-transform"
-                >
+                <button onClick={openChat} className="flex items-center justify-center gap-2 h-11 rounded-xl font-semibold text-[13px] text-blue-700 bg-blue-50 border border-blue-100 active:scale-[0.97] transition-transform">
                   <MessageCircle size={16} className="text-blue-500" />
                   Chat di App
                 </button>
               </div>
             </div>
           </div>
-
         </div>
       </div>
 
       {/* ── CTA BAR ── */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-100 px-4 py-3" style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}>
         <div className="flex items-center gap-2.5 max-w-xl mx-auto">
-          <button
-            onClick={toggleLike}
-            className={`w-12 h-12 rounded-2xl border flex items-center justify-center flex-shrink-0 transition-colors ${isLiked ? "bg-red-50 border-red-200" : "bg-slate-50 border-slate-200"}`}
-          >
+          <button onClick={toggleLike} className={`w-12 h-12 rounded-2xl border flex items-center justify-center flex-shrink-0 transition-colors ${isLiked ? "bg-red-50 border-red-200" : "bg-slate-50 border-slate-200"}`}>
             <Heart size={18} fill={isLiked ? "#EF4444" : "none"} className={isLiked ? "text-red-500" : "text-slate-500"} />
           </button>
-
-          {/* Saya Minat button */}
-          <button
-            onClick={() => setShowMinat(true)}
-            className="flex-1 h-12 rounded-2xl border border-blue-200 bg-blue-50 text-blue-700 font-semibold text-[13px] active:scale-[0.97] transition-transform flex items-center justify-center gap-2"
-          >
-            <Star size={15} className="text-blue-500" />
-            Saya Minat
+          <button onClick={() => setShowMinat(true)} className="flex-1 h-12 rounded-2xl border border-blue-200 bg-blue-50 text-blue-700 font-semibold text-[13px] active:scale-[0.97] transition-transform flex items-center justify-center gap-2">
+            <Star size={15} className="text-blue-500" /> Saya Minat
           </button>
-
-          <button
-            onClick={() => setShowSewa(true)}
-            className="flex-1 h-12 rounded-2xl bg-blue-600 text-white font-semibold text-[13px] active:scale-[0.97] transition-transform shadow-lg shadow-blue-200 flex items-center justify-center gap-2"
-          >
-            <Calendar size={15} />
-            Ajukan Sewa
+          <button onClick={() => setShowSewa(true)} className="flex-1 h-12 rounded-2xl bg-blue-600 text-white font-semibold text-[13px] active:scale-[0.97] transition-transform shadow-lg shadow-blue-200 flex items-center justify-center gap-2">
+            <Calendar size={15} /> Ajukan Sewa
           </button>
         </div>
       </div>
 
-      {/* ── MINAT MODAL ── */}
       {showMinat && <MinatModal item={item} onClose={() => setShowMinat(false)} />}
 
-      {/* ── CHAT MODAL ── */}
       {showChat && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end justify-center" onClick={(e) => e.target === e.currentTarget && setShowChat(false)}>
           <div className="bg-white w-full max-w-lg rounded-t-3xl px-5 pt-3 pb-6 animate-[slideUp_0.3s_ease]">
@@ -856,7 +1015,6 @@ export default function DetailPage() {
                 <X size={16} className="text-slate-500" />
               </button>
             </div>
-
             <div className="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 mb-3">
               <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-white font-bold text-base flex-shrink-0">
                 {item.ownerName?.[0]?.toUpperCase() || "P"}
@@ -869,11 +1027,7 @@ export default function DetailPage() {
                 </div>
               </div>
             </div>
-
-            {chatError && (
-              <div className="bg-red-50 border border-red-100 text-red-500 text-[13px] rounded-2xl px-4 py-3 mb-3">{chatError}</div>
-            )}
-
+            {chatError && <div className="bg-red-50 border border-red-100 text-red-500 text-[13px] rounded-2xl px-4 py-3 mb-3">{chatError}</div>}
             <div className="h-52 overflow-y-auto flex flex-col gap-2.5 mb-3 px-0.5">
               {chatLoading ? (
                 <div className="flex items-center justify-center h-full"><Loader2 size={22} className="text-slate-300 animate-spin" /></div>
@@ -901,7 +1055,6 @@ export default function DetailPage() {
               )}
               <div ref={chatEndRef} />
             </div>
-
             {!quickUsed && !chatLoading && !chatError && (
               <div className="flex gap-2 flex-wrap mb-3">
                 {QUICK_REPLIES.map((q) => (
@@ -909,22 +1062,14 @@ export default function DetailPage() {
                 ))}
               </div>
             )}
-
             <div className="flex items-center gap-2 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-2.5">
-              <input
-                type="text"
-                placeholder="Ketik pesan..."
-                value={chatInput}
+              <input type="text" placeholder="Ketik pesan..." value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) sendMessage(chatInput); }}
                 disabled={chatLoading || !!chatError}
-                className="flex-1 bg-transparent text-[14px] text-slate-700 placeholder-slate-400 outline-none disabled:opacity-50"
-              />
-              <button
-                onClick={() => sendMessage(chatInput)}
-                disabled={!chatInput.trim() || sendLoading || chatLoading || !!chatError}
-                className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm shadow-blue-200 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
+                className="flex-1 bg-transparent text-[14px] text-slate-700 placeholder-slate-400 outline-none disabled:opacity-50" />
+              <button onClick={() => sendMessage(chatInput)} disabled={!chatInput.trim() || sendLoading || chatLoading || !!chatError}
+                className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm shadow-blue-200 disabled:opacity-40 disabled:cursor-not-allowed">
                 {sendLoading ? <Loader2 size={14} className="text-white animate-spin" /> : <Send size={14} className="text-white" />}
               </button>
             </div>
@@ -933,10 +1078,7 @@ export default function DetailPage() {
       )}
 
       <style>{`
-        @keyframes slideUp {
-          from { transform: translateY(100%); opacity: 0; }
-          to   { transform: translateY(0);    opacity: 1; }
-        }
+        @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
       `}</style>
     </>

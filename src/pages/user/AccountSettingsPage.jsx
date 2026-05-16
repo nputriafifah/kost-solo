@@ -94,9 +94,8 @@ export default function AccountSettings() {
           {fields.map(({ key, icon: Icon, label, type, inputMode }, idx) => (
             <div
               key={key}
-              className={`px-4 py-3.5 ${
-                idx !== fields.length - 1 ? "border-b border-slate-50" : ""
-              }`}
+              className={`px-4 py-3.5 ${idx !== fields.length - 1 ? "border-b border-slate-50" : ""
+                }`}
             >
               {editingField === key ? (
                 // Mode edit — inline input
@@ -146,9 +145,8 @@ export default function AccountSettings() {
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-slate-400 mb-0.5">{label}</p>
                     <p
-                      className={`text-sm font-semibold truncate ${
-                        userData[key] ? "text-slate-800" : "text-slate-300"
-                      }`}
+                      className={`text-sm font-semibold truncate ${userData[key] ? "text-slate-800" : "text-slate-300"
+                        }`}
                     >
                       {userData[key] || "Belum diatur"}
                     </p>

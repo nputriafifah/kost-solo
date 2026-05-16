@@ -122,11 +122,10 @@ export default function NotifikasiPage() {
                 key={notif.id}
                 onClick={() => tandaiSatu(notif.id)}
                 aria-label={`Notifikasi: ${notif.title}`}
-                className={`w-full flex items-start gap-3 p-4 rounded-2xl text-left transition-colors active:scale-[0.98] border ${
-                  notif.unread
+                className={`w-full flex items-start gap-3 p-4 rounded-2xl text-left transition-colors active:scale-[0.98] border ${notif.unread
                     ? "bg-white border-blue-100"
                     : "bg-white border-slate-100"
-                }`}
+                  }`}
               >
                 {/* Ikon */}
                 <div
@@ -139,9 +138,8 @@ export default function NotifikasiPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2 mb-0.5">
                     <p
-                      className={`text-sm font-semibold truncate ${
-                        notif.unread ? "text-slate-900" : "text-slate-500"
-                      }`}
+                      className={`text-sm font-semibold truncate ${notif.unread ? "text-slate-900" : "text-slate-500"
+                        }`}
                     >
                       {notif.title}
                     </p>

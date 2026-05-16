@@ -43,63 +43,63 @@ function KostCardSkeleton() {
 const GENDER_FILTERS = ["Semua", "Putra", "Putri", "Campur"];
 
 const SORT_OPTIONS = [
-  { value: "",              label: "Paling Direkomendasikan" },
-  { value: "lowest_price",  label: "Harga Termurah"          },
-  { value: "highest_price", label: "Harga Tertinggi"         },
-  { value: "newest",        label: "Terbaru"                 },
+  { value: "", label: "Paling Direkomendasikan" },
+  { value: "lowest_price", label: "Harga Termurah" },
+  { value: "highest_price", label: "Harga Tertinggi" },
+  { value: "newest", label: "Terbaru" },
 ];
 
 const NAV_ITEMS = [
-  { label: "Home",    path: "/",        icon: Home,          desktop: true,  mobile: true,  guestMobile: true  },
-  { label: "Search",  path: "/search",  icon: Search,        desktop: true,  mobile: true,  guestMobile: true  },
-  { label: "Peta",    path: "/map",     icon: Map,           desktop: true,  mobile: true,  guestMobile: true  },
-  { label: "Favorit", path: "/like",    icon: Heart,         desktop: true,  mobile: true,  guestMobile: false },
-  { label: "Chat",    path: "/chat",    icon: MessageCircle, desktop: false, mobile: false, guestMobile: false },
-  { label: "Profil",  path: "/profil",  icon: User,          desktop: false, mobile: true,  guestMobile: false },
+  { label: "Home", path: "/", icon: Home, desktop: true, mobile: true, guestMobile: true },
+  { label: "Search", path: "/search", icon: Search, desktop: true, mobile: true, guestMobile: true },
+  { label: "Peta", path: "/map", icon: Map, desktop: true, mobile: true, guestMobile: true },
+  { label: "Favorit", path: "/like", icon: Heart, desktop: true, mobile: true, guestMobile: false },
+  { label: "Chat", path: "/chat", icon: MessageCircle, desktop: false, mobile: false, guestMobile: false },
+  { label: "Profil", path: "/profil", icon: User, desktop: false, mobile: true, guestMobile: false },
 ];
 
 const DESKTOP_LINKS = NAV_ITEMS.filter((n) => n.desktop);
-const MOBILE_NAV    = NAV_ITEMS.filter((n) => n.mobile);
-const GUEST_MOBILE  = NAV_ITEMS.filter((n) => n.guestMobile);
+const MOBILE_NAV = NAV_ITEMS.filter((n) => n.mobile);
+const GUEST_MOBILE = NAV_ITEMS.filter((n) => n.guestMobile);
 
 /* =========================================================
    COMPONENT
 ========================================================= */
 export default function AllListingsPage() {
-  const navigate    = useNavigate();
-  const location    = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
   const currentPath = location.pathname;
-  const menuRef     = useRef(null);
-  const sortRef     = useRef(null);
+  const menuRef = useRef(null);
+  const sortRef = useRef(null);
 
-  const [data,             setData]            = useState([]);
-  const [loading,          setLoading]         = useState(true);
-  const [error,            setError]           = useState(null);
-  const [activeGender,     setActiveGender]    = useState("Semua");
-  const [minPrice,         setMinPrice]        = useState("");
-  const [maxPrice,         setMaxPrice]        = useState("");
-  const [sort,             setSort]            = useState("");
-  const [showSortDropdown, setShowSortDropdown]= useState(false);
-  const [showFilterDrawer, setShowFilterDrawer]= useState(false);
-  const [tmpGender,        setTmpGender]       = useState("Semua");
-  const [tmpMin,           setTmpMin]          = useState("");
-  const [tmpMax,           setTmpMax]          = useState("");
-  const [tmpSort,          setTmpSort]         = useState("");
-  const [favorites,        setFavorites]       = useState([]);
-  const [showMenu,         setShowMenu]        = useState(false);
-  const [aiTagline,        setAiTagline]       = useState("");
-  const [aiLoading,        setAiLoading]       = useState(true);
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [activeGender, setActiveGender] = useState("Semua");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [sort, setSort] = useState("");
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
+  const [showFilterDrawer, setShowFilterDrawer] = useState(false);
+  const [tmpGender, setTmpGender] = useState("Semua");
+  const [tmpMin, setTmpMin] = useState("");
+  const [tmpMax, setTmpMax] = useState("");
+  const [tmpSort, setTmpSort] = useState("");
+  const [favorites, setFavorites] = useState([]);
+  const [showMenu, setShowMenu] = useState(false);
+  const [aiTagline, setAiTagline] = useState("");
+  const [aiLoading, setAiLoading] = useState(true);
 
-  
-  const user       = JSON.parse(localStorage.getItem("user") || "null");
+
+  const user = JSON.parse(localStorage.getItem("user") || "null");
   const isLoggedIn = !!user;
-  const userName   = user?.name || "Guest";
-  const token      = localStorage.getItem("token");
-  const initials   = isLoggedIn
+  const userName = user?.name || "Guest";
+  const token = localStorage.getItem("token");
+  const initials = isLoggedIn
     ? userName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "GU";
 
-    
+
   /* close dropdowns on outside click */
   useEffect(() => {
     const h = (e) => {
@@ -157,7 +157,7 @@ export default function AllListingsPage() {
 
   const handleToggleLike = async (id) => {
     if (!isLoggedIn) { navigate("/auth"); return; }
-    const idStr   = String(id);
+    const idStr = String(id);
     const isLiked = favorites.includes(idStr);
     try {
       const res = await fetch(`http://localhost:3000/favorites/${idStr}`, {
@@ -173,27 +173,27 @@ export default function AllListingsPage() {
   const fetchListings = async () => {
     setLoading(true); setError(null);
     try {
-      const res  = await fetch("http://localhost:3000/listings");
+      const res = await fetch("http://localhost:3000/listings");
       if (!res.ok) throw new Error(`${res.status}`);
       const json = await res.json();
-      const raw  = Array.isArray(json) ? json : Array.isArray(json.data) ? json.data : [];
+      const raw = Array.isArray(json) ? json : Array.isArray(json.data) ? json.data : [];
       setData(
         raw.map((item) => {
           const room = item.roomTypes?.[0] || {};
           return {
-            id:        String(item.id),
-            name:      item.name    || "Tanpa Nama",
-            location:  item.address || "Lokasi tidak tersedia",
-            price:     room.price   ?? 0,
-            gender:    (item.genderType || "").toLowerCase(),
-            image:     room.photos?.[0]?.url || "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267",
+            id: String(item.id),
+            name: item.name || "Tanpa Nama",
+            location: item.address || "Lokasi tidak tersedia",
+            price: room.price ?? 0,
+            gender: (item.genderType || "").toLowerCase(),
+            image: room.photos?.[0]?.url || "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267",
             available: room.availableCount ?? 0,
             isPremium: item.isPremium || false,
           };
         })
       );
     } catch { setError("Gagal memuat data"); }
-    finally  { setLoading(false); }
+    finally { setLoading(false); }
   };
 
   useEffect(() => { fetchListings(); }, []);
@@ -205,7 +205,7 @@ export default function AllListingsPage() {
       list = list.filter((item) => item.gender?.toLowerCase() === activeGender.toLowerCase());
     if (minPrice) list = list.filter((item) => item.price >= Number(minPrice));
     if (maxPrice) list = list.filter((item) => item.price <= Number(maxPrice));
-    if (sort === "lowest_price")  list.sort((a, b) => a.price - b.price);
+    if (sort === "lowest_price") list.sort((a, b) => a.price - b.price);
     if (sort === "highest_price") list.sort((a, b) => b.price - a.price);
     return list;
   }, [data, activeGender, minPrice, maxPrice, sort]);

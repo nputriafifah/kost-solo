@@ -28,12 +28,7 @@ import EditListingPage from "./pages/owner/EditListingPage";
 import DetailListingPage from "./pages/owner/DetailListingPage";
 import PropertiPage from "./pages/owner/PropertiPage";
 import OwnerChatPage from "./pages/owner/OwnerChatPage";
-import OwnerChatDetailPage from "./pages/owner/OwnerChatDetailPage";
-import SurveyPage     from "./pages/owner/SurveyPage";
-import PendapatanPage from "./pages/owner/PendapatanPage";
-import PromosiPage    from "./pages/owner/PromosiPage";
-import StatistikPage from "./pages/owner/Statisctic"; 
-import ProfilOwnerPage from "./pages/owner/ProfilPage"; 
+
 
 // ADMIN
 // ✅ Yang baru
@@ -76,9 +71,7 @@ export default function App() {
         <Route path="/verify-otp" element={<OtpPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
-<Route path="/owner/survey"     element={<SurveyPage />} />
-<Route path="/owner/pendapatan" element={<PendapatanPage />} />
-<Route path="/owner/promosi"    element={<PromosiPage />} />
+
         {/* USER */}
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/semua" element={<AllListingsPage />} />
@@ -228,15 +221,6 @@ export default function App() {
           }
         />
 
-<Route
-  path="/owner/chat/:id"
-  element={
-    <ProtectedRoute role="pemilik">
-      <OwnerChatDetailPage />
-    </ProtectedRoute>
-  }
-/>
-
         {/* ✅ TAMBAHKAN DI SINI, sebelum fallback */}
         <Route
           path="/owner/properti"
@@ -247,23 +231,6 @@ export default function App() {
           }
         />
 
-<Route
-  path="/owner/statistik"
-  element={
-    <ProtectedRoute role="pemilik">
-      <StatistikPage />
-    </ProtectedRoute>
-  }
-/>
-
-<Route
-  path="/owner/profil"
-  element={
-    <ProtectedRoute role="pemilik">
-      <ProfilOwnerPage />
-    </ProtectedRoute>
-  }
-/>
         {/* FALLBACK */}
         <Route path="*" element={<Navigate to="/" replace />} />
 
@@ -291,4 +258,3 @@ export default function App() {
     </ProtectedRoute>
   }
 />
-
