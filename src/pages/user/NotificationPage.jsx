@@ -123,8 +123,8 @@ export default function NotifikasiPage() {
                 onClick={() => tandaiSatu(notif.id)}
                 aria-label={`Notifikasi: ${notif.title}`}
                 className={`w-full flex items-start gap-3 p-4 rounded-2xl text-left transition-colors active:scale-[0.98] border ${notif.unread
-                    ? "bg-white border-blue-100"
-                    : "bg-white border-slate-100"
+                  ? "bg-white border-blue-100"
+                  : "bg-white border-slate-100"
                   }`}
               >
                 {/* Ikon */}

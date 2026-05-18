@@ -27,23 +27,23 @@ const formatPrice = (price) => {
 };
 
 const NAV_ITEMS = [
-  { label: "Home",    path: "/",       icon: Home,          desktop: true,  mobile: true,  guestMobile: true  },
-  { label: "Search",  path: "/search", icon: Search,        desktop: true,  mobile: true,  guestMobile: true  },
-  { label: "Peta",    path: "/map",    icon: Map,           desktop: true,  mobile: true,  guestMobile: true  },
-  { label: "Favorit", path: "/like",   icon: Heart,         desktop: true,  mobile: true,  guestMobile: false },
-  { label: "Chat",    path: "/chat",   icon: MessageCircle, desktop: false, mobile: true,  guestMobile: false }, // ← tambah ini
-  { label: "Profil",  path: "/profil", icon: User,          desktop: false, mobile: true,  guestMobile: false },
+  { label: "Home", path: "/", icon: Home, desktop: true, mobile: true, guestMobile: true },
+  { label: "Search", path: "/search", icon: Search, desktop: true, mobile: true, guestMobile: true },
+  { label: "Peta", path: "/map", icon: Map, desktop: true, mobile: true, guestMobile: true },
+  { label: "Favorit", path: "/like", icon: Heart, desktop: true, mobile: true, guestMobile: false },
+  { label: "Chat", path: "/chat", icon: MessageCircle, desktop: false, mobile: true, guestMobile: false }, // ← tambah ini
+  { label: "Profil", path: "/profil", icon: User, desktop: false, mobile: true, guestMobile: false },
 ];
 
 const DESKTOP_LINKS = NAV_ITEMS.filter((n) => n.desktop);
-const MOBILE_NAV    = NAV_ITEMS.filter((n) => n.mobile);
-const GUEST_MOBILE  = NAV_ITEMS.filter((n) => n.guestMobile);
+const MOBILE_NAV = NAV_ITEMS.filter((n) => n.mobile);
+const GUEST_MOBILE = NAV_ITEMS.filter((n) => n.guestMobile);
 
 /* ─── Custom Price Marker ───────────────────────────────────────────────── */
 function createPriceIcon(price, active = false) {
-  const label  = `Rp ${formatPrice(price)}`;
-  const bg     = active ? "#4F46E5" : "#ffffff";
-  const color  = active ? "#ffffff" : "#1A1A1A";
+  const label = `Rp ${formatPrice(price)}`;
+  const bg = active ? "#4F46E5" : "#ffffff";
+  const color = active ? "#ffffff" : "#1A1A1A";
   const border = active ? "#4338CA" : "#CBD5E1";
   const shadow = active
     ? "0 4px 18px rgba(79,70,229,.55)"
@@ -101,8 +101,8 @@ function createPriceIcon(price, active = false) {
         "></span>
       </div>
     `,
-    iconSize:    [90, 32],
-    iconAnchor:  [45, 39],
+    iconSize: [90, 32],
+    iconAnchor: [45, 39],
     popupAnchor: [0, -42],
   });
 }
@@ -118,29 +118,29 @@ function FlyToLocation({ coords }) {
 
 /* ─── Main Component ────────────────────────────────────────────────────── */
 export default function MapPage() {
-  const navigate    = useNavigate();
-  const location    = useLocation();
-  const menuRef     = useRef(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const menuRef = useRef(null);
   const currentPath = location.pathname;
   const debounceRef = useRef(null);
 
   const [selectedKost, setSelectedKost] = useState(null);
-  const [showFilter,   setShowFilter]   = useState(false);
-  const [maxPrice,     setMaxPrice]     = useState("");
-  const [searchQuery,  setSearchQuery]  = useState("");
-  const [kosData,      setKosData]      = useState([]);
-  const [loading,      setLoading]      = useState(false);
-  const [userCoords,   setUserCoords]   = useState(null);
-  const [locating,     setLocating]     = useState(false);
-  const [showMenu,     setShowMenu]     = useState(false);
-  const [unreadCount,  setUnreadCount]  = useState(0);
-  const [unreadChat,   setUnreadChat]   = useState(0);
+  const [showFilter, setShowFilter] = useState(false);
+  const [maxPrice, setMaxPrice] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [kosData, setKosData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [userCoords, setUserCoords] = useState(null);
+  const [locating, setLocating] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadChat, setUnreadChat] = useState(0);
 
-  const user       = JSON.parse(localStorage.getItem("user") || "null");
+  const user = JSON.parse(localStorage.getItem("user") || "null");
   const isLoggedIn = !!user;
-  const userName   = user?.name || "Guest";
-  const token      = localStorage.getItem("token");
-  const initials   = isLoggedIn
+  const userName = user?.name || "Guest";
+  const token = localStorage.getItem("token");
+  const initials = isLoggedIn
     ? userName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "GU";
 
@@ -151,8 +151,8 @@ export default function MapPage() {
       try { setUnreadCount(JSON.parse(saved).filter((n) => n.unread).length); }
       catch { setUnreadCount(0); }
     } else {
-    setUnreadCount(2); // ← tambah ini, sama seperti dashboard
-  }
+      setUnreadCount(2); // ← tambah ini, sama seperti dashboard
+    }
   }, []);
 
   useEffect(() => {
@@ -617,7 +617,7 @@ export default function MapPage() {
           {(isLoggedIn ? MOBILE_NAV : GUEST_MOBILE).map(({ label, path, icon: Icon }) => {
             const isActive = currentPath === path;
             const isProfil = path === "/profil";
-            const isChat   = path === "/chat";
+            const isChat = path === "/chat";
             return (
               <button key={path} className={`mp-bn-item${isActive ? " active" : ""}`} onClick={() => navigate(path)}>
                 {isProfil && isLoggedIn ? (

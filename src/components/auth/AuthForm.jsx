@@ -109,9 +109,9 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
 
           if (adminRes.ok) {
             const token = adminJson.token;
-const user  = adminJson.user;
+            const user = adminJson.user;
             if (token) localStorage.setItem("token", token);
-            if (user)  localStorage.setItem("user", JSON.stringify(user));
+            if (user) localStorage.setItem("user", JSON.stringify(user));
             setSuccess("Login sebagai admin berhasil...");
             setTimeout(() => navigate("/admin/dashboard"), 800);
             return;
@@ -124,9 +124,9 @@ const user  = adminJson.user;
         const action = getAuthAction(role, true);
         const result = await action({ email: form.email, password: form.password });
         const token = result.token || result?.data?.token;
-        const user  = result.user  || result?.data?.user;
+        const user = result.user || result?.data?.user;
         if (token) localStorage.setItem("token", token);
-        if (user)  localStorage.setItem("user", JSON.stringify(user));
+        if (user) localStorage.setItem("user", JSON.stringify(user));
         setSuccess("Login berhasil...");
         setTimeout(() => navigate("/dashboard"), 800);
         return;

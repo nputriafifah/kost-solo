@@ -16,22 +16,22 @@ import { useNavigate } from "react-router-dom";
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl:       "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl:     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
 /* ─── Price Marker (sama seperti MapPage) ───────────────────────────────── */
 function createPriceIcon(price, active = false) {
-  const label  = price >= 1_000_000
+  const label = price >= 1_000_000
     ? `Rp ${(price / 1_000_000).toFixed(1).replace(".0", "")}jt`
     : `Rp ${Math.round(price / 1_000)}rb`;
-  const bg     = active ? "#4F46E5" : "#ffffff";
-  const color  = active ? "#ffffff" : "#1A1A1A";
+  const bg = active ? "#4F46E5" : "#ffffff";
+  const color = active ? "#ffffff" : "#1A1A1A";
   const border = active ? "#4338CA" : "#CBD5E1";
   const shadow = active
     ? "0 4px 18px rgba(79,70,229,.55)"
     : "0 2px 10px rgba(0,0,0,.20)";
-  const tip    = active ? "#4F46E5" : "#ffffff";
+  const tip = active ? "#4F46E5" : "#ffffff";
 
   return L.divIcon({
     className: "",
@@ -77,8 +77,8 @@ function createPriceIcon(price, active = false) {
         "></span>
       </div>
     `,
-    iconSize:    [90, 32],
-    iconAnchor:  [45, 39],
+    iconSize: [90, 32],
+    iconAnchor: [45, 39],
     popupAnchor: [0, -42],
   });
 }
@@ -154,7 +154,7 @@ function DropdownPortal({ anchorRef, children, onClose }) {
 }
 
 /* ─── Constants ─────────────────────────────────────────────────────────── */
-const BASE_URL    = "http://localhost:3000";
+const BASE_URL = "http://localhost:3000";
 const HISTORY_KEY = "atap_search_history";
 
 const TRENDS = [
@@ -162,24 +162,24 @@ const TRENDS = [
 ];
 
 const GENDER_FILTERS = [
-  { value: "PUTRA",  label: "Putra"  },
-  { value: "PUTRI",  label: "Putri"  },
+  { value: "PUTRA", label: "Putra" },
+  { value: "PUTRI", label: "Putri" },
   { value: "CAMPUR", label: "Campur" },
 ];
 
 const SORT_OPTIONS = [
-  { value: "relevance",    label: "Terdekat dulu"  },
+  { value: "relevance", label: "Terdekat dulu" },
   { value: "lowest_price", label: "Harga termurah" },
-  { value: "highest_price",label: "Harga tertinggi"},
-  { value: "newest",       label: "Terbaru"        },
+  { value: "highest_price", label: "Harga tertinggi" },
+  { value: "newest", label: "Terbaru" },
 ];
 
-const UNS_COORDS  = { lat: -7.5583, lng: 110.8572 };
+const UNS_COORDS = { lat: -7.5583, lng: 110.8572 };
 
 const PRICE_PRESETS = [
-  { label: "< Rp 1jt",  min: "",        max: "1000000" },
-  { label: "Rp 1–2jt",  min: "1000000", max: "2000000" },
-  { label: "> Rp 2jt",  min: "2000000", max: ""        },
+  { label: "< Rp 1jt", min: "", max: "1000000" },
+  { label: "Rp 1–2jt", min: "1000000", max: "2000000" },
+  { label: "> Rp 2jt", min: "2000000", max: "" },
 ];
 
 /* ─── CSS ────────────────────────────────────────────────────────────────── */
@@ -442,40 +442,40 @@ body { background:#F5F5F5; font-family:'DM Sans',sans-serif; color:#0F172A; }
 
 /* ─── Component ─────────────────────────────────────────────────────────── */
 export default function SearchPage() {
-  const navigate    = useNavigate();
+  const navigate = useNavigate();
   const debounceRef = useRef(null);
 
-  const [query,           setQuery]           = useState("");
-  const [focused,         setFocused]         = useState(false);
-  const [results,         setResults]         = useState([]);
-  const [loading,         setLoading]         = useState(false);
-  const [searched,        setSearched]        = useState(false);
-  const [activeDropdown,  setActiveDropdown]  = useState(null);
-  const [view,            setView]            = useState("map");
-  const [activePinId,     setActivePinId]     = useState(null);
+  const [query, setQuery] = useState("");
+  const [focused, setFocused] = useState(false);
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState(null);
+  const [view, setView] = useState("map");
+  const [activePinId, setActivePinId] = useState(null);
 
   const [selectedGenders, setSelectedGenders] = useState([]);
-  const [minPrice,        setMinPrice]        = useState("");
-  const [maxPrice,        setMaxPrice]        = useState("");
-  const [sort,            setSort]            = useState("relevance");
-  const [pricePreset,     setPricePreset]     = useState(null);
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [sort, setSort] = useState("relevance");
+  const [pricePreset, setPricePreset] = useState(null);
 
   const genderAnchorRef = useRef(null);
-  const priceAnchorRef  = useRef(null);
-  const sortAnchorRef   = useRef(null);
+  const priceAnchorRef = useRef(null);
+  const sortAnchorRef = useRef(null);
 
   // refs untuk hindari stale closure
-  const minPriceRef       = useRef(minPrice);
-  const maxPriceRef       = useRef(maxPrice);
-  const sortRef           = useRef(sort);
+  const minPriceRef = useRef(minPrice);
+  const maxPriceRef = useRef(maxPrice);
+  const sortRef = useRef(sort);
   const selectedGendersRef = useRef(selectedGenders);
-  const queryRef          = useRef(query);
+  const queryRef = useRef(query);
 
-  useEffect(() => { minPriceRef.current       = minPrice;        }, [minPrice]);
-  useEffect(() => { maxPriceRef.current       = maxPrice;        }, [maxPrice]);
-  useEffect(() => { sortRef.current           = sort;            }, [sort]);
+  useEffect(() => { minPriceRef.current = minPrice; }, [minPrice]);
+  useEffect(() => { maxPriceRef.current = maxPrice; }, [maxPrice]);
+  useEffect(() => { sortRef.current = sort; }, [sort]);
   useEffect(() => { selectedGendersRef.current = selectedGenders; }, [selectedGenders]);
-  useEffect(() => { queryRef.current          = query;           }, [query]);
+  useEffect(() => { queryRef.current = query; }, [query]);
 
   const [history, setHistory] = useState(() => {
     try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"); }
@@ -530,27 +530,27 @@ export default function SearchPage() {
       params.append("genderType", selectedGendersRef.current[0]);
     }
     if (customCoords) {
-      params.append("lat",      customCoords.lat);
-      params.append("lng",      customCoords.lng);
+      params.append("lat", customCoords.lat);
+      params.append("lng", customCoords.lng);
       params.append("radiusKm", customCoords.radiusKm ?? 2);
     }
 
     try {
-      const res  = await fetch(`${BASE_URL}/search/listings?${params}`);
+      const res = await fetch(`${BASE_URL}/search/listings?${params}`);
       const json = await res.json();
       setResults(
         (json.data || []).map((item) => ({
-          id:          item.id,
-          name:        item.name,
-          price:       item.cheapestPrice ?? null,
-          location:    item.address ?? "",
-          gender:      item.genderType ?? "",
-          isPremium:   item.isPremium  ?? false,
-          isVerified:  item.isVerified ?? true,
-          rating:      item.rating     ?? null,
+          id: item.id,
+          name: item.name,
+          price: item.cheapestPrice ?? null,
+          location: item.address ?? "",
+          gender: item.genderType ?? "",
+          isPremium: item.isPremium ?? false,
+          isVerified: item.isVerified ?? true,
+          rating: item.rating ?? null,
           reviewCount: item.reviewCount ?? null,
-          latitude:    item.latitude  ? Number(item.latitude)  : null,
-          longitude:   item.longitude ? Number(item.longitude) : null,
+          latitude: item.latitude ? Number(item.latitude) : null,
+          longitude: item.longitude ? Number(item.longitude) : null,
           image: item.thumbnailUrl
             ? item.thumbnailUrl.startsWith("http")
               ? item.thumbnailUrl
@@ -573,10 +573,10 @@ export default function SearchPage() {
     debounceRef.current = setTimeout(() => doSearch(val), 400);
   };
 
-  const genderLabel    = selectedGenders.length === 0
+  const genderLabel = selectedGenders.length === 0
     ? "Tipe Kos"
     : selectedGenders.map((g) => g.charAt(0) + g.slice(1).toLowerCase()).join(", ");
-  const priceFiltered  = minPrice || maxPrice;
+  const priceFiltered = minPrice || maxPrice;
   const activeSortLabel = SORT_OPTIONS.find((o) => o.value === sort)?.label;
 
   const hasResults = searched && !loading && results.length > 0;
@@ -836,9 +836,9 @@ export default function SearchPage() {
 
           {results.map((item) => {
             const g = (item.gender || "").toLowerCase();
-            const genderBadgeClass = g === "putri"  ? "sp-badge-gender-putri"
-              : g === "putra"  ? "sp-badge-gender-putra"
-              : g === "campur" ? "sp-badge-gender-campur" : "";
+            const genderBadgeClass = g === "putri" ? "sp-badge-gender-putri"
+              : g === "putra" ? "sp-badge-gender-putra"
+                : g === "campur" ? "sp-badge-gender-campur" : "";
             const isHighlighted = activePinId === item.id;
 
             return (

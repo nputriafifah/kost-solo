@@ -13,8 +13,205 @@ import {
   Thermometer, BookOpen, TreePine, WashingMachine, Lock,
   ChevronRight as ChevRight, Globe,
   CheckCircle2, AlertCircle, Navigation, Info, HelpCircle,
-  Flag,
+  Flag, Copy, Check, Mail,
 } from "lucide-react";
+
+/* ── ShareModal Component ─────────────────────────────────────────────── */
+function ShareModal({ item, onClose }) {
+  const [copied, setCopied] = useState(false);
+
+  const shareUrl = `${window.location.origin}/listing/${item.id}`;
+  const shareText = `Cek kost "${item.name}" di ${item.location}. Harga Rp ${Number(item.price).toLocaleString("id-ID")}/bulan. Tersedia ${item.availableRooms} kamar. ${shareUrl}`;
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Gagal copy:", err);
+    }
+  };
+
+  const shareOptions = [
+    {
+      id: "copy",
+      label: "Salin Link",
+      icon: copied ? Check : Copy,
+      color: "text-slate-600",
+      bg: "bg-slate-50",
+      action: copyToClipboard,
+      description: "Copy ke clipboard",
+    },
+    {
+      id: "whatsapp",
+      label: "WhatsApp",
+      icon: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+          <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.555 4.126 1.527 5.858L.057 23.617a.75.75 0 0 0 .92.92l5.818-1.488A11.946 11.946 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z" />
+        </svg>
+      ),
+      color: "text-green-600",
+      bg: "bg-green-50",
+      action: () => {
+        window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank");
+      },
+      description: "Bagikan ke WA",
+    },
+    {
+      id: "telegram",
+      label: "Telegram",
+      icon: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.161.16-.295.295-.605.295l.213-3.053 5.56-5.023c.242-.213-.054-.328-.373-.115l-6.869 4.332-2.97-.924c-.644-.213-.658-.644.135-.954l11.593-4.47c.537-.196 1.006.128.832.941z" />
+        </svg>
+      ),
+      color: "text-blue-500",
+      bg: "bg-blue-50",
+      action: () => {
+        window.open(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`, "_blank");
+      },
+      description: "Bagikan ke TG",
+    },
+    {
+      id: "facebook",
+      label: "Facebook",
+      icon: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+        </svg>
+      ),
+      color: "text-blue-600",
+      bg: "bg-blue-50",
+      action: () => {
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, "_blank");
+      },
+      description: "Bagikan ke FB",
+    },
+    {
+      id: "twitter",
+      label: "X / Twitter",
+      icon: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.514l-5.106-6.67-5.829 6.67H2.306l7.644-8.74L.554 2.25h6.696l4.627 6.122 5.361-6.122z" />
+        </svg>
+      ),
+      color: "text-black",
+      bg: "bg-gray-100",
+      action: () => {
+        window.open(`https://x.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`, "_blank");
+      },
+      description: "Bagikan ke X",
+    },
+    {
+      id: "instagram",
+      label: "Instagram",
+      icon: () => (
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0C8.74 0 8.333.015 7.053.072 5.775.132 4.905.333 4.117.63c-.794.306-1.459.717-2.126 1.384S.935 3.323.63 4.117C.333 4.905.131 5.775.072 7.053.012 8.333 0 8.74 0 12s.015 3.667.072 4.947c.06 1.277.261 2.148.558 2.913.306.788.717 1.459 1.384 2.126.667.666 1.336 1.079 2.126 1.384.766.296 1.636.499 2.913.558C8.333 23.988 8.74 24 12 24s3.667-.015 4.947-.072c1.277-.06 2.148-.262 2.913-.558.788-.306 1.459-.718 2.126-1.384.666-.667 1.079-1.335 1.384-2.126.296-.765.499-1.636.558-2.913.06-1.28.072-1.687.072-4.947s-.015-3.667-.072-4.947c-.06-1.277-.262-2.149-.558-2.913-.306-.789-.718-1.459-1.384-2.126C21.319 1.347 20.651.935 19.863.63c-.765-.297-1.636-.499-2.913-.558C15.667.012 15.26 0 12 0zm0 2.16c3.203 0 3.585.009 4.849.07 1.171.054 1.805.244 2.227.408.562.217.96.477 1.382.896.419.42.679.819.896 1.381.164.422.355 1.056.408 2.227.061 1.264.07 1.646.07 4.849s-.009 3.585-.07 4.849c-.054 1.171-.244 1.805-.408 2.227-.217.562-.477.96-.896 1.382-.42.419-.819.679-1.381.896-.422.164-1.056.355-2.227.408-1.264.061-1.646.07-4.849.07s-3.585-.009-4.849-.07c-1.171-.054-1.805-.244-2.227-.408-.562-.217-.96-.477-1.382-.896-.419-.42-.679-.819-.896-1.381-.164-.422-.355-1.056-.408-2.227-.061-1.264-.07-1.646-.07-4.849s.009-3.585.07-4.849c.054-1.171.244-1.805.408-2.227.217-.562.477-.96.896-1.382.42-.419.819-.679 1.381-.896.422-.164 1.056-.355 2.227-.408 1.264-.061 1.646-.07 4.849-.07z" />
+        </svg>
+      ),
+      color: "text-pink-600",
+      bg: "bg-pink-50",
+      action: () => {
+        copyToClipboard();
+        alert("Link sudah disalin! Paste di Instagram Stories atau DM.");
+      },
+      description: "Bagikan ke IG",
+    },
+    {
+      id: "email",
+      label: "Email",
+      icon: Mail,
+      color: "text-orange-600",
+      bg: "bg-orange-50",
+      action: () => {
+        const subject = `Lihat kost: ${item.name}`;
+        const body = `Halo,\n\nAku menemukan kost yang menarik untuk kamu:\n\n${shareText}\n\nBest regards`;
+        window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      },
+      description: "Bagikan via Email",
+    },
+  ];
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end justify-center"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="bg-white w-full max-w-lg rounded-t-3xl px-5 pt-3 pb-8 animate-[slideUp_0.3s_ease]">
+        <div className="w-10 h-1 rounded-full bg-slate-200 mx-auto mb-5" />
+
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-[16px] font-bold text-slate-800">Bagikan Listing</h3>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+            <X size={16} className="text-slate-500" />
+          </button>
+        </div>
+
+        <div className="flex items-center gap-3 bg-slate-50 border border-slate-100 rounded-2xl p-3 mb-5">
+          {item?.images?.[0] ? (
+            <img src={item.images[0]} alt={item.name} className="w-14 h-14 rounded-xl object-cover flex-shrink-0" />
+          ) : (
+            <div className="w-14 h-14 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
+              <Share2 size={20} className="text-blue-300" />
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-bold text-slate-800 truncate">{item?.name}</p>
+            <p className="text-[11px] text-slate-400 truncate">{item?.location}</p>
+            <p className="text-[12px] font-semibold text-blue-600 mt-1">Rp {Number(item?.price || 0).toLocaleString("id-ID")}/bulan</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2.5 mb-5">
+          {shareOptions.map((option) => {
+            const IconComponent = option.icon;
+            return (
+              <button
+                key={option.id}
+                onClick={option.action}
+                className={`flex flex-col items-center gap-2.5 p-4 rounded-2xl border border-slate-100 transition-all hover:border-slate-200 active:scale-[0.97] ${option.bg}`}
+              >
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${option.bg} border border-slate-100`}>
+                  <IconComponent size={20} className={option.color} />
+                </div>
+                <div className="text-center">
+                  <p className="text-[13px] font-semibold text-slate-700">{option.label}</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">{option.description}</p>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="bg-slate-50 border border-slate-100 rounded-2xl p-3.5 flex items-center gap-2">
+          <input
+            type="text"
+            readOnly
+            value={shareUrl}
+            className="flex-1 bg-transparent text-[12px] text-slate-600 outline-none truncate"
+          />
+          <button
+            onClick={copyToClipboard}
+            className="flex-shrink-0 w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center transition-all hover:bg-slate-50"
+          >
+            {copied ? (
+              <Check size={16} className="text-emerald-500" />
+            ) : (
+              <Copy size={16} className="text-slate-400" />
+            )}
+          </button>
+        </div>
+
+        {copied && (
+          <p className="text-[12px] text-emerald-600 text-center mt-3 font-medium">✓ Link sudah disalin!</p>
+        )}
+      </div>
+    </div>
+  );
+}
 
 /* ── Fix Leaflet default icon ──────────────────────────────────────────── */
 delete L.Icon.Default.prototype._getIconUrl;
@@ -508,7 +705,7 @@ function ReportModal({ item, onClose }) {
   const [reason, setReason] = useState("");
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState(null); // 'success' | 'error'
+  const [status, setStatus] = useState(null);
   const [errMsg, setErrMsg] = useState("");
 
   const handleSubmit = async () => {
@@ -596,9 +793,8 @@ function ReportModal({ item, onClose }) {
                 {REPORT_REASONS.map((r) => (
                   <label
                     key={r}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-colors ${
-                      reason === r ? "bg-red-50 border-red-200" : "bg-slate-50 border-slate-100"
-                    }`}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-colors ${reason === r ? "bg-red-50 border-red-200" : "bg-slate-50 border-slate-100"
+                      }`}
                   >
                     <input
                       type="radio"
@@ -664,6 +860,7 @@ export default function DetailPage() {
   const [showSewa, setShowSewa] = useState(false);
   const [showMinat, setShowMinat] = useState(false);
   const [showReport, setShowReport] = useState(false);
+  const [showShare, setShowShare] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [threadId, setThreadId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -855,7 +1052,7 @@ export default function DetailPage() {
                 <ArrowLeft size={17} className="text-slate-800" />
               </button>
               <div className="flex items-center gap-2">
-                <button className="w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-sm">
+                <button onClick={() => setShowShare(true)} className="w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-sm">
                   <Share2 size={15} className="text-slate-700" />
                 </button>
                 <button onClick={toggleLike} className={`w-9 h-9 rounded-full flex items-center justify-center shadow-sm transition-all ${isLiked ? "bg-red-500" : "bg-white/90 backdrop-blur-sm"}`}>
@@ -1038,7 +1235,7 @@ export default function DetailPage() {
                   style={{ background: "linear-gradient(135deg, #25D366, #128C7E)" }}>
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
-                    <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.555 4.126 1.527 5.858L.057 23.617a.75.75 0 0 0 .92.92l5.818-1.488A11.946 11.946 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.75 9.75 0 0 1-4.964-1.358l-.356-.214-3.695.945.962-3.617-.232-.371A9.75 9.75 0 1 1 12 21.75z" />
+                    <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.555 4.126 1.527 5.858L.057 23.617a.75.75 0 0 0 .92.92l5.818-1.488A11.946 11.946 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z" />
                   </svg>
                   WhatsApp
                 </button>
@@ -1088,6 +1285,7 @@ export default function DetailPage() {
       {/* ── Modals ── */}
       {showMinat && <MinatModal item={item} onClose={() => setShowMinat(false)} />}
       {showReport && <ReportModal item={item} onClose={() => setShowReport(false)} />}
+      {showShare && <ShareModal item={item} onClose={() => setShowShare(false)} />}
 
       {/* ── Chat modal ── */}
       {showChat && (
