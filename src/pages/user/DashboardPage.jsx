@@ -180,7 +180,7 @@ export default function DashboardPage() {
   const fetchListings = async () => {
     setLoading(true); setError(null);
     try {
-      const res = await fetch("http://localhost:3000/listings");
+      const res = await fetch("http://localhost:3000/listings?sort=newest&limit=24");
       if (!res.ok) throw new Error(`${res.status}`);
       const json = await res.json();
       const raw = Array.isArray(json) ? json : Array.isArray(json.data) ? json.data : [];

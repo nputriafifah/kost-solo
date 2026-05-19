@@ -6,6 +6,7 @@ import AdminLayout   from "./AdminLayout";
 import AdminDashboard from "./AdminDashboard";
 import AdminListings  from "./AdminListings";
 import AdminReports   from "./AdminReports";
+import AdminMinatLeads from "./AdminMinatLeads";
 
 // Contoh penggunaan di dalam <BrowserRouter>:
 export function AdminRoutes() {
@@ -15,6 +16,7 @@ export function AdminRoutes() {
         <Route index element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="dashboard" element={<AdminDashboard />} />
         <Route path="listings"  element={<AdminListings />} />
+        <Route path="minat-leads" element={<AdminMinatLeads />} />
         <Route path="reports"   element={<AdminReports />} />
       </Route>
     </Routes>

@@ -210,7 +210,7 @@ export default function AllListingsPage() {
   const fetchListings = async () => {
     setLoading(true); setError(null);
     try {
-      const res = await fetch("http://localhost:3000/listings");
+      const res = await fetch("http://localhost:3000/listings?sort=newest");
       if (!res.ok) throw new Error(`${res.status}`);
       const json = await res.json();
       const raw = Array.isArray(json) ? json : Array.isArray(json.data) ? json.data : [];
@@ -226,6 +226,7 @@ export default function AllListingsPage() {
             image: room.photos?.[0]?.url || "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267",
             available: room.availableCount ?? 0,
             isPremium: item.isPremium || false,
+            updatedAt: item.updatedAt,
           };
         })
       );
@@ -244,6 +245,9 @@ export default function AllListingsPage() {
     if (maxPrice) list = list.filter((item) => item.price <= Number(maxPrice));
     if (sort === "lowest_price") list.sort((a, b) => a.price - b.price);
     if (sort === "highest_price") list.sort((a, b) => b.price - a.price);
+    if (sort === "newest") {
+      list.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0));
+    }
     return list;
   }, [data, activeGender, minPrice, maxPrice, sort]);
 

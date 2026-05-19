@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Home, CheckCircle, Users, KeyRound, UserPlus, Eye,
   AlertTriangle, Flag, RefreshCw, TrendingUp, Building2,
-  MessageSquare, Heart, ChevronRight,
+  MessageSquare, Heart, ChevronRight, Star,
 } from "lucide-react";
 
 const BASE_URL = "http://localhost:3000";
@@ -97,12 +97,12 @@ function StatCard({ label, value, icon: Icon, accent, sub }) {
   );
 }
 
-// ─── Top Listings Table ───────────────────────────────────────────────────────
-function TopListingsTable({ listings }) {
+// ─── Listing Terbaru Table ────────────────────────────────────────────────────
+function RecentListingsTable({ listings }) {
   if (!listings?.length) return (
     <div style={{ padding: "40px 24px", textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
       <Building2 size={32} color="#e2e8f0" style={{ margin: "0 auto 8px" }} />
-      <p style={{ margin: 0 }}>Tidak ada data listing</p>
+      <p style={{ margin: 0 }}>Belum ada listing</p>
     </div>
   );
 
@@ -110,9 +110,9 @@ function TopListingsTable({ listings }) {
     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
       <thead>
         <tr style={{ background: "#f8fafc" }}>
-          {["Nama Kost", "Pemilik", "Status", "Views", "Leads", "Favorit"].map((h, i) => (
+          {["Nama Kost", "Pemilik", "Status", "Terakhir Diperbarui"].map((h, i) => (
             <th key={i} style={{
-              textAlign: i >= 3 ? "center" : "left",
+              textAlign: i === 3 ? "center" : "left",
               padding: "11px 16px", color: "#64748b",
               fontWeight: 600, fontSize: 11.5,
               letterSpacing: "0.04em", textTransform: "uppercase",
@@ -253,7 +253,7 @@ export default function AdminDashboard() {
     try {
       const [dashRes, topRes, reportsRes] = await Promise.all([
         apiFetch("/admin/dashboard"),
-        apiFetch("/admin/analytics/top-listings?limit=10"),
+        apiFetch("/admin/analytics/recent-listings?limit=10"),
         apiFetch("/admin/reports"),
       ]);
       setStats(dashRes.data);
@@ -308,6 +308,8 @@ export default function AdminDashboard() {
     { label: "Total Pemilik",     value: stats?.totalOwners,     icon: KeyRound,    accent: "#f59e0b" },
     { label: "User Baru",         value: stats?.newUsersThisWeek, icon: UserPlus,   accent: "#8b5cf6", sub: "7 hari terakhir" },
     { label: "Views Hari Ini",    value: stats?.totalViewsToday, icon: Eye,         accent: "#ec4899", sub: "hari ini" },
+    { label: "Total Minat",       value: stats?.totalMinat,      icon: Star,        accent: "#f59e0b" },
+    { label: "Total Leads Chat",  value: stats?.totalLeads,      icon: MessageSquare, accent: "#8b5cf6" },
   ];
 
   const ATTENTION = [
@@ -337,10 +339,18 @@ export default function AdminDashboard() {
         </button>
       </div>
 
-      {/* Stat Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(185px, 1fr))", gap: 14, marginBottom: 20 }}>
+      {/* Stat Cards — 4 kolom × 2 baris */}
+      <div className="admin-stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
         {STAT_CARDS.map((s, i) => <StatCard key={i} {...s} />)}
       </div>
+      <style>{`
+        @media (max-width: 1100px) {
+          .admin-stat-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+        @media (max-width: 520px) {
+          .admin-stat-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
 
       {/* Perlu Perhatian */}
       <div style={{
@@ -387,7 +397,7 @@ export default function AdminDashboard() {
         <div style={{ display: "flex", borderBottom: "1px solid #f1f5f9", padding: "0 22px", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex" }}>
             {[
-              { key: "listing", label: "Top Listing", icon: Building2 },
+              { key: "listing", label: "Listing Terbaru", icon: Building2 },
               { key: "report",  label: "Laporan Terbaru", icon: Flag },
             ].map((tab) => (
               <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
@@ -410,15 +420,17 @@ export default function AdminDashboard() {
               </button>
             ))}
           </div>
-          <a
-            href={activeTab === "listing" ? "/admin/listings" : "/admin/reports"}
-            style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "#6366f1", fontWeight: 600, textDecoration: "none" }}
-          >
-            Lihat semua <ChevronRight size={13} />
-          </a>
+          {(activeTab === "listing" || activeTab === "report") && (
+            <a
+              href={activeTab === "listing" ? "/admin/listings" : "/admin/reports"}
+              style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "#6366f1", fontWeight: 600, textDecoration: "none" }}
+            >
+              Lihat semua <ChevronRight size={13} />
+            </a>
+          )}
         </div>
 
-        {activeTab === "listing" && <TopListingsTable listings={topListings} />}
+        {activeTab === "listing" && <RecentListingsTable listings={topListings} />}
         {activeTab === "report" && (
           <ReportsTable reports={reports} onResolve={handleResolve} actionLoading={actionLoading} />
         )}

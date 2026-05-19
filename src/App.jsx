@@ -36,6 +36,7 @@ import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminListings from "./pages/admin/AdminListings";
 import AdminReports from "./pages/admin/AdminReports";
+import AdminMinatLeads from "./pages/admin/AdminMinatLeads";
 
 // COMPONENT
 import ProtectedRoute from "./components/common/ProtectedRoute";
@@ -238,6 +239,7 @@ export default function App() {
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="listings" element={<AdminListings />} />
+          <Route path="minat-leads" element={<AdminMinatLeads />} />
           <Route path="reports" element={<AdminReports />} />
         </Route>
 
