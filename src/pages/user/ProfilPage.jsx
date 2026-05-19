@@ -3,7 +3,7 @@ import {
   User, Mail, ChevronRight, LogOut, Settings,
   Bell, Shield, HelpCircle, X, Check, Camera,
   MapPin, Map as MapIcon, Globe, Navigation,
-  ChevronLeft, Home, Map, Heart, MessageCircle, Search,
+  ChevronLeft, Home, Map, Heart, MessageCircle, Search, Moon, Sun,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 
@@ -52,14 +52,12 @@ const NOTIFICATIONS_DEFAULT = [
 ];
 
 const menuItems = [
-  { icon: Settings,    label: "Pengaturan Akun",   sub: "Kelola informasi & keamanan",  color: "#2563EB", bg: "#EFF6FF", path: "/settings/account" },
-  // ProfilPage.jsx - ubah path Notifikasi
-{ icon: Bell, label: "Notifikasi", sub: "Atur preferensi notifikasi", color: "#D97706", bg: "#FFFBEB", path: "/settings/notifications", showBadge: true },
-  { icon: Shield,      label: "Privasi & Keamanan", sub: "Jaga keamanan akunmu",         color: "#059669", bg: "#ECFDF5", path: "/settings/privacy" },
-  { icon: HelpCircle,  label: "Bantuan & FAQ",      sub: "Butuh bantuan? Kami siap",     color: "#7C3AED", bg: "#F5F3FF", path: "/settings/faq" },
+  { icon: Settings,   label: "Pengaturan Akun",    sub: "Kelola informasi & keamanan",  color: "#2563EB", bg: "#EFF6FF",  darkBg: "#1e3a8a22", path: "/settings/account" },
+  { icon: Bell,       label: "Notifikasi",          sub: "Atur preferensi notifikasi",   color: "#D97706", bg: "#FFFBEB",  darkBg: "#92400e22", path: "/settings/notifications", showBadge: true },
+  { icon: Shield,     label: "Privasi & Keamanan",  sub: "Jaga keamanan akunmu",         color: "#059669", bg: "#ECFDF5",  darkBg: "#06503622", path: "/settings/privacy" },
+  { icon: HelpCircle, label: "Bantuan & FAQ",       sub: "Butuh bantuan? Kami siap",     color: "#7C3AED", bg: "#F5F3FF",  darkBg: "#4c1d9522", path: "/settings/faq" },
 ];
 
-// ─── NAV (sama persis dengan halaman lain) ─────────────────────────────────────
 const NAV_ITEMS = [
   { label: "Home",    path: "/",       icon: Home,          mobile: true,  guestMobile: true  },
   { label: "Search",  path: "/search", icon: Search,        mobile: true,  guestMobile: true  },
@@ -73,17 +71,18 @@ const MOBILE_NAV   = NAV_ITEMS.filter((n) => n.mobile);
 const GUEST_MOBILE = NAV_ITEMS.filter((n) => n.guestMobile);
 
 // ─── INPUT GROUP ───────────────────────────────────────────────────────────────
-function InputGroup({ label, icon, value, onChange, placeholder }) {
+function InputGroup({ label, icon, value, onChange, placeholder, dark }) {
+  const [focused, setFocused] = useState(false);
   return (
     <div>
-      <label style={{ display:"block", fontSize:11, fontWeight:700, color:"#64748B", marginBottom:6, textTransform:"uppercase", letterSpacing:"0.08em" }}>{label}</label>
+      <label style={{ display:"block", fontSize:11, fontWeight:700, color: dark ? "#94A3B8" : "#64748B", marginBottom:6, textTransform:"uppercase", letterSpacing:"0.08em" }}>{label}</label>
       <div style={{ position:"relative" }}>
         <span style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", color:"#94A3B8", display:"flex" }}>{icon}</span>
         <input
-          style={{ width:"100%", height:48, paddingLeft:44, paddingRight:16, background:"#F8FAFC", border:"1.5px solid #E2E8F0", borderRadius:14, fontSize:14, color:"#0F172A", outline:"none", boxSizing:"border-box", transition:"border-color 0.2s" }}
+          style={{ width:"100%", height:48, paddingLeft:44, paddingRight:16, background: dark ? "#1E293B" : "#F8FAFC", border:`1.5px solid ${focused ? "#2563EB" : (dark ? "#334155" : "#E2E8F0")}`, borderRadius:14, fontSize:14, color: dark ? "#F8FAFC" : "#0F172A", outline:"none", boxSizing:"border-box", transition:"border-color 0.2s", fontFamily:"'DM Sans', sans-serif" }}
           value={value} onChange={onChange} placeholder={placeholder}
-          onFocus={e => e.target.style.borderColor = "#2563EB"}
-          onBlur={e  => e.target.style.borderColor = "#E2E8F0"}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
         />
       </div>
     </div>
@@ -91,14 +90,14 @@ function InputGroup({ label, icon, value, onChange, placeholder }) {
 }
 
 // ─── SELECT GROUP ─────────────────────────────────────────────────────────────
-function SelectGroup({ label, icon, options, value, onChange, disabled, placeholder }) {
+function SelectGroup({ label, icon, options, value, onChange, disabled, placeholder, dark }) {
   return (
     <div style={{ opacity: disabled ? 0.45 : 1, transition:"opacity 0.2s" }}>
-      <label style={{ display:"block", fontSize:11, fontWeight:700, color:"#64748B", marginBottom:6, textTransform:"uppercase", letterSpacing:"0.08em" }}>{label}</label>
+      <label style={{ display:"block", fontSize:11, fontWeight:700, color: dark ? "#94A3B8" : "#64748B", marginBottom:6, textTransform:"uppercase", letterSpacing:"0.08em" }}>{label}</label>
       <div style={{ position:"relative" }}>
         <span style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", color:"#94A3B8", display:"flex", zIndex:1 }}>{icon}</span>
         <select disabled={disabled}
-          style={{ width:"100%", height:48, paddingLeft:44, paddingRight:40, background:"#F8FAFC", border:"1.5px solid #E2E8F0", borderRadius:14, fontSize:14, color: value ? "#0F172A" : "#94A3B8", outline:"none", appearance:"none", boxSizing:"border-box", cursor: disabled ? "not-allowed" : "pointer" }}
+          style={{ width:"100%", height:48, paddingLeft:44, paddingRight:40, background: dark ? "#1E293B" : "#F8FAFC", border:`1.5px solid ${dark ? "#334155" : "#E2E8F0"}`, borderRadius:14, fontSize:14, color: value ? (dark ? "#F8FAFC" : "#0F172A") : "#94A3B8", outline:"none", appearance:"none", boxSizing:"border-box", cursor: disabled ? "not-allowed" : "pointer", fontFamily:"'DM Sans', sans-serif" }}
           value={value} onChange={onChange}
         >
           <option value="">{placeholder || `Pilih ${label}`}</option>
@@ -112,8 +111,8 @@ function SelectGroup({ label, icon, options, value, onChange, disabled, placehol
 
 // ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function ProfilPage() {
-  const navigate    = useNavigate();
-  const location    = useLocation();
+  const navigate     = useNavigate();
+  const location     = useLocation();
   const fileInputRef = useRef(null);
   const currentPath  = location.pathname;
 
@@ -126,10 +125,18 @@ export default function ProfilPage() {
   const [saveSuccess,       setSaveSuccess]       = useState(false);
   const [unreadCount,       setUnreadCount]       = useState(0);
   const [unreadChat,        setUnreadChat]        = useState(0);
+  const [darkMode,          setDarkMode]          = useState(() => {
+    try { return localStorage.getItem("atap_dark_mode") === "true"; } catch { return false; }
+  });
 
   const user       = JSON.parse(localStorage.getItem("user") || "null");
   const isLoggedIn = !!user;
   const token      = localStorage.getItem("token");
+
+  // Persist dark mode preference
+  useEffect(() => {
+    localStorage.setItem("atap_dark_mode", darkMode);
+  }, [darkMode]);
 
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
@@ -150,7 +157,6 @@ export default function ProfilPage() {
     }
   }, []);
 
-  /* ── Unread chat ── */
   useEffect(() => {
     if (!isLoggedIn || !token) return;
     const fetchUnreadChat = async () => {
@@ -161,12 +167,11 @@ export default function ProfilPage() {
         if (!res.ok) return;
         const json = await res.json();
         const raw  = Array.isArray(json.data) ? json.data : [];
-        const total = raw.reduce((acc, thread) => {
+        setUnreadChat(raw.reduce((acc, thread) => {
           const lm = thread.lastMessage;
           return (lm && !lm.readAt && lm.senderId !== user?.id) ? acc + 1 : acc;
-        }, 0);
-        setUnreadChat(total);
-      } catch { /* biarkan 0 */ }
+        }, 0));
+      } catch { }
     };
     fetchUnreadChat();
     const interval = setInterval(fetchUnreadChat, 30_000);
@@ -199,26 +204,41 @@ export default function ProfilPage() {
   const initials   = userData.name?.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "U";
   const cityOptions = CITIES[editForm.province] || [];
 
+  // ── Dark mode color tokens ──
+  const D = darkMode;
+  const bg        = D ? "#0F172A" : "#F1F5F9";
+  const cardBg    = D ? "#1E293B" : "#FFFFFF";
+  const cardBg2   = D ? "#1E293B" : "#FFFFFF";
+  const textPri   = D ? "#F8FAFC" : "#0F172A";
+  const textSec   = D ? "#94A3B8" : "#64748B";
+  const textMuted = D ? "#64748B" : "#94A3B8";
+  const border    = D ? "#334155" : "#F1F5F9";
+  const inputBg   = D ? "#0F172A" : "#F8FAFC";
+  const bnBg      = D ? "rgba(30,41,59,.97)" : "rgba(255,255,255,.97)";
+  const bnBorder  = D ? "#334155" : "#E2E8F0";
+
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;700&display=swap');
     @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ── BOTTOM NAV ── */
     .profil-bottom-nav { display: none; }
-
-    /* ── dot & badge ── */
     .profil-bn-avatar-wrap { position:relative; display:inline-flex; }
-    .profil-bn-notif-dot { position:absolute; top:-2px; right:-2px; width:7px; height:7px; background:#EF4444; border-radius:50%; border:1.5px solid white; }
+    .profil-bn-notif-dot { position:absolute; top:-2px; right:-2px; width:7px; height:7px; background:#EF4444; border-radius:50%; border:1.5px solid ${cardBg}; }
     .profil-bn-icon-wrap { position:relative; display:inline-flex; }
-    .profil-bn-chat-badge { position:absolute; top:-4px; right:-6px; min-width:14px; height:14px; background:#EF4444; border-radius:999px; border:1.5px solid white; display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:800; color:white; padding:0 3px; line-height:1; pointer-events:none; }
+    .profil-bn-chat-badge { position:absolute; top:-4px; right:-6px; min-width:14px; height:14px; background:#EF4444; border-radius:999px; border:1.5px solid ${cardBg}; display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:800; color:white; padding:0 3px; line-height:1; pointer-events:none; }
+
+    .profil-theme-toggle { width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; cursor:pointer; color:#fff; transition:.2s; flex-shrink:0; }
+    .profil-theme-toggle:hover { background:rgba(255,255,255,0.25); }
+
+    .profil-menu-btn { display:flex; align-items:center; gap:14px; padding:16px 18px; background:${cardBg2}; border:1.5px solid ${border}; border-radius:20px; cursor:pointer; text-align:left; transition:border-color 0.2s, box-shadow 0.2s, background 0.2s; box-shadow: ${D ? "0 2px 8px rgba(0,0,0,0.2)" : "0 2px 8px rgba(15,23,42,0.04)"}; width:100%; }
 
     @media(max-width: 640px) {
       .profil-bottom-nav {
         display: flex;
         position: fixed; bottom: 0; left: 0; right: 0; z-index: 300;
-        background: rgba(255,255,255,.97); backdrop-filter: blur(20px);
-        border-top: 1px solid #E2E8F0;
+        background: ${bnBg}; backdrop-filter: blur(20px);
+        border-top: 1px solid ${bnBorder};
         padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
         justify-content: space-around; align-items: center;
         box-shadow: 0 -4px 20px rgba(0,0,0,.07);
@@ -227,7 +247,7 @@ export default function ProfilPage() {
       .profil-bn-item {
         display: flex; flex-direction: column; align-items: center; gap: 3px;
         padding: 6px 10px; border: none; background: none; border-radius: 12px;
-        cursor: pointer; color: #94A3B8; transition: color .15s;
+        cursor: pointer; color: ${textMuted}; transition: color .15s;
         min-width: 52px; font-family: 'DM Sans', sans-serif;
       }
       .profil-bn-item.active { color: #2563EB; }
@@ -241,7 +261,7 @@ export default function ProfilPage() {
   return (
     <>
       <style>{css}</style>
-      <div style={{ minHeight:"100vh", background:"#F1F5F9", paddingBottom:80, fontFamily:"'DM Sans', sans-serif" }}>
+      <div style={{ minHeight:"100vh", background: bg, paddingBottom:80, fontFamily:"'DM Sans', sans-serif", transition:"background 0.3s" }}>
 
         {/* ── HERO HEADER ── */}
         <div style={{
@@ -251,8 +271,8 @@ export default function ProfilPage() {
           <div style={{ position:"absolute", top:-40, right:-40, width:200, height:200, borderRadius:"50%", background:"rgba(255,255,255,0.05)" }} />
           <div style={{ position:"absolute", bottom:-20, left:-20, width:120, height:120, borderRadius:"50%", background:"rgba(255,255,255,0.05)" }} />
 
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", position:"relative" }}>
-            <button onClick={() => navigate(-1)} style={{ display:"flex", alignItems:"center", gap:6, background:"rgba(255,255,255,0.12)", border:"1px solid rgba(255,255,255,0.2)", borderRadius:14, padding:"8px 14px 8px 10px", cursor:"pointer", color:"#fff", fontSize:14, fontWeight:600 }}
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", position:"relative", gap:12 }}>
+            <button onClick={() => navigate(-1)} style={{ display:"flex", alignItems:"center", gap:6, background:"rgba(255,255,255,0.12)", border:"1px solid rgba(255,255,255,0.2)", borderRadius:14, padding:"8px 14px 8px 10px", cursor:"pointer", color:"#fff", fontSize:14, fontWeight:600, flexShrink:0 }}
               onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.22)"}
               onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.12)"}>
               <ChevronLeft size={18} /> Kembali
@@ -263,20 +283,32 @@ export default function ProfilPage() {
               <h1 style={{ fontSize:26, fontWeight:800, color:"#fff", margin:0, letterSpacing:"-0.5px", fontFamily:"'Plus Jakarta Sans', sans-serif" }}>Profil</h1>
             </div>
 
-            <button onClick={() => setShowLogoutConfirm(true)} style={{ width:42, height:42, background:"rgba(255,255,255,0.12)", border:"1px solid rgba(255,255,255,0.2)", borderRadius:14, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:"#fff" }}
-              onMouseEnter={e => e.currentTarget.style.background = "rgba(239,68,68,0.7)"}
-              onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.12)"}>
-              <LogOut size={18} />
-            </button>
+            <div style={{ display:"flex", gap:8, flexShrink:0 }}>
+              {/* ── Dark mode toggle ── */}
+              <button
+                className="profil-theme-toggle"
+                onClick={() => setDarkMode(d => !d)}
+                title={darkMode ? "Mode Terang" : "Mode Gelap"}
+              >
+                {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
+
+              {/* ── Logout ── */}
+              <button onClick={() => setShowLogoutConfirm(true)} style={{ width:42, height:42, background:"rgba(255,255,255,0.12)", border:"1px solid rgba(255,255,255,0.2)", borderRadius:14, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:"#fff", transition:".2s", flexShrink:0 }}
+                onMouseEnter={e => e.currentTarget.style.background = "rgba(239,68,68,0.7)"}
+                onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.12)"}>
+                <LogOut size={18} />
+              </button>
+            </div>
           </div>
         </div>
 
         {/* ── PROFILE CARD ── */}
         <div style={{ margin:"0 20px", marginTop:-52, position:"relative", zIndex:10 }}>
-          <div style={{ background:"#fff", borderRadius:28, padding:"28px 24px 24px", boxShadow:"0 8px 40px rgba(15,23,42,0.12)" }}>
+          <div style={{ background: cardBg, borderRadius:28, padding:"28px 24px 24px", boxShadow: D ? "0 8px 40px rgba(0,0,0,0.4)" : "0 8px 40px rgba(15,23,42,0.12)", transition:"background 0.3s" }}>
             <div style={{ display:"flex", alignItems:"center", gap:18 }}>
               <div style={{ position:"relative", flexShrink:0 }}>
-                <div style={{ width:80, height:80, borderRadius:22, overflow:"hidden", border:"3px solid #EFF6FF", boxShadow:"0 4px 12px rgba(37,99,235,0.15)" }}>
+                <div style={{ width:80, height:80, borderRadius:22, overflow:"hidden", border: D ? "3px solid #1E3A8A" : "3px solid #EFF6FF", boxShadow:"0 4px 12px rgba(37,99,235,0.15)" }}>
                   {photoUrl ? (
                     <img src={photoUrl} style={{ width:"100%", height:"100%", objectFit:"cover" }} alt="Profile" />
                   ) : (
@@ -285,22 +317,22 @@ export default function ProfilPage() {
                     </div>
                   )}
                 </div>
-                <button onClick={() => fileInputRef.current?.click()} style={{ position:"absolute", bottom:-4, right:-4, width:30, height:30, background:"#2563EB", border:"2.5px solid #fff", borderRadius:10, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:"#fff" }}>
+                <button onClick={() => fileInputRef.current?.click()} style={{ position:"absolute", bottom:-4, right:-4, width:30, height:30, background:"#2563EB", border:`2.5px solid ${cardBg}`, borderRadius:10, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:"#fff" }}>
                   <Camera size={14} />
                 </button>
                 <input ref={fileInputRef} type="file" accept="image/*" style={{ display:"none" }} onChange={handlePhotoChange} />
               </div>
 
               <div style={{ flex:1, minWidth:0 }}>
-                <h2 style={{ fontSize:18, fontWeight:800, color:"#0F172A", margin:0, marginBottom:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", fontFamily:"'Plus Jakarta Sans', sans-serif" }}>
+                <h2 style={{ fontSize:18, fontWeight:800, color: textPri, margin:0, marginBottom:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", fontFamily:"'Plus Jakarta Sans', sans-serif" }}>
                   {userData.name || "Pengguna Atap"}
                 </h2>
-                <div style={{ display:"flex", alignItems:"center", gap:5, color:"#64748B", fontSize:13 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:5, color: textSec, fontSize:13 }}>
                   <Mail size={13} />
                   <span style={{ overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{userData.email || "—"}</span>
                 </div>
                 {userData.province && (
-                  <div style={{ display:"inline-flex", alignItems:"center", gap:4, background:"#EFF6FF", color:"#1D4ED8", fontSize:11, fontWeight:700, padding:"4px 10px", borderRadius:8, marginTop:8 }}>
+                  <div style={{ display:"inline-flex", alignItems:"center", gap:4, background: D ? "#1E3A8A33" : "#EFF6FF", color:"#1D4ED8", fontSize:11, fontWeight:700, padding:"4px 10px", borderRadius:8, marginTop:8 }}>
                     <MapPin size={10} />
                     <span>{userData.district ? `${userData.district}, ` : ""}{userData.city || userData.province}</span>
                   </div>
@@ -308,9 +340,10 @@ export default function ProfilPage() {
               </div>
             </div>
 
-            <button onClick={() => setIsEditing(true)} style={{ marginTop:20, width:"100%", padding:"14px 0", background:"#0F172A", color:"#fff", border:"none", borderRadius:16, fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"'DM Sans', sans-serif" }}
+            <button onClick={() => setIsEditing(true)}
+              style={{ marginTop:20, width:"100%", padding:"14px 0", background: D ? "#2563EB" : "#0F172A", color:"#fff", border:"none", borderRadius:16, fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"'DM Sans', sans-serif", transition:"background 0.2s" }}
               onMouseEnter={e => e.currentTarget.style.background = "#2563EB"}
-              onMouseLeave={e => e.currentTarget.style.background = "#0F172A"}>
+              onMouseLeave={e => e.currentTarget.style.background = D ? "#2563EB" : "#0F172A"}>
               Ubah Detail Profil
             </button>
           </div>
@@ -319,44 +352,45 @@ export default function ProfilPage() {
         {/* ── STATS ROW ── */}
         <div style={{ margin:"20px 20px 0", display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12 }}>
           {[{ label:"Pesanan", value:"12" }, { label:"Tersimpan", value:"5" }, { label:"Ulasan", value:"8" }].map(({ label, value }) => (
-            <div key={label} style={{ background:"#fff", borderRadius:18, padding:"16px 12px", textAlign:"center", boxShadow:"0 2px 12px rgba(15,23,42,0.06)" }}>
-              <div style={{ fontSize:22, fontWeight:800, color:"#0F172A", fontFamily:"'Plus Jakarta Sans', sans-serif" }}>{value}</div>
-              <div style={{ fontSize:11, color:"#94A3B8", fontWeight:600, marginTop:2 }}>{label}</div>
+            <div key={label} style={{ background: cardBg, borderRadius:18, padding:"16px 12px", textAlign:"center", boxShadow: D ? "0 2px 12px rgba(0,0,0,0.3)" : "0 2px 12px rgba(15,23,42,0.06)", transition:"background 0.3s" }}>
+              <div style={{ fontSize:22, fontWeight:800, color: textPri, fontFamily:"'Plus Jakarta Sans', sans-serif" }}>{value}</div>
+              <div style={{ fontSize:11, color: textMuted, fontWeight:600, marginTop:2 }}>{label}</div>
             </div>
           ))}
         </div>
 
         {/* ── SETTINGS MENU ── */}
         <div style={{ margin:"28px 20px 0" }}>
-          <div style={{ fontSize:11, fontWeight:800, color:"#94A3B8", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:12, paddingLeft:4 }}>Pengaturan Umum</div>
+          <div style={{ fontSize:11, fontWeight:800, color: textMuted, letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:12, paddingLeft:4 }}>Pengaturan Umum</div>
           <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-            {menuItems.map(({ icon:Icon, label, sub, color, bg, path, showBadge }) => (
-              <button key={label} onClick={() => navigate(path)}
-                style={{ display:"flex", alignItems:"center", gap:14, padding:"16px 18px", background:"#fff", border:"1.5px solid #F1F5F9", borderRadius:20, cursor:"pointer", textAlign:"left", transition:"border-color 0.2s, box-shadow 0.2s", boxShadow:"0 2px 8px rgba(15,23,42,0.04)" }}
+            {menuItems.map(({ icon:Icon, label, sub, color, bg: iconBg, darkBg, path, showBadge }) => (
+              <button key={label}
+                className="profil-menu-btn"
+                onClick={() => navigate(path)}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = color; e.currentTarget.style.boxShadow = `0 4px 20px ${color}22`; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = "#F1F5F9"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(15,23,42,0.04)"; }}>
+                onMouseLeave={e => { e.currentTarget.style.borderColor = border; e.currentTarget.style.boxShadow = D ? "0 2px 8px rgba(0,0,0,0.2)" : "0 2px 8px rgba(15,23,42,0.04)"; }}>
                 <div style={{ position:"relative", flexShrink:0 }}>
-                  <div style={{ width:46, height:46, background:bg, borderRadius:14, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                  <div style={{ width:46, height:46, background: D ? darkBg : iconBg, borderRadius:14, display:"flex", alignItems:"center", justifyContent:"center" }}>
                     <Icon size={20} color={color} />
                   </div>
                   {showBadge && unreadCount > 0 && (
-                    <div style={{ position:"absolute", top:-5, right:-5, minWidth:18, height:18, background:"#EF4444", borderRadius:99, border:"2px solid #fff", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:800, color:"#fff", padding:"0 4px", boxShadow:"0 2px 6px rgba(239,68,68,0.4)", lineHeight:1 }}>
+                    <div style={{ position:"absolute", top:-5, right:-5, minWidth:18, height:18, background:"#EF4444", borderRadius:99, border:`2px solid ${cardBg}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:800, color:"#fff", padding:"0 4px", boxShadow:"0 2px 6px rgba(239,68,68,0.4)", lineHeight:1 }}>
                       {unreadCount > 99 ? "99+" : unreadCount}
                     </div>
                   )}
                 </div>
                 <div style={{ flex:1 }}>
                   <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                    <span style={{ fontSize:14, fontWeight:700, color:"#0F172A" }}>{label}</span>
+                    <span style={{ fontSize:14, fontWeight:700, color: textPri }}>{label}</span>
                     {showBadge && unreadCount > 0 && (
-                      <span style={{ fontSize:10, fontWeight:700, color:"#EF4444", background:"#FEF2F2", padding:"2px 7px", borderRadius:99 }}>
+                      <span style={{ fontSize:10, fontWeight:700, color:"#EF4444", background: D ? "#450a0a55" : "#FEF2F2", padding:"2px 7px", borderRadius:99 }}>
                         {unreadCount} baru
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize:12, color:"#94A3B8", marginTop:1 }}>{sub}</div>
+                  <div style={{ fontSize:12, color: textMuted, marginTop:1 }}>{sub}</div>
                 </div>
-                <ChevronRight size={16} color="#CBD5E1" />
+                <ChevronRight size={16} color={textMuted} />
               </button>
             ))}
           </div>
@@ -365,31 +399,33 @@ export default function ProfilPage() {
         {/* ── EDIT MODAL ── */}
         {isEditing && (
           <div style={{ position:"fixed", inset:0, zIndex:100, display:"flex", alignItems:"flex-end" }}>
-            <div style={{ position:"absolute", inset:0, background:"rgba(15,23,42,0.5)", backdropFilter:"blur(4px)" }} onClick={() => setIsEditing(false)} />
-            <div style={{ position:"relative", background:"#fff", width:"100%", borderRadius:"28px 28px 0 0", padding:"28px 24px 40px", maxHeight:"92vh", overflowY:"auto", animation:"slideUp 0.3s cubic-bezier(0.32,0.72,0,1)" }}>
-              <div style={{ width:40, height:4, background:"#E2E8F0", borderRadius:2, margin:"0 auto 20px" }} />
+            <div style={{ position:"absolute", inset:0, background:"rgba(15,23,42,0.6)", backdropFilter:"blur(4px)" }} onClick={() => setIsEditing(false)} />
+            <div style={{ position:"relative", background: cardBg, width:"100%", borderRadius:"28px 28px 0 0", padding:"28px 24px 40px", maxHeight:"92vh", overflowY:"auto", animation:"slideUp 0.3s cubic-bezier(0.32,0.72,0,1)", transition:"background 0.3s" }}>
+              <div style={{ width:40, height:4, background: D ? "#334155" : "#E2E8F0", borderRadius:2, margin:"0 auto 20px" }} />
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24 }}>
-                <h3 style={{ fontSize:18, fontWeight:800, color:"#0F172A", margin:0, fontFamily:"'Plus Jakarta Sans', sans-serif" }}>Edit Profil & Lokasi</h3>
-                <button onClick={() => setIsEditing(false)} style={{ width:36, height:36, background:"#F1F5F9", border:"none", borderRadius:12, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer" }}>
-                  <X size={18} color="#64748B" />
+                <h3 style={{ fontSize:18, fontWeight:800, color: textPri, margin:0, fontFamily:"'Plus Jakarta Sans', sans-serif" }}>Edit Profil & Lokasi</h3>
+                <button onClick={() => setIsEditing(false)} style={{ width:36, height:36, background: D ? "#334155" : "#F1F5F9", border:"none", borderRadius:12, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer" }}>
+                  <X size={18} color={textSec} />
                 </button>
               </div>
               <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-                <InputGroup label="Nama Lengkap" icon={<User size={16} />} value={editForm.name} onChange={e => setEditForm({ ...editForm, name:e.target.value })} placeholder="Masukkan nama lengkap" />
-                <InputGroup label="Email" icon={<Mail size={16} />} value={editForm.email} onChange={e => setEditForm({ ...editForm, email:e.target.value })} placeholder="email@contoh.com" />
-                <div style={{ height:1, background:"#F1F5F9" }} />
+                <InputGroup dark={D} label="Nama Lengkap" icon={<User size={16} />} value={editForm.name} onChange={e => setEditForm({ ...editForm, name:e.target.value })} placeholder="Masukkan nama lengkap" />
+                <InputGroup dark={D} label="Email" icon={<Mail size={16} />} value={editForm.email} onChange={e => setEditForm({ ...editForm, email:e.target.value })} placeholder="email@contoh.com" />
+                <div style={{ height:1, background: D ? "#334155" : "#F1F5F9" }} />
                 <div style={{ fontSize:11, fontWeight:800, color:"#2563EB", letterSpacing:"0.1em", textTransform:"uppercase" }}>Alamat Lengkap</div>
-                <SelectGroup label="Provinsi" icon={<Globe size={16} />} options={PROVINCES} value={editForm.province} placeholder="Pilih Provinsi" onChange={e => setEditForm({ ...editForm, province:e.target.value, city:"", district:"" })} />
-                <SelectGroup label="Kota / Kabupaten" icon={<MapIcon size={16} />} options={cityOptions} value={editForm.city} disabled={!editForm.province} placeholder="Pilih Kota/Kabupaten" onChange={e => setEditForm({ ...editForm, city:e.target.value, district:"" })} />
-                <InputGroup label="Kecamatan" icon={<Navigation size={16} />} value={editForm.district} onChange={e => setEditForm({ ...editForm, district:e.target.value })} placeholder="Ketik nama kecamatan" />
+                <SelectGroup dark={D} label="Provinsi" icon={<Globe size={16} />} options={PROVINCES} value={editForm.province} placeholder="Pilih Provinsi" onChange={e => setEditForm({ ...editForm, province:e.target.value, city:"", district:"" })} />
+                <SelectGroup dark={D} label="Kota / Kabupaten" icon={<MapIcon size={16} />} options={cityOptions} value={editForm.city} disabled={!editForm.province} placeholder="Pilih Kota/Kabupaten" onChange={e => setEditForm({ ...editForm, city:e.target.value, district:"" })} />
+                <InputGroup dark={D} label="Kecamatan" icon={<Navigation size={16} />} value={editForm.district} onChange={e => setEditForm({ ...editForm, district:e.target.value })} placeholder="Ketik nama kecamatan" />
                 <div>
-                  <label style={{ display:"block", fontSize:11, fontWeight:700, color:"#64748B", marginBottom:6, textTransform:"uppercase", letterSpacing:"0.08em" }}>Alamat Spesifik</label>
-                  <textarea style={{ width:"100%", padding:"14px 16px", background:"#F8FAFC", border:"1.5px solid #E2E8F0", borderRadius:14, fontSize:14, color:"#0F172A", resize:"none", outline:"none", boxSizing:"border-box", fontFamily:"inherit" }} rows={3}
-                    placeholder="Contoh: Jl. Melati No. 12, RT 01/02, Blok A"
+                  <label style={{ display:"block", fontSize:11, fontWeight:700, color: textSec, marginBottom:6, textTransform:"uppercase", letterSpacing:"0.08em" }}>Alamat Spesifik</label>
+                  <textarea
+                    style={{ width:"100%", padding:"14px 16px", background: D ? "#0F172A" : "#F8FAFC", border:`1.5px solid ${D ? "#334155" : "#E2E8F0"}`, borderRadius:14, fontSize:14, color: textPri, resize:"none", outline:"none", boxSizing:"border-box", fontFamily:"inherit", transition:"border-color 0.2s" }}
+                    rows={3} placeholder="Contoh: Jl. Melati No. 12, RT 01/02, Blok A"
                     value={editForm.address}
                     onChange={e => setEditForm({ ...editForm, address:e.target.value })}
                     onFocus={e => e.target.style.borderColor = "#2563EB"}
-                    onBlur={e  => e.target.style.borderColor = "#E2E8F0"} />
+                    onBlur={e  => e.target.style.borderColor = D ? "#334155" : "#E2E8F0"}
+                  />
                 </div>
                 <button onClick={handleSaveProfile} disabled={isSaving}
                   style={{ width:"100%", padding:"15px 0", background: saveSuccess ? "#059669" : "#2563EB", color:"#fff", border:"none", borderRadius:16, fontSize:15, fontWeight:700, cursor: isSaving ? "not-allowed" : "pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8, transition:"background 0.3s", opacity: isSaving ? 0.8 : 1, fontFamily:"'DM Sans', sans-serif" }}>
@@ -409,15 +445,15 @@ export default function ProfilPage() {
         {/* ── LOGOUT CONFIRM ── */}
         {showLogoutConfirm && (
           <div style={{ position:"fixed", inset:0, zIndex:110, display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
-            <div style={{ position:"absolute", inset:0, background:"rgba(15,23,42,0.5)", backdropFilter:"blur(4px)" }} />
-            <div style={{ position:"relative", background:"#fff", width:"100%", maxWidth:340, borderRadius:28, padding:"36px 28px 28px", boxShadow:"0 20px 60px rgba(15,23,42,0.2)", textAlign:"center" }}>
-              <div style={{ width:72, height:72, background:"#FEF2F2", borderRadius:22, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px" }}>
+            <div style={{ position:"absolute", inset:0, background:"rgba(15,23,42,0.6)", backdropFilter:"blur(4px)" }} />
+            <div style={{ position:"relative", background: cardBg, width:"100%", maxWidth:340, borderRadius:28, padding:"36px 28px 28px", boxShadow: D ? "0 20px 60px rgba(0,0,0,0.5)" : "0 20px 60px rgba(15,23,42,0.2)", textAlign:"center", transition:"background 0.3s" }}>
+              <div style={{ width:72, height:72, background: D ? "#450a0a55" : "#FEF2F2", borderRadius:22, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px" }}>
                 <LogOut size={32} color="#EF4444" />
               </div>
-              <h3 style={{ fontSize:18, fontWeight:800, color:"#0F172A", margin:"0 0 8px", fontFamily:"'Plus Jakarta Sans', sans-serif" }}>Yakin ingin keluar?</h3>
-              <p style={{ fontSize:14, color:"#64748B", margin:"0 0 28px", lineHeight:1.6 }}>Kamu perlu login kembali untuk mengakses fitur Atap.</p>
+              <h3 style={{ fontSize:18, fontWeight:800, color: textPri, margin:"0 0 8px", fontFamily:"'Plus Jakarta Sans', sans-serif" }}>Yakin ingin keluar?</h3>
+              <p style={{ fontSize:14, color: textSec, margin:"0 0 28px", lineHeight:1.6 }}>Kamu perlu login kembali untuk mengakses fitur Atap.</p>
               <div style={{ display:"flex", gap:10 }}>
-                <button onClick={() => setShowLogoutConfirm(false)} style={{ flex:1, padding:"13px 0", border:"1.5px solid #E2E8F0", borderRadius:14, fontWeight:700, fontSize:14, color:"#64748B", background:"#fff", cursor:"pointer", fontFamily:"'DM Sans', sans-serif" }}>
+                <button onClick={() => setShowLogoutConfirm(false)} style={{ flex:1, padding:"13px 0", border:`1.5px solid ${D ? "#334155" : "#E2E8F0"}`, borderRadius:14, fontWeight:700, fontSize:14, color: textSec, background: D ? "#1E293B" : "#fff", cursor:"pointer", fontFamily:"'DM Sans', sans-serif" }}>
                   Batal
                 </button>
                 <button onClick={() => { localStorage.clear(); navigate("/auth"); }} style={{ flex:1, padding:"13px 0", border:"none", borderRadius:14, fontWeight:700, fontSize:14, color:"#fff", background:"#EF4444", cursor:"pointer", boxShadow:"0 4px 16px rgba(239,68,68,0.3)", fontFamily:"'DM Sans', sans-serif" }}>
@@ -444,9 +480,7 @@ export default function ProfilPage() {
                 ) : isChat && isLoggedIn ? (
                   <div className="profil-bn-icon-wrap">
                     <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
-                    {unreadChat > 0 && (
-                      <span className="profil-bn-chat-badge">{unreadChat > 99 ? "99+" : unreadChat}</span>
-                    )}
+                    {unreadChat > 0 && <span className="profil-bn-chat-badge">{unreadChat > 99 ? "99+" : unreadChat}</span>}
                   </div>
                 ) : (
                   <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />

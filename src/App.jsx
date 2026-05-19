@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-
+import { useDarkMode } from "./hooks/useDarkMode";
 // AUTH
 import AuthPage from "./pages/auth/AuthPage";
 import OtpPage from "./pages/auth/OtpPage";
@@ -58,6 +58,7 @@ function QueryRedirect() {
 }
 
 export default function App() {
+  useDarkMode();
   return (
     <>
       <QueryRedirect />
@@ -232,10 +233,6 @@ export default function App() {
         />
 
         {/* FALLBACK */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-
-        {/* ADMIN */}
-        // ✅ GANTI dengan ini
         {/* ADMIN */}
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Navigate to="/admin/dashboard" replace />} />
@@ -244,17 +241,9 @@ export default function App() {
           <Route path="reports" element={<AdminReports />} />
         </Route>
 
-        {/* FALLBACK */}
+        {/* FALLBACK — satu saja, paling bawah */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
   );
 }
-<Route
-  path="/owner/properti"
-  element={
-    <ProtectedRoute role="pemilik">
-      <PropertiPage />
-    </ProtectedRoute>
-  }
-/>

@@ -73,9 +73,13 @@ export default function CreateListingPage() {
   const handleBack = () => { if (step > 1) setStep(step - 1); };
 
   const handleSubmit = async () => {
-    if (!validateStep()) return;
-    setLoading(true);
-    try {
+  if (!validateStep()) return;
+
+  console.log("TOKEN:", getToken());
+
+  setLoading(true);
+
+  try {
       const resListing = await fetch(`${API}/listings/owner`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
@@ -104,9 +108,13 @@ export default function CreateListingPage() {
       const roomId = roomJson.data?.id;
 
       if (roomPhotos.length > 0) {
-        const fd = new FormData();
-        roomPhotos.forEach((f) => fd.append("photos", f));
-        await fetch(`${API}/owner/room-types/${roomId}/photos`, {
+  const fd = new FormData();
+  roomPhotos.forEach((f) => fd.append("photos", f));
+  
+  console.log("Jumlah foto:", roomPhotos.length); // ← tambah
+  for (let [k, v] of fd.entries()) console.log(k, v.name); // ← tambah
+  
+  await fetch(`${API}/owner/room-types/${roomId}/photos`, {
           method: "POST",
           headers: { Authorization: `Bearer ${getToken()}` },
           body: fd,
@@ -1130,7 +1138,7 @@ export default function CreateListingPage() {
                       <p className="clp-upload-sub">JPG, PNG — bisa pilih beberapa sekaligus</p>
                     </div>
                     <input type="file" multiple accept="image/*" style={{ display: "none" }}
-                      onChange={(e) => setRoomPhotos([...roomPhotos, ...e.target.files])} />
+                      onChange={(e) => setRoomPhotos([...roomPhotos, ...Array.from(e.target.files)])} />
                   </label>
 
                   {roomPhotos.length > 0 && (

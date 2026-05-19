@@ -17,6 +17,8 @@ import {
   Home,
   MessageCircle,
   Sparkles,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import KostCard from "../../components/kost/KostCard";
@@ -89,7 +91,20 @@ export default function AllListingsPage() {
   const [showMenu, setShowMenu] = useState(false);
   const [aiTagline, setAiTagline] = useState("");
   const [aiLoading, setAiLoading] = useState(true);
+  const [unreadChat, setUnreadChat] = useState(0);
 
+  // ── DARK MODE (sama persis Dashboard) ──
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem("atap_theme") === "dark");
+
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add("dark-mode");
+      localStorage.setItem("atap_theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark-mode");
+      localStorage.setItem("atap_theme", "light");
+    }
+  }, [darkMode]);
 
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const isLoggedIn = !!user;
@@ -98,7 +113,6 @@ export default function AllListingsPage() {
   const initials = isLoggedIn
     ? userName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "GU";
-
 
   /* close dropdowns on outside click */
   useEffect(() => {
@@ -115,6 +129,29 @@ export default function AllListingsPage() {
     document.body.style.overflow = showFilterDrawer ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [showFilterDrawer]);
+
+  /* unread chat count (sama persis Dashboard) */
+  useEffect(() => {
+    if (!isLoggedIn || !token) return;
+    const fetchUnreadChat = async () => {
+      try {
+        const res = await fetch("http://localhost:3000/chats", {
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const json = await res.json();
+        const raw = Array.isArray(json.data) ? json.data : [];
+        const total = raw.reduce((acc, thread) => {
+          const lm = thread.lastMessage;
+          return (lm && !lm.readAt && lm.senderId !== user?.id) ? acc + 1 : acc;
+        }, 0);
+        setUnreadChat(total);
+      } catch { }
+    };
+    fetchUnreadChat();
+    const interval = setInterval(fetchUnreadChat, 30_000);
+    return () => clearInterval(interval);
+  }, [isLoggedIn, token, user?.id]);
 
   /* AI tagline */
   useEffect(() => {
@@ -275,51 +312,120 @@ export default function AllListingsPage() {
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;700&display=swap');
 
   * { box-sizing: border-box; }
-  body { margin: 0; background: #F8FAFC; }
+  body { margin: 0; background: #F8FAFC; transition: background 0.3s, color 0.3s; }
 
-  .al-root { font-family: 'DM Sans', sans-serif; color: #0F172A; min-height: 100vh; }
-  .al-root h1, .al-root h2, .al-root h3 { font-family: 'Plus Jakarta Sans', sans-serif; }
+  /* ── CSS VARS (dark mode support) ── */
+  :root {
+    --bg-primary: #F8FAFC;
+    --bg-secondary: #FFFFFF;
+    --bg-tertiary: #F1F5F9;
+    --text-primary: #0F172A;
+    --text-secondary: #64748B;
+    --border-color: #E2E8F0;
+    --card-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  .dark-mode {
+    --bg-primary: #0F172A;
+    --bg-secondary: #1E293B;
+    --bg-tertiary: #334155;
+    --text-primary: #F8FAFC;
+    --text-secondary: #CBD5E1;
+    --border-color: #334155;
+    --card-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
 
-  /* ── NAVBAR (sama persis Dashboard) ── */
+  .al-root {
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text-primary);
+    background: var(--bg-primary);
+    min-height: 100vh;
+    transition: background 0.3s, color 0.3s;
+  }
+  .al-root h1, .al-root h2, .al-root h3 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  /* ── NAVBAR ── */
   .al-navbar {
     position: sticky; top: 0; z-index: 100;
     height: 72px;
     background: rgba(255,255,255,.92);
     backdrop-filter: blur(16px);
-    border-bottom: 1px solid #EAEFF5;
+    border-bottom: 1px solid var(--border-color);
     display: flex; align-items: center; justify-content: space-between;
     padding: 0 42px;
+    transition: background 0.3s;
   }
+  .dark-mode .al-navbar { background: rgba(30,41,59,.92); }
+
   .al-navbar-left { display: flex; align-items: center; gap: 14px; }
   .al-back-btn {
     width: 38px; height: 38px; border-radius: 11px;
-    border: 1px solid #E2E8F0; background: white;
+    border: 1px solid var(--border-color); background: var(--bg-secondary);
     display: flex; align-items: center; justify-content: center;
-    cursor: pointer; color: #0F172A; transition: .15s; flex-shrink: 0;
+    cursor: pointer; color: var(--text-primary); transition: .15s; flex-shrink: 0;
   }
   .al-back-btn:hover { background: #EFF6FF; color: #2563EB; border-color: #BFDBFE; }
+  .dark-mode .al-back-btn:hover { background: rgba(59,130,246,.15); }
+
   .al-navbar-logo {
     font-family: 'Plus Jakarta Sans', sans-serif;
     font-size: 25px; font-weight: 800; letter-spacing: -1px;
-    color: #0F172A; cursor: pointer;
+    color: var(--text-primary); cursor: pointer;
   }
   .al-navbar-logo span { color: #2563EB; }
 
   .al-navbar-links { display: flex; align-items: center; gap: 4px; }
   .al-navbar-link {
-    font-size: 14px; font-weight: 600; color: #64748B;
+    font-size: 14px; font-weight: 600; color: var(--text-secondary);
     cursor: pointer; padding: 7px 11px; border-radius: 9px;
     transition: .15s; font-family: 'DM Sans', sans-serif;
   }
-  .al-navbar-link:hover  { color: #2563EB; background: #EFF6FF; }
+  .al-navbar-link:hover { color: #2563EB; background: #EFF6FF; }
+  .dark-mode .al-navbar-link:hover { background: rgba(59,130,246,.15); }
   .al-navbar-link.active { color: #2563EB; }
-  .al-navbar-divider { width: 1px; height: 22px; background: #E2E8F0; margin: 0 6px; }
+
+  .al-navbar-divider { width: 1px; height: 22px; background: var(--border-color); margin: 0 6px; }
+
+  /* Chat button (sama persis Dashboard) */
+  .al-chat-btn-wrap {
+    position: relative; display: inline-flex; margin-left: 2px; cursor: pointer;
+  }
+  .al-chat-btn {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--bg-tertiary); color: var(--text-secondary);
+    display: flex; align-items: center; justify-content: center;
+    border: 1.5px solid var(--border-color); transition: .2s;
+  }
+  .al-chat-btn:hover { background: #EFF6FF; color: #2563EB; border-color: #BFDBFE; }
+  .dark-mode .al-chat-btn:hover { background: rgba(59,130,246,.15); }
+  .al-chat-badge {
+    position: absolute; top: -3px; right: -3px;
+    min-width: 16px; height: 16px; background: #EF4444;
+    border-radius: 999px; border: 2px solid var(--bg-secondary);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 800; color: white; padding: 0 3px;
+    line-height: 1; pointer-events: none;
+    box-shadow: 0 0 0 2px rgba(239,68,68,.2);
+  }
+  .al-mobile-chat { display: none; }
+
+  /* Theme toggle (sama persis Dashboard) */
+  .al-theme-toggle {
+    display: flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--bg-tertiary); border: 1.5px solid var(--border-color);
+    cursor: pointer; transition: .2s; color: var(--text-primary); margin-left: 2px;
+  }
+  .al-theme-toggle:hover { background: #EFF6FF; color: #2563EB; }
+  .dark-mode .al-theme-toggle:hover { background: rgba(59,130,246,.15); }
+
   .al-navbar-login {
-    font-size: 14px; font-weight: 700; color: #475569;
+    font-size: 14px; font-weight: 700; color: var(--text-secondary);
     cursor: pointer; padding: 8px 14px; border-radius: 10px; transition: .15s;
     font-family: 'DM Sans', sans-serif;
   }
-  .al-navbar-login:hover { color: #0F172A; background: #F1F5F9; }
+  .al-navbar-login:hover { color: var(--text-primary); background: var(--bg-tertiary); }
   .al-navbar-cta {
     border: none; cursor: pointer; padding: 11px 22px; border-radius: 12px;
     background: linear-gradient(135deg, #2563EB, #3B82F6);
@@ -328,15 +434,7 @@ export default function AllListingsPage() {
   }
   .al-navbar-cta:hover { transform: translateY(-1px); box-shadow: 0 12px 25px rgba(37,99,235,.22); }
 
-  .al-chat-btn {
-    width: 36px; height: 36px; border-radius: 50%;
-    background: #F1F5F9; color: #475569;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; border: 1.5px solid #E2E8F0; transition: .2s; margin-left: 2px;
-  }
-  .al-chat-btn:hover { background: #EFF6FF; color: #2563EB; border-color: #BFDBFE; }
-  .al-mobile-chat { display: none; }
-
+  /* Dropdown (sama persis Dashboard) */
   .al-dropdown-wrap { position: relative; }
   .al-navbar-avatar {
     width: 36px; height: 36px; border-radius: 50%;
@@ -349,8 +447,8 @@ export default function AllListingsPage() {
   .al-navbar-avatar:hover { background: #BFDBFE; transform: scale(1.05); }
   .al-navbar-dropdown {
     position: absolute; top: calc(100% + 10px); right: 0;
-    background: white; border: 1px solid #E2E8F0; border-radius: 16px;
-    padding: 8px; min-width: 175px;
+    background: var(--bg-secondary); border: 1px solid var(--border-color);
+    border-radius: 16px; padding: 8px; min-width: 175px;
     box-shadow: 0 8px 32px rgba(0,0,0,.10);
     display: flex; flex-direction: column; gap: 2px;
     z-index: 200; animation: ddFadeIn .15s ease;
@@ -363,13 +461,14 @@ export default function AllListingsPage() {
     display: flex; align-items: center; gap: 10px;
     padding: 10px 13px; border: none; background: none;
     border-radius: 10px; font-size: 13px; font-weight: 600;
-    color: #334155; cursor: pointer; width: 100%; text-align: left;
-    transition: .13s; font-family: 'DM Sans', sans-serif;
+    color: var(--text-secondary); cursor: pointer; width: 100%;
+    text-align: left; transition: .13s; font-family: 'DM Sans', sans-serif;
   }
-  .al-navbar-dropdown button:hover { background: #F1F5F9; }
-  .al-navbar-dropdown .dd-divider  { height: 1px; background: #E2E8F0; margin: 4px 0; }
+  .al-navbar-dropdown button:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+  .al-navbar-dropdown .dd-divider { height: 1px; background: var(--border-color); margin: 4px 0; }
   .al-navbar-dropdown button.danger { color: #EF4444; }
   .al-navbar-dropdown button.danger:hover { background: #FEF2F2; }
+  .dark-mode .al-navbar-dropdown button.danger:hover { background: rgba(239,68,68,.15); }
 
   /* ── HERO ── */
   .al-hero {
@@ -403,8 +502,10 @@ export default function AllListingsPage() {
   .al-filterbar {
     position: sticky; top: 72px; z-index: 90;
     background: rgba(255,255,255,.97); backdrop-filter: blur(12px);
-    border-bottom: 1px solid #EAEFF5;
+    border-bottom: 1px solid var(--border-color);
+    transition: background 0.3s;
   }
+  .dark-mode .al-filterbar { background: rgba(30,41,59,.97); }
   .al-filterbar-inner {
     max-width: 1180px; margin: 0 auto;
     display: flex; align-items: center; justify-content: space-between;
@@ -414,7 +515,7 @@ export default function AllListingsPage() {
   .al-filter-chip {
     display: flex; align-items: center;
     padding: 0 22px; height: 50px;
-    font-size: 13px; font-weight: 700; color: #64748B;
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
     cursor: pointer; border: none; background: none;
     border-bottom: 2.5px solid transparent; transition: .15s;
     white-space: nowrap; font-family: 'DM Sans', sans-serif; flex-shrink: 0;
@@ -425,12 +526,14 @@ export default function AllListingsPage() {
   .al-filter-btn {
     display: flex; align-items: center; justify-content: center; gap: 7px;
     padding: 0 18px; height: 40px; margin-left: auto;
-    border-radius: 12px; border: 1px solid #E2E8F0; background: white;
-    font-size: 13px; font-weight: 700; color: #475569;
+    border-radius: 12px; border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    font-size: 13px; font-weight: 700; color: var(--text-secondary);
     cursor: pointer; transition: .15s; font-family: 'DM Sans', sans-serif;
     position: relative; flex-shrink: 0;
   }
   .al-filter-btn:hover { color: #2563EB; background: #EFF6FF; border-color: #BFDBFE; }
+  .dark-mode .al-filter-btn:hover { background: rgba(59,130,246,.15); }
   .al-filter-btn.has-active { color: #2563EB; }
   .al-filter-badge {
     min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
@@ -445,25 +548,27 @@ export default function AllListingsPage() {
     display: flex; align-items: center; justify-content: space-between;
     gap: 12px; flex-wrap: wrap;
   }
-  .al-sort-label { font-size: 14px; color: #64748B; font-weight: 600; }
-  .al-sort-label strong { color: #0F172A; }
+  .al-sort-label { font-size: 14px; color: var(--text-secondary); font-weight: 600; }
+  .al-sort-label strong { color: var(--text-primary); }
 
   .al-sort-wrap { position: relative; }
   .al-sort-trigger {
     display: flex; align-items: center; gap: 8px;
-    background: white; border: 1.5px solid #E2E8F0; border-radius: 12px;
-    padding: 9px 14px; font-size: 13px; font-weight: 700; color: #334155;
+    background: var(--bg-secondary); border: 1.5px solid var(--border-color);
+    border-radius: 12px; padding: 9px 14px;
+    font-size: 13px; font-weight: 700; color: var(--text-primary);
     font-family: 'DM Sans', sans-serif; cursor: pointer; transition: .15s; white-space: nowrap;
   }
   .al-sort-trigger:hover { border-color: #BFDBFE; color: #2563EB; background: #EFF6FF; }
-  .al-sort-trigger svg { transition: transform .2s; color: #64748B; }
+  .dark-mode .al-sort-trigger:hover { background: rgba(59,130,246,.15); }
+  .al-sort-trigger svg { transition: transform .2s; color: var(--text-secondary); }
   .al-sort-trigger svg.rotated { transform: rotate(180deg); }
 
   .al-sort-dropdown {
     position: absolute; right: 0; top: calc(100% + 8px); z-index: 200;
-    background: white; border: 1.5px solid #E2E8F0; border-radius: 14px;
-    box-shadow: 0 8px 32px rgba(0,0,0,.10); padding: 6px; min-width: 210px;
-    animation: dropIn .15s ease;
+    background: var(--bg-secondary); border: 1.5px solid var(--border-color);
+    border-radius: 14px; box-shadow: 0 8px 32px rgba(0,0,0,.10);
+    padding: 6px; min-width: 210px; animation: dropIn .15s ease;
   }
   @keyframes dropIn {
     from { opacity: 0; transform: translateY(-6px); }
@@ -473,10 +578,13 @@ export default function AllListingsPage() {
     display: flex; align-items: center; justify-content: space-between;
     width: 100%; padding: 10px 14px; border-radius: 10px;
     border: none; background: none; font-size: 13px; font-weight: 600;
-    color: #334155; font-family: 'DM Sans', sans-serif; cursor: pointer; text-align: left; transition: .12s;
+    color: var(--text-primary); font-family: 'DM Sans', sans-serif;
+    cursor: pointer; text-align: left; transition: .12s;
   }
   .al-sort-dropdown-item:hover { background: #EFF6FF; color: #2563EB; }
+  .dark-mode .al-sort-dropdown-item:hover { background: rgba(59,130,246,.15); }
   .al-sort-dropdown-item.active { color: #2563EB; background: #EFF6FF; }
+  .dark-mode .al-sort-dropdown-item.active { background: rgba(59,130,246,.15); }
   .al-sort-check { font-size: 13px; font-weight: 800; color: #2563EB; }
 
   /* ── GRID ── */
@@ -485,17 +593,17 @@ export default function AllListingsPage() {
 
   /* ── SKELETON ── */
   .al-skeleton {
-    background: white; border-radius: 18px; overflow: hidden;
-    border: 1px solid #EEF2F7; animation: alPulse 1.4s infinite;
+    background: var(--bg-secondary); border-radius: 18px; overflow: hidden;
+    border: 1px solid var(--border-color); animation: alPulse 1.4s infinite;
   }
-  .al-skeleton-img  { height: 170px; background: #E2E8F0; }
+  .al-skeleton-img  { height: 170px; background: var(--bg-tertiary); }
   .al-skeleton-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
-  .al-skeleton-line { height: 12px; border-radius: 999px; background: #E2E8F0; }
+  .al-skeleton-line { height: 12px; border-radius: 999px; background: var(--bg-tertiary); }
   @keyframes alPulse { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
 
   /* ── EMPTY ── */
   .al-empty { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 60px 0; }
-  .al-empty p { font-size: 14px; color: #64748B; font-weight: 600; }
+  .al-empty p { font-size: 14px; color: var(--text-secondary); font-weight: 600; }
   .al-retry-btn {
     border: none; cursor: pointer; display: flex; align-items: center; gap: 8px;
     background: #2563EB; color: white; padding: 10px 18px; border-radius: 12px;
@@ -510,57 +618,65 @@ export default function AllListingsPage() {
   @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
   .al-drawer {
     position: fixed; bottom: 0; left: 0; right: 0;
-    background: white; z-index: 401; border-radius: 24px 24px 0 0;
+    background: var(--bg-secondary); z-index: 401; border-radius: 24px 24px 0 0;
     padding: 0 0 36px; box-shadow: 0 -4px 40px rgba(0,0,0,.10);
     transform: translateY(100%); transition: transform .3s cubic-bezier(.4,0,.2,1);
     max-height: 88vh; overflow-y: auto;
   }
   .al-drawer.open { transform: translateY(0); }
   .al-drawer-handle {
-    width: 40px; height: 4px; background: #E2E8F0;
+    width: 40px; height: 4px; background: var(--border-color);
     border-radius: 999px; margin: 14px auto 0;
   }
   .al-drawer-header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 20px 22px 16px; border-bottom: 1px solid #F1F5F9;
+    padding: 20px 22px 16px; border-bottom: 1px solid var(--border-color);
   }
-  .al-drawer-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700; }
+  .al-drawer-title {
+    font-family: 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700;
+    color: var(--text-primary);
+  }
   .al-drawer-reset {
     font-size: 13px; font-weight: 700; color: #2563EB; cursor: pointer;
     border: none; background: none; font-family: 'DM Sans', sans-serif;
   }
   .al-drawer-section { padding: 20px 22px 0; }
   .al-drawer-label {
-    font-size: 11px; font-weight: 700; color: #94A3B8;
+    font-size: 11px; font-weight: 700; color: var(--text-secondary);
     text-transform: uppercase; letter-spacing: .07em; margin-bottom: 12px;
   }
   .al-chips { display: flex; gap: 8px; flex-wrap: wrap; }
   .al-chip {
-    padding: 9px 18px; border-radius: 999px; border: 1.5px solid #E2E8F0;
-    background: white; font-size: 13px; font-weight: 700; color: #64748B;
-    cursor: pointer; transition: .2s; font-family: 'DM Sans', sans-serif;
+    padding: 9px 18px; border-radius: 999px; border: 1.5px solid var(--border-color);
+    background: var(--bg-secondary); font-size: 13px; font-weight: 700;
+    color: var(--text-secondary); cursor: pointer; transition: .2s;
+    font-family: 'DM Sans', sans-serif;
   }
   .al-chip:hover { border-color: #93C5FD; color: #2563EB; }
   .al-chip.active { background: linear-gradient(135deg, #1D4ED8, #2563EB); border-color: #2563EB; color: white; }
   .al-price-row { display: flex; align-items: center; gap: 10px; }
   .al-price-input {
-    flex: 1; border: 1.5px solid #E2E8F0; border-radius: 12px;
+    flex: 1; border: 1.5px solid var(--border-color); border-radius: 12px;
     padding: 10px 14px; font-size: 13px; font-family: 'DM Sans', sans-serif;
-    color: #0F172A; outline: none; transition: .15s; background: #FAFAFA;
+    color: var(--text-primary); outline: none; transition: .15s;
+    background: var(--bg-tertiary);
   }
-  .al-price-input:focus { border-color: #93C5FD; background: white; }
-  .al-price-sep { color: #CBD5E1; font-weight: 700; font-size: 14px; }
+  .al-price-input:focus { border-color: #93C5FD; background: var(--bg-secondary); }
+  .al-price-sep { color: var(--text-secondary); font-weight: 700; font-size: 14px; }
   .al-sort-opts { display: flex; flex-direction: column; gap: 2px; }
   .al-sort-opt {
     display: flex; align-items: center; justify-content: space-between;
     padding: 12px 14px; border-radius: 12px; font-size: 14px; font-weight: 600;
-    color: #334155; cursor: pointer; transition: .12s; border: none; background: none;
-    width: 100%; text-align: left; font-family: 'DM Sans', sans-serif;
+    color: var(--text-primary); cursor: pointer; transition: .12s;
+    border: none; background: none; width: 100%; text-align: left;
+    font-family: 'DM Sans', sans-serif;
   }
   .al-sort-opt:hover { background: #EFF6FF; color: #2563EB; }
+  .dark-mode .al-sort-opt:hover { background: rgba(59,130,246,.15); }
   .al-sort-opt.active { color: #2563EB; background: #EFF6FF; }
+  .dark-mode .al-sort-opt.active { background: rgba(59,130,246,.15); }
   .al-radio {
-    width: 18px; height: 18px; border-radius: 50%; border: 2px solid #CBD5E1;
+    width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border-color);
     flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: .15s;
   }
   .al-sort-opt.active .al-radio { border-color: #2563EB; background: #2563EB; }
@@ -638,7 +754,7 @@ export default function AllListingsPage() {
   }
   @media(max-width: 768px) {
     .al-navbar-links { display: none; }
-    .al-mobile-chat  { display: flex; }
+    .al-mobile-chat  { display: flex !important; }
   }
   @media(max-width: 640px) {
     .al-navbar { height: 60px; padding: 0 16px; }
@@ -670,16 +786,17 @@ export default function AllListingsPage() {
       display: flex;
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 300;
       background: rgba(255,255,255,.97); backdrop-filter: blur(20px);
-      border-top: 1px solid #E2E8F0;
+      border-top: 1px solid var(--border-color);
       padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
       justify-content: space-around; align-items: center;
       box-shadow: 0 -4px 20px rgba(0,0,0,.07);
     }
+    .dark-mode .al-bottom-nav { background: rgba(30,41,59,.97); }
     .al-bn-item {
       display: flex; flex-direction: column; align-items: center; gap: 3px;
       padding: 6px 10px; border: none; background: none;
       border-radius: 12px; cursor: pointer;
-      color: #94A3B8; transition: color .15s;
+      color: var(--text-secondary); transition: color .15s;
       min-width: 52px; font-family: 'DM Sans', sans-serif;
     }
     .al-bn-item.active { color: #2563EB; }
@@ -731,9 +848,31 @@ export default function AllListingsPage() {
                   </span>
                 ))}
                 <div className="al-navbar-divider" />
-                <div className="al-chat-btn" onClick={() => navigate("/chat")} title="Chat">
-                  <MessageCircle size={16} />
+
+                {/* Chat button dengan badge (sama persis Dashboard) */}
+                <div
+                  className="al-chat-btn-wrap"
+                  onClick={() => navigate("/chat")}
+                  title="Chat"
+                >
+                  <div className="al-chat-btn"><MessageCircle size={16} /></div>
+                  {unreadChat > 0 && (
+                    <span className="al-chat-badge">
+                      {unreadChat > 99 ? "99+" : unreadChat}
+                    </span>
+                  )}
                 </div>
+
+                {/* Theme toggle (sama persis Dashboard) */}
+                <button
+                  className="al-theme-toggle"
+                  onClick={() => setDarkMode(!darkMode)}
+                  title={darkMode ? "Mode Terang" : "Mode Gelap"}
+                >
+                  {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+                </button>
+
+                {/* Avatar dropdown */}
                 <div className="al-dropdown-wrap" ref={menuRef}>
                   <div
                     className="al-navbar-avatar"
@@ -760,18 +899,38 @@ export default function AllListingsPage() {
               </>
             ) : (
               <>
+                <span className="al-navbar-link" onClick={() => navigate("/")}>Home</span>
                 <span className="al-navbar-link" onClick={() => navigate("/search")}>Search</span>
                 <span className="al-navbar-link" onClick={() => navigate("/map")}>Peta</span>
                 <div className="al-navbar-divider" />
+                {/* Theme toggle untuk guest juga */}
+                <button
+                  className="al-theme-toggle"
+                  onClick={() => setDarkMode(!darkMode)}
+                  title={darkMode ? "Mode Terang" : "Mode Gelap"}
+                >
+                  {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+                </button>
                 <span className="al-navbar-login" onClick={() => navigate("/auth")}>Masuk</span>
                 <button className="al-navbar-cta" onClick={() => navigate("/auth")}>Daftar Gratis</button>
               </>
             )}
           </div>
 
+          {/* Mobile chat button */}
           {isLoggedIn && (
-            <div className="al-chat-btn al-mobile-chat" onClick={() => navigate("/chat")} title="Chat">
-              <MessageCircle size={16} />
+            <div
+              className="al-chat-btn-wrap al-mobile-chat"
+              style={{ display: "none" }}
+              onClick={() => navigate("/chat")}
+              title="Chat"
+            >
+              <div className="al-chat-btn"><MessageCircle size={16} /></div>
+              {unreadChat > 0 && (
+                <span className="al-chat-badge">
+                  {unreadChat > 99 ? "99+" : unreadChat}
+                </span>
+              )}
             </div>
           )}
         </nav>

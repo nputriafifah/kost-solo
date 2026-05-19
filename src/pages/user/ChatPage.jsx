@@ -23,37 +23,71 @@ const GUEST_MOBILE  = NAV_ITEMS.filter((n) => n.guestMobile);
 
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;700&display=swap');
-  * { box-sizing: border-box; } body { margin: 0; background: #F8FAFC; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg-primary); transition: background 0.3s, color 0.3s; }
 
-  /* ── NAVBAR (identik Dashboard) ── */
+  /* ── DARK MODE VARIABLES (fallback jika belum di index.css) ── */
+  :root {
+    --bg-primary: #F8FAFC;
+    --bg-secondary: #FFFFFF;
+    --bg-tertiary: #F1F5F9;
+    --text-primary: #0F172A;
+    --text-secondary: #64748B;
+    --border-color: #E2E8F0;
+    --card-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  .dark-mode {
+    --bg-primary: #0F172A;
+    --bg-secondary: #1E293B;
+    --bg-tertiary: #334155;
+    --text-primary: #F8FAFC;
+    --text-secondary: #CBD5E1;
+    --border-color: #334155;
+    --card-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+
+  /* ── ROOT ── */
+  .chat-root {
+    min-height: 100vh;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    transition: background 0.3s, color 0.3s;
+  }
+
+  /* ── NAVBAR ── */
   .chat-navbar {
     position: sticky; top: 0; z-index: 100;
     height: 72px;
     background: rgba(255,255,255,.92); backdrop-filter: blur(16px);
-    border-bottom: 1px solid #EAEFF5;
+    border-bottom: 1px solid var(--border-color);
     display: flex; align-items: center; justify-content: space-between;
     padding: 0 42px;
+    transition: background 0.3s, border-color 0.3s;
   }
-  .chat-navbar-logo { font-family:'Plus Jakarta Sans',sans-serif; font-size:25px; font-weight:800; letter-spacing:-1px; color:#0F172A; cursor:pointer; }
+  .dark-mode .chat-navbar { background: rgba(30,41,59,.92); }
+
+  .chat-navbar-logo { font-family:'Plus Jakarta Sans',sans-serif; font-size:25px; font-weight:800; letter-spacing:-1px; color:var(--text-primary); cursor:pointer; }
   .chat-navbar-logo span { color:#2563EB; }
   .chat-navbar-links { display:flex; align-items:center; gap:4px; }
-  .chat-navbar-link { font-size:14px; font-weight:600; color:#64748B; cursor:pointer; padding:7px 11px; border-radius:9px; transition:.15s; font-family:'DM Sans',sans-serif; }
+  .chat-navbar-link { font-size:14px; font-weight:600; color:var(--text-secondary); cursor:pointer; padding:7px 11px; border-radius:9px; transition:.15s; font-family:'DM Sans',sans-serif; }
   .chat-navbar-link:hover { color:#2563EB; background:#EFF6FF; }
+  .dark-mode .chat-navbar-link:hover { background:rgba(59,130,246,.15); }
   .chat-navbar-link.active { color:#2563EB; }
-  .chat-navbar-divider { width:1px; height:22px; background:#E2E8F0; margin:0 6px; }
-  .chat-navbar-login { font-size:14px; font-weight:700; color:#475569; cursor:pointer; padding:8px 14px; border-radius:10px; transition:.15s; font-family:'DM Sans',sans-serif; }
-  .chat-navbar-login:hover { color:#0F172A; background:#F1F5F9; }
+  .chat-navbar-divider { width:1px; height:22px; background:var(--border-color); margin:0 6px; }
+  .chat-navbar-login { font-size:14px; font-weight:700; color:var(--text-secondary); cursor:pointer; padding:8px 14px; border-radius:10px; transition:.15s; font-family:'DM Sans',sans-serif; }
+  .chat-navbar-login:hover { color:var(--text-primary); background:var(--bg-tertiary); }
   .chat-navbar-cta { border:none; cursor:pointer; padding:11px 22px; border-radius:12px; background:linear-gradient(135deg,#2563EB,#3B82F6); color:#fff; font-size:13px; font-weight:700; transition:.2s; font-family:'DM Sans',sans-serif; }
   .chat-navbar-cta:hover { transform:translateY(-1px); box-shadow:0 12px 25px rgba(37,99,235,.22); }
 
   /* ── Chat button + badge ── */
   .chat-chat-btn-wrap { position:relative; display:inline-flex; margin-left:2px; cursor:pointer; }
-  .chat-chat-btn { width:36px; height:36px; border-radius:50%; background:#F1F5F9; color:#475569; display:flex; align-items:center; justify-content:center; border:1.5px solid #E2E8F0; transition:.2s; }
+  .chat-chat-btn { width:36px; height:36px; border-radius:50%; background:var(--bg-tertiary); color:var(--text-secondary); display:flex; align-items:center; justify-content:center; border:1.5px solid var(--border-color); transition:.2s; }
   .chat-chat-btn:hover { background:#EFF6FF; color:#2563EB; border-color:#BFDBFE; }
+  .dark-mode .chat-chat-btn:hover { background:rgba(59,130,246,.15); }
   .chat-chat-badge {
     position:absolute; top:-3px; right:-3px;
     min-width:16px; height:16px;
-    background:#EF4444; border-radius:999px; border:2px solid white;
+    background:#EF4444; border-radius:999px; border:2px solid var(--bg-secondary);
     display:flex; align-items:center; justify-content:center;
     font-size:9px; font-weight:800; color:white; padding:0 3px; line-height:1;
     pointer-events:none; box-shadow:0 0 0 2px rgba(239,68,68,.2);
@@ -63,22 +97,83 @@ const css = `
   /* ── Avatar + notif dot ── */
   .chat-dropdown-wrap { position:relative; }
   .chat-avatar-wrap { position:relative; display:inline-block; margin-left:4px; }
-  .chat-notif-dot { position:absolute; top:-2px; right:-2px; width:10px; height:10px; background:#EF4444; border-radius:50%; border:2.5px solid white; box-shadow:0 0 0 2px rgba(239,68,68,.22); pointer-events:none; }
+  .chat-notif-dot { position:absolute; top:-2px; right:-2px; width:10px; height:10px; background:#EF4444; border-radius:50%; border:2.5px solid var(--bg-secondary); box-shadow:0 0 0 2px rgba(239,68,68,.22); pointer-events:none; }
   .chat-navbar-avatar { width:36px; height:36px; border-radius:50%; background:#DBEAFE; color:#1D4ED8; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; cursor:pointer; border:2px solid #BFDBFE; transition:.2s; font-family:'DM Sans',sans-serif; }
   .chat-navbar-avatar:hover { background:#BFDBFE; transform:scale(1.05); }
-  .chat-navbar-dropdown { position:absolute; top:calc(100% + 10px); right:0; background:white; border:1px solid #E2E8F0; border-radius:16px; padding:8px; min-width:175px; box-shadow:0 8px 32px rgba(0,0,0,.10); display:flex; flex-direction:column; gap:2px; z-index:200; animation:ddFadeIn .15s ease; }
+
+  /* ── Dropdown ── */
+  .chat-navbar-dropdown { position:absolute; top:calc(100% + 10px); right:0; background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:16px; padding:8px; min-width:175px; box-shadow:var(--card-shadow); display:flex; flex-direction:column; gap:2px; z-index:200; animation:ddFadeIn .15s ease; }
   @keyframes ddFadeIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
-  .chat-navbar-dropdown button { display:flex; align-items:center; gap:10px; padding:10px 13px; border:none; background:none; border-radius:10px; font-size:13px; font-weight:600; color:#334155; cursor:pointer; width:100%; text-align:left; transition:.13s; font-family:'DM Sans',sans-serif; }
-  .chat-navbar-dropdown button:hover { background:#F1F5F9; }
-  .chat-navbar-dropdown .dd-divider { height:1px; background:#E2E8F0; margin:4px 0; }
+  .chat-navbar-dropdown button { display:flex; align-items:center; gap:10px; padding:10px 13px; border:none; background:none; border-radius:10px; font-size:13px; font-weight:600; color:var(--text-secondary); cursor:pointer; width:100%; text-align:left; transition:.13s; font-family:'DM Sans',sans-serif; }
+  .chat-navbar-dropdown button:hover { background:var(--bg-tertiary); color:var(--text-primary); }
+  .chat-navbar-dropdown .dd-divider { height:1px; background:var(--border-color); margin:4px 0; }
   .chat-navbar-dropdown button.danger { color:#EF4444; }
   .chat-navbar-dropdown button.danger:hover { background:#FEF2F2; }
+  .dark-mode .chat-navbar-dropdown button.danger:hover { background:rgba(239,68,68,.15); }
+
+  /* ── SEARCH INPUT ── */
+  .chat-search-input {
+    width:100%; height:44px; padding-left:42px; padding-right:16px;
+    background:var(--bg-secondary); border:1.5px solid var(--border-color);
+    border-radius:14px; font-size:14px; outline:none;
+    font-family:'DM Sans',sans-serif; color:var(--text-primary);
+    transition: background 0.3s, border-color 0.3s, color 0.3s;
+  }
+  .chat-search-input::placeholder { color:var(--text-secondary); }
+
+  /* ── FILTER CHIPS ── */
+  .chat-chip {
+    padding:7px 16px; border-radius:999px;
+    font-size:12px; font-weight:700; cursor:pointer;
+    font-family:'DM Sans',sans-serif; transition:.15s;
+  }
+  .chat-chip-inactive {
+    border:1.5px solid var(--border-color);
+    background:var(--bg-secondary);
+    color:var(--text-secondary);
+  }
+  .chat-chip-inactive:hover { border-color:#93C5FD; color:#2563EB; }
+  .chat-chip-active {
+    border:1.5px solid #2563EB;
+    background:linear-gradient(135deg,#1D4ED8,#2563EB);
+    color:white;
+  }
+
+  /* ── CHAT CARD ── */
+  .chat-card {
+    width:100%; display:flex; align-items:center; gap:12px;
+    padding:16px; background:var(--bg-secondary);
+    border-radius:16px; border:1px solid var(--border-color);
+    cursor:pointer; text-align:left; transition:.15s;
+    font-family:'DM Sans',sans-serif;
+  }
+  .chat-card:hover { background:var(--bg-tertiary); border-color:#BFDBFE; }
+
+  /* ── SKELETON ── */
+  .chat-skeleton-wrap { background:var(--bg-secondary); border-radius:16px; border:1px solid var(--border-color); }
+  .chat-skeleton-block { background:var(--bg-tertiary); border-radius:999px; }
+  .chat-skeleton-avatar { background:var(--bg-tertiary); border-radius:14px; width:48px; height:48px; flex-shrink:0; }
+
+  /* ── SECTION HEADER badge ── */
+  .chat-count-badge { background:#EFF6FF; color:#2563EB; font-size:12px; font-weight:700; padding:4px 12px; border-radius:999px; }
+  .dark-mode .chat-count-badge { background:rgba(59,130,246,.15); }
+
+  /* ── NEW CHAT BANNER ── */
+  .chat-new-banner { margin-bottom:16px; padding:16px; background:#EFF6FF; border-radius:16px; display:flex; gap:12px; border:1px solid #BFDBFE; }
+  .dark-mode .chat-new-banner { background:rgba(59,130,246,.1); border-color:rgba(59,130,246,.3); }
+
+  /* ── EMPTY STATE ── */
+  .chat-empty-icon { width:64px; height:64px; border-radius:20px; background:var(--bg-tertiary); display:flex; align-items:center; justify-content:center; }
+
+  /* ── SAFETY BANNER ── */
+  .chat-safety { margin-top:32px; padding:20px; background:#0F172A; border-radius:20px; display:flex; gap:12px; align-items:flex-start; }
+  .dark-mode .chat-safety { background:#0F172A; border:1px solid var(--border-color); }
 
   /* ── dot & badge di bottom nav ── */
   .chat-bn-avatar-wrap { position:relative; display:inline-flex; }
-  .chat-bn-notif-dot { position:absolute; top:-2px; right:-2px; width:7px; height:7px; background:#EF4444; border-radius:50%; border:1.5px solid white; }
+  .chat-bn-notif-dot { position:absolute; top:-2px; right:-2px; width:7px; height:7px; background:#EF4444; border-radius:50%; border:1.5px solid var(--bg-secondary); }
   .chat-bn-icon-wrap { position:relative; display:inline-flex; }
-  .chat-bn-chat-badge { position:absolute; top:-4px; right:-6px; min-width:14px; height:14px; background:#EF4444; border-radius:999px; border:1.5px solid white; display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:800; color:white; padding:0 3px; line-height:1; pointer-events:none; }
+  .chat-bn-chat-badge { position:absolute; top:-4px; right:-6px; min-width:14px; height:14px; background:#EF4444; border-radius:999px; border:1.5px solid var(--bg-secondary); display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:800; color:white; padding:0 3px; line-height:1; pointer-events:none; }
 
   /* ── BOTTOM NAV ── */
   .chat-bottom-nav { display:none; }
@@ -96,15 +191,17 @@ const css = `
     .chat-bottom-nav {
       display:flex; position:fixed; bottom:0; left:0; right:0; z-index:300;
       background:rgba(255,255,255,.97); backdrop-filter:blur(20px);
-      border-top:1px solid #E2E8F0;
+      border-top:1px solid var(--border-color);
       padding:6px 0 calc(6px + env(safe-area-inset-bottom));
       justify-content:space-around; align-items:center;
       box-shadow:0 -4px 20px rgba(0,0,0,.07);
+      transition: background 0.3s;
     }
+    .dark-mode .chat-bottom-nav { background:rgba(30,41,59,.97); }
     .chat-bn-item {
       display:flex; flex-direction:column; align-items:center; gap:3px;
       padding:6px 10px; border:none; background:none; border-radius:12px;
-      cursor:pointer; color:#94A3B8; transition:color .15s;
+      cursor:pointer; color:var(--text-secondary); transition:color .15s;
       min-width:52px; font-family:'DM Sans',sans-serif;
     }
     .chat-bn-item.active { color:#2563EB; }
@@ -149,7 +246,6 @@ export default function ChatPage() {
     ? userName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "GU";
 
-  /* ── Notif profil ── */
   useEffect(() => {
     const saved = localStorage.getItem("atap_notifications");
     if (saved) {
@@ -160,32 +256,22 @@ export default function ChatPage() {
     }
   }, []);
 
-  /* close dropdown on outside click */
   useEffect(() => {
     const h = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setShowMenu(false); };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
-  /* ── Fetch chat sessions ── */
   useEffect(() => {
     const fetchChats = async () => {
       try {
         if (!token) { navigate("/login"); return; }
-
         const res = await fetch(`${API}/chats`, {
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         });
-
-        if (res.status === 401) {
-          localStorage.removeItem("token");
-          navigate("/login");
-          return;
-        }
-
+        if (res.status === 401) { localStorage.removeItem("token"); navigate("/login"); return; }
         const json = await res.json();
         const raw  = Array.isArray(json.data) ? json.data : [];
-
         const chats = raw.map((thread) => {
           const lm = thread.lastMessage;
           return {
@@ -198,10 +284,7 @@ export default function ChatPage() {
             isRead:      lm ? !!lm.readAt : true,
           };
         });
-
-        // Hitung total unread untuk badge navbar
-        const totalUnread = chats.reduce((acc, c) => acc + c.unread, 0);
-        setUnreadChat(totalUnread);
+        setUnreadChat(chats.reduce((acc, c) => acc + c.unread, 0));
         setChatSessions(chats);
       } catch (err) {
         console.error("Error fetching chats:", err);
@@ -210,7 +293,6 @@ export default function ChatPage() {
         setLoading(false);
       }
     };
-
     fetchChats();
   }, [navigate, token]);
 
@@ -234,7 +316,7 @@ export default function ChatPage() {
     return matchSearch && matchFilter;
   });
 
-  const hasChats      = chatSessions.length > 0;
+  const hasChats       = chatSessions.length > 0;
   const noSearchResult = hasChats && filtered.length === 0;
 
   const doLogout = () => {
@@ -246,7 +328,7 @@ export default function ChatPage() {
   return (
     <>
       <style>{css}</style>
-      <div className="min-h-screen bg-[#F8FAFC] pb-16">
+      <div className="chat-root">
 
         {/* ── NAVBAR ── */}
         <nav className="chat-navbar">
@@ -264,22 +346,16 @@ export default function ChatPage() {
                 ))}
                 <div className="chat-navbar-divider" />
 
-                {/* Chat icon + badge — di halaman chat ini, icon dibuat active */}
                 <div className="chat-chat-btn-wrap" onClick={() => navigate("/chat")} title="Chat">
                   <div className="chat-chat-btn" style={{ background: "#EFF6FF", color: "#2563EB", borderColor: "#BFDBFE" }}>
                     <MessageCircle size={16} />
                   </div>
-                  {unreadChat > 0 && (
-                    <span className="chat-chat-badge">{unreadChat > 99 ? "99+" : unreadChat}</span>
-                  )}
+                  {unreadChat > 0 && <span className="chat-chat-badge">{unreadChat > 99 ? "99+" : unreadChat}</span>}
                 </div>
 
-                {/* Avatar + notif dot */}
                 <div className="chat-dropdown-wrap" ref={menuRef}>
                   <div className="chat-avatar-wrap">
-                    <div className="chat-navbar-avatar" onClick={() => setShowMenu((p) => !p)} title={userName}>
-                      {initials}
-                    </div>
+                    <div className="chat-navbar-avatar" onClick={() => setShowMenu((p) => !p)} title={userName}>{initials}</div>
                     {unreadCount > 0 && <span className="chat-notif-dot" />}
                   </div>
                   {showMenu && (
@@ -312,15 +388,12 @@ export default function ChatPage() {
             )}
           </div>
 
-          {/* Mobile: chat icon kanan navbar */}
           {isLoggedIn && (
             <div className="chat-chat-btn-wrap chat-mobile-chat" onClick={() => navigate("/chat")} title="Chat">
               <div className="chat-chat-btn" style={{ background: "#EFF6FF", color: "#2563EB", borderColor: "#BFDBFE" }}>
                 <MessageCircle size={16} />
               </div>
-              {unreadChat > 0 && (
-                <span className="chat-chat-badge">{unreadChat > 99 ? "99+" : unreadChat}</span>
-              )}
+              {unreadChat > 0 && <span className="chat-chat-badge">{unreadChat > 99 ? "99+" : unreadChat}</span>}
             </div>
           )}
         </nav>
@@ -348,26 +421,24 @@ export default function ChatPage() {
 
           {/* Search */}
           <div style={{ position: "relative", marginBottom: 16 }}>
-            <Search style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "#94A3B8" }} size={16} />
+            <Search style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: "var(--text-secondary)" }} size={16} />
             <input
               type="text"
               placeholder="Cari pemilik atau nama kos..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ width: "100%", height: 44, paddingLeft: 42, paddingRight: 16, background: "white", border: "1.5px solid #E2E8F0", borderRadius: 14, fontSize: 14, outline: "none", fontFamily: "'DM Sans', sans-serif", color: "#0F172A" }}
+              className="chat-search-input"
             />
           </div>
 
           {/* Filter chips */}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
             {FILTERS.map((f) => (
-              <button key={f} onClick={() => setActiveFilter(f)} style={{
-                padding: "7px 16px", borderRadius: 999,
-                border: activeFilter === f ? "1.5px solid #2563EB" : "1.5px solid #E2E8F0",
-                background: activeFilter === f ? "linear-gradient(135deg,#1D4ED8,#2563EB)" : "white",
-                color: activeFilter === f ? "white" : "#64748B",
-                fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif",
-              }}>
+              <button
+                key={f}
+                onClick={() => setActiveFilter(f)}
+                className={`chat-chip ${activeFilter === f ? "chat-chip-active" : "chat-chip-inactive"}`}
+              >
                 {f}
               </button>
             ))}
@@ -375,22 +446,20 @@ export default function ChatPage() {
 
           {/* Section header */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-            <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 17, fontWeight: 800, letterSpacing: -0.5, margin: 0 }}>
+            <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 17, fontWeight: 800, letterSpacing: -0.5, margin: 0, color: "var(--text-primary)" }}>
               Percakapan
             </h2>
-            <span style={{ background: "#EFF6FF", color: "#2563EB", fontSize: 12, fontWeight: 700, padding: "4px 12px", borderRadius: 999 }}>
-              {chatSessions.length} aktif
-            </span>
+            <span className="chat-count-badge">{chatSessions.length} aktif</span>
           </div>
 
           {/* New-chat banner */}
           {kostName && (
-            <div style={{ marginBottom: 16, padding: 16, background: "#EFF6FF", borderRadius: 16, display: "flex", gap: 12, border: "1px solid #BFDBFE" }}>
+            <div className="chat-new-banner">
               <MessageCircle size={17} color="#2563EB" style={{ flexShrink: 0, marginTop: 2 }} />
               <div>
                 <p style={{ fontSize: 12, color: "#3B82F6", fontWeight: 600, margin: 0 }}>Mulai chat dengan</p>
-                <p style={{ fontSize: 14, fontWeight: 700, margin: "2px 0 0" }}>{ownerName}</p>
-                <p style={{ fontSize: 12, color: "#94A3B8", margin: "2px 0 0" }}>Tentang: {kostName}</p>
+                <p style={{ fontSize: 14, fontWeight: 700, margin: "2px 0 0", color: "var(--text-primary)" }}>{ownerName}</p>
+                <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: "2px 0 0" }}>Tentang: {kostName}</p>
               </div>
             </div>
           )}
@@ -399,12 +468,12 @@ export default function ChatPage() {
           {loading && (
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {[...Array(4)].map((_, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: 16, background: "white", borderRadius: 16, border: "1px solid #F1F5F9" }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 14, background: "#F1F5F9", flexShrink: 0 }} />
+                <div key={i} className="chat-skeleton-wrap" style={{ display: "flex", alignItems: "center", gap: 12, padding: 16 }}>
+                  <div className="chat-skeleton-avatar" />
                   <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
-                    <div style={{ height: 12, background: "#F1F5F9", borderRadius: 999, width: "50%" }} />
-                    <div style={{ height: 10, background: "#F1F5F9", borderRadius: 999, width: "33%" }} />
-                    <div style={{ height: 10, background: "#F1F5F9", borderRadius: 999, width: "75%" }} />
+                    <div className="chat-skeleton-block" style={{ height: 12, width: "50%" }} />
+                    <div className="chat-skeleton-block" style={{ height: 10, width: "33%" }} />
+                    <div className="chat-skeleton-block" style={{ height: 10, width: "75%" }} />
                   </div>
                 </div>
               ))}
@@ -414,11 +483,11 @@ export default function ChatPage() {
           {/* Empty state */}
           {!loading && !hasChats && (
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", marginTop: 64, gap: 12 }}>
-              <div style={{ width: 64, height: 64, borderRadius: 20, background: "#F1F5F9", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <MessageCircle size={28} color="#CBD5E1" />
+              <div className="chat-empty-icon">
+                <MessageCircle size={28} color="var(--text-secondary)" />
               </div>
-              <p style={{ fontSize: 14, fontWeight: 600, color: "#475569", margin: 0 }}>Belum ada percakapan</p>
-              <p style={{ fontSize: 13, color: "#94A3B8", textAlign: "center", maxWidth: 220, lineHeight: 1.6, margin: 0 }}>
+              <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>Belum ada percakapan</p>
+              <p style={{ fontSize: 13, color: "var(--text-secondary)", textAlign: "center", maxWidth: 220, lineHeight: 1.6, margin: 0 }}>
                 Cari kos yang kamu suka dan mulai chat dengan pemiliknya
               </p>
             </div>
@@ -426,7 +495,7 @@ export default function ChatPage() {
 
           {/* No search result */}
           {!loading && noSearchResult && (
-            <p style={{ textAlign: "center", color: "#94A3B8", marginTop: 40, fontSize: 14 }}>
+            <p style={{ textAlign: "center", color: "var(--text-secondary)", marginTop: 40, fontSize: 14 }}>
               Tidak ditemukan untuk "{searchQuery}"
             </p>
           )}
@@ -435,25 +504,22 @@ export default function ChatPage() {
           {!loading && hasChats && !noSearchResult && (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {filtered.map((chat) => (
-                <button key={chat.id} onClick={() => navigate(`/chat/${chat.id}`)}
-                  style={{ width: "100%", display: "flex", alignItems: "center", gap: 12, padding: 16, background: "white", borderRadius: 16, border: "1px solid #F1F5F9", cursor: "pointer", textAlign: "left", transition: ".15s", fontFamily: "'DM Sans', sans-serif" }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = "#F8FAFC"; e.currentTarget.style.borderColor = "#BFDBFE"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = "white"; e.currentTarget.style.borderColor = "#F1F5F9"; }}>
+                <button key={chat.id} onClick={() => navigate(`/chat/${chat.id}`)} className="chat-card">
                   <div style={{ width: 48, height: 48, borderRadius: 14, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 800, fontSize: 16, background: avatarGradient(chat.id) }}>
                     {chat.name?.[0]?.toUpperCase() || "?"}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {chat.name}
                       </span>
-                      <span style={{ fontSize: 11, color: "#94A3B8", flexShrink: 0, marginLeft: 8 }}>{chat.time}</span>
+                      <span style={{ fontSize: 11, color: "var(--text-secondary)", flexShrink: 0, marginLeft: 8 }}>{chat.time}</span>
                     </div>
                     <p style={{ fontSize: 12, color: "#3B82F6", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", margin: "2px 0" }}>
                       {chat.kost}
                     </p>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <p style={{ fontSize: 12, color: "#94A3B8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, margin: 0 }}>
+                      <p style={{ fontSize: 12, color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1, margin: 0 }}>
                         {chat.lastMessage}
                       </p>
                       <div style={{ flexShrink: 0, marginLeft: 8 }}>
@@ -464,19 +530,19 @@ export default function ChatPage() {
                         ) : chat.isRead ? (
                           <CheckCheck size={15} color="#60A5FA" />
                         ) : (
-                          <Check size={15} color="#CBD5E1" />
+                          <Check size={15} color="var(--text-secondary)" />
                         )}
                       </div>
                     </div>
                   </div>
-                  <ChevronRight size={14} color="#CBD5E1" style={{ flexShrink: 0 }} />
+                  <ChevronRight size={14} color="var(--text-secondary)" style={{ flexShrink: 0 }} />
                 </button>
               ))}
             </div>
           )}
 
           {/* Safety banner */}
-          <div style={{ marginTop: 32, padding: 20, background: "#0F172A", borderRadius: 20, display: "flex", gap: 12, alignItems: "flex-start" }}>
+          <div className="chat-safety">
             <ShieldCheck size={20} color="#34D399" style={{ flexShrink: 0, marginTop: 2 }} />
             <div>
               <h4 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 14, fontWeight: 700, color: "white", margin: 0 }}>
@@ -505,9 +571,7 @@ export default function ChatPage() {
                 ) : isChat && isLoggedIn ? (
                   <div className="chat-bn-icon-wrap">
                     <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
-                    {unreadChat > 0 && (
-                      <span className="chat-bn-chat-badge">{unreadChat > 99 ? "99+" : unreadChat}</span>
-                    )}
+                    {unreadChat > 0 && <span className="chat-bn-chat-badge">{unreadChat > 99 ? "99+" : unreadChat}</span>}
                   </div>
                 ) : (
                   <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />

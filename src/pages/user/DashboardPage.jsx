@@ -51,12 +51,6 @@ const FOOTER_COLS = [
   { title: "Perusahaan", links: [{ label: "Tentang Kami", path: null }, { label: "Karir", path: null }, { label: "Blog", path: null }, { label: "Hubungi Kami", path: null }] },
 ];
 
-const STATS = [
-  { icon: BedDouble, label: "Kamar", value: "1.240", color: "#3B82F6" },
-  { icon: MapPin, label: "Wilayah", value: "42 Kota", color: "#8B5CF6" },
-  { icon: Bookmark, label: "Disimpan", value: "8K+", color: "#EC4899" },
-];
-
 // Hitung jarak (km) pakai Haversine
 function getDistanceKm(lat1, lon1, lat2, lon2) {
   const R = 6371;
@@ -87,6 +81,9 @@ export default function DashboardPage() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadChat, setUnreadChat] = useState(0);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("atap_theme") === "dark");
+
+  // Stats dinamis dari BE
+  const [stats, setStats] = useState({ kamar: 0, kota: 0, disimpan: 0 });
 
   // Lokasi terdekat
   const [userCoords, setUserCoords] = useState(null);
@@ -127,7 +124,7 @@ export default function DashboardPage() {
     if (!isLoggedIn || !token) return;
     const fetchUnreadChat = async () => {
       try {
-        const res = await fetch("http://localhost:8080/chats", {
+        const res = await fetch("http://localhost:3000/chats", {
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         });
         if (!res.ok) return;
@@ -155,9 +152,17 @@ export default function DashboardPage() {
     if (!isLoggedIn) return;
     fetch("http://localhost:3000/favorites", { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
-      .then((j) => setFavorites((j.data || []).map((x) => String(x.id))))
+      .then((j) => {
+        const favIds = (j.data || []).map((x) => String(x.id));
+        setFavorites(favIds);
+      })
       .catch(console.error);
   }, [isLoggedIn, token]);
+
+  // Update stats.disimpan setiap kali favorites berubah
+  useEffect(() => {
+    setStats((prev) => ({ ...prev, disimpan: favorites.length }));
+  }, [favorites]);
 
   const handleToggleLike = async (id) => {
     if (!isLoggedIn) { navigate("/auth"); return; }
@@ -179,7 +184,8 @@ export default function DashboardPage() {
       if (!res.ok) throw new Error(`${res.status}`);
       const json = await res.json();
       const raw = Array.isArray(json) ? json : Array.isArray(json.data) ? json.data : [];
-      setData(raw.map((item) => {
+
+      const mappedData = raw.map((item) => {
         const room = item.roomTypes?.[0] || {};
         const allPhotos = (item.roomTypes ?? []).flatMap(rt => rt.photos ?? []);
         const firstPhotoUrl = allPhotos[0]?.url || null;
@@ -187,18 +193,32 @@ export default function DashboardPage() {
           id: String(item.id),
           name: item.name || "Tanpa Nama",
           location: item.address || "Lokasi tidak tersedia",
+          city: item.city || item.address?.split(",").pop()?.trim() || "",
           price: room.price ?? item.cheapestPrice ?? 0,
           gender: (item.genderType || "").toLowerCase(),
           image: firstPhotoUrl || "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80",
-          available: room.availableCount ?? 0,
+          available: room.availableCount ?? item.roomTypes?.reduce((acc, rt) => acc + (rt.availableCount || 0), 0) ?? 0,
           isPremium: item.isPremium || false,
           latitude: item.latitude ? Number(item.latitude) : null,
           longitude: item.longitude ? Number(item.longitude) : null,
         };
-      }));
+      });
+
+      setData(mappedData);
+
+      // Hitung stats dinamis dari data listings
+      const totalKamar = mappedData.reduce((acc, item) => acc + (item.available || 0), 0);
+      
+      setStats((prev) => ({
+  ...prev,
+  kamar: totalKamar,
+  kota: mappedData.length,
+}));
+
     } catch { setError("Gagal memuat data"); }
     finally { setLoading(false); }
   };
+
   useEffect(() => { fetchListings(); }, []);
 
   // Fetch nearby: minta izin lokasi lalu sort by distance
@@ -282,6 +302,13 @@ export default function DashboardPage() {
     [data, activeFilter]
   );
 
+  // Stats dinamis (didefinisikan di dalam komponen agar reaktif)
+  const STATS = [
+  { icon: BedDouble, label: "Kamar",   value: stats.kamar.toLocaleString("id-ID"),  color: "#3B82F6" },
+  { icon: MapPin,    label: "Listing", value: `${stats.kota} Kost`,                 color: "#8B5CF6" },
+  { icon: Bookmark,  label: "Like",    value: stats.disimpan.toLocaleString("id-ID"), color: "#EC4899" },
+];
+
   const doLogout = () => { localStorage.removeItem("user"); localStorage.removeItem("token"); navigate("/auth"); };
 
   const renderCards = (count = 8) => {
@@ -298,7 +325,7 @@ export default function DashboardPage() {
         <SearchX size={28} color="#CBD5E1" /><p>Kost tidak ditemukan</p>
       </div>
     );
-    return filteredData.map((item) => (
+    return filteredData.slice(0, 8).map((item) => (
       <KostCard key={item.id} item={item} isLiked={favorites.includes(item.id)}
         onLike={(e) => { e?.stopPropagation(); handleToggleLike(item.id); }}
         onClick={() => navigate(`/detail/${item.id}`)} />
@@ -324,7 +351,7 @@ export default function DashboardPage() {
       </div>
     );
 
-    return nearbyData.map((item) => (
+    return nearbyData.slice(0, 8).map((item) => (
       <div key={item.id} style={{ position: "relative" }}>
         {item.distanceKm !== null && (
           <div className="atap-distance-badge">
@@ -414,6 +441,9 @@ export default function DashboardPage() {
   .atap-stat-content { flex: 1; }
   .atap-stat-value { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 20px; font-weight: 800; color: var(--text-primary); margin: 0 0 2px; }
   .atap-stat-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin: 0; }
+
+  /* Stat loading skeleton */
+  .atap-stat-value-loading { height: 20px; width: 60px; border-radius: 6px; background: var(--bg-tertiary); animation: pulse 1.4s infinite; }
 
   .atap-section { max-width: 1180px; margin: auto; padding: 42px 28px; }
   .atap-sec-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
@@ -596,8 +626,9 @@ export default function DashboardPage() {
               </>
             ) : (
               <>
-                <span className="atap-navbar-link" onClick={() => navigate("/search")}>Search</span>
-                <span className="atap-navbar-link" onClick={() => navigate("/map")}>Peta</span>
+                <span className="atap-navbar-link" onClick={() => navigate("/")}>Home</span>
+<span className="atap-navbar-link" onClick={() => navigate("/search")}>Search</span>
+<span className="atap-navbar-link" onClick={() => navigate("/map")}>Peta</span>
                 <div className="atap-navbar-divider" />
                 <button className="atap-theme-toggle" onClick={() => setDarkMode(!darkMode)} title={darkMode ? "Mode Terang" : "Mode Gelap"}>
                   {darkMode ? <Sun size={18} /> : <Moon size={18} />}
@@ -641,7 +672,11 @@ export default function DashboardPage() {
                   <Icon size={24} />
                 </div>
                 <div className="atap-stat-content">
-                  <p className="atap-stat-value">{value}</p>
+                  {loading ? (
+                    <div className="atap-stat-value-loading" />
+                  ) : (
+                    <p className="atap-stat-value">{value}</p>
+                  )}
                   <p className="atap-stat-label">{label}</p>
                 </div>
               </div>

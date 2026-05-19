@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { getApiBase, postPublicJson } from "../../config/apiBase";
 import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -213,6 +214,136 @@ function ShareModal({ item, onClose }) {
   );
 }
 
+/* ── PhotoLightbox Component ──────────────────────────────────────────── */
+function PhotoLightbox({ images, startIndex = 0, onClose }) {
+  const [current, setCurrent] = useState(startIndex);
+  const thumbsLbRef = useRef(null);
+  const touchStartXRef = useRef(null);
+
+  const total = images.length;
+  const prev = () => setCurrent((c) => (c - 1 + total) % total);
+  const next = () => setCurrent((c) => (c + 1) % total);
+
+  useEffect(() => {
+    const strip = thumbsLbRef.current;
+    if (!strip) return;
+    const thumb = strip.children[current];
+    if (thumb) thumb.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }, [current]);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === "ArrowLeft") prev();
+      else if (e.key === "ArrowRight") next();
+      else if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
+  const handleTouchStart = (e) => { touchStartXRef.current = e.touches[0].clientX; };
+  const handleTouchEnd = (e) => {
+    if (touchStartXRef.current === null) return;
+    const diff = touchStartXRef.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 40) diff > 0 ? next() : prev();
+    touchStartXRef.current = null;
+  };
+
+  return (
+    <div
+      style={{
+        position: "fixed", inset: 0, zIndex: 99999,
+        background: "rgba(0,0,0,0.96)",
+        display: "flex", flexDirection: "column",
+        animation: "lbFadeIn 0.2s ease",
+      }}
+    >
+      <style>{`
+        @keyframes lbFadeIn { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes lbImgIn { from { opacity: 0; transform: scale(0.97) } to { opacity: 1; transform: scale(1) } }
+        .lb-thumb { flex-shrink: 0; width: 72px; height: 52px; border-radius: 8px; overflow: hidden; cursor: pointer; border: 2px solid transparent; transition: border-color 0.15s, opacity 0.15s; opacity: 0.55; background: none; padding: 0; }
+        .lb-thumb.active { border-color: white; opacity: 1; }
+        .lb-thumb:hover { opacity: 0.85; }
+        .lb-nav-btn { width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.12); border: 1.5px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: background 0.15s; backdrop-filter: blur(4px); }
+        .lb-nav-btn:hover { background: rgba(255,255,255,0.25); }
+        .lb-close-btn { width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.1); border: 1.5px solid rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.15s; }
+        .lb-close-btn:hover { background: rgba(255,255,255,0.22); }
+        .lb-thumb-strip::-webkit-scrollbar { display: none; }
+        .lb-thumb-strip { scrollbar-width: none; }
+      `}</style>
+
+      {/* Top bar */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", flexShrink: 0 }}>
+        <span style={{ color: "rgba(255,255,255,0.55)", fontSize: 13, fontWeight: 600, fontFamily: "system-ui, sans-serif" }}>
+          Foto Bangunan
+        </span>
+        <span style={{ color: "white", fontSize: 14, fontWeight: 700, fontFamily: "system-ui, sans-serif" }}>
+          {current + 1} / {total}
+        </span>
+        <button className="lb-close-btn" onClick={onClose} aria-label="Tutup">
+          <X size={18} color="white" />
+        </button>
+      </div>
+
+      {/* Main image area */}
+      <div
+        style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 68px", minHeight: 0, position: "relative" }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        <button className="lb-nav-btn" onClick={prev} aria-label="Sebelumnya" style={{ position: "absolute", left: 12, zIndex: 2 }}>
+          <ChevronLeft size={22} color="white" />
+        </button>
+
+        <img
+          key={current}
+          src={images[current]}
+          alt={`Foto ${current + 1}`}
+          style={{
+            maxWidth: "100%",
+            maxHeight: "100%",
+            objectFit: "contain",
+            borderRadius: 12,
+            animation: "lbImgIn 0.22s ease",
+            userSelect: "none",
+            WebkitUserDrag: "none",
+          }}
+          draggable={false}
+        />
+
+        <button className="lb-nav-btn" onClick={next} aria-label="Berikutnya" style={{ position: "absolute", right: 12, zIndex: 2 }}>
+          <ChevronRight size={22} color="white" />
+        </button>
+      </div>
+
+      {/* Thumbnail strip */}
+      <div style={{ flexShrink: 0, padding: "16px 20px 28px" }}>
+        <div
+          ref={thumbsLbRef}
+          className="lb-thumb-strip"
+          style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}
+        >
+          {images.map((img, i) => (
+            <button
+              key={i}
+              className={`lb-thumb${i === current ? " active" : ""}`}
+              onClick={() => setCurrent(i)}
+              aria-label={`Foto ${i + 1}`}
+            >
+              <img src={img} alt={`thumb ${i + 1}`} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Fix Leaflet default icon ──────────────────────────────────────────── */
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -315,23 +446,39 @@ const QUICK_REPLIES = [
 ];
 
 const REPORT_REASONS = [
-  "Informasi tidak akurat",
-  "Foto menyesatkan",
-  "Penipuan / scam",
-  "Sudah tidak tersedia",
-  "Lainnya",
+  { label: "Informasi tidak akurat", value: "INFORMASI_SALAH" },
+  { label: "Foto menyesatkan",       value: "FOTO_TIDAK_SESUAI" },
+  { label: "Penipuan / scam",        value: "PENIPUAN" },
+  { label: "Sudah tidak tersedia",   value: "TIDAK_AKTIF" },
 ];
 
-const API = "http://localhost:3000";
-const getToken = () => localStorage.getItem("token") || "";
-const getCurrentUserId = () => {
-  try { const user = JSON.parse(localStorage.getItem("user") || "{}"); return user.id || ""; }
-  catch { return ""; }
+const API = getApiBase();
+const getToken = () =>
+  localStorage.getItem("token") ||
+  localStorage.getItem("accessToken") ||
+  "";
+const getCurrentUser = () => {
+  try { return JSON.parse(localStorage.getItem("user") || "{}"); }
+  catch { return {}; }
 };
-const authFetch = (url, opts = {}) =>
-  fetch(url, { ...opts, headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}`, ...(opts.headers || {}) } });
+const getCurrentUserId = () => getCurrentUser().id || "";
+
+const buildMinatWhatsAppUrl = (item, { name, phone } = {}) => {
+  const waNum = formatPhone(WHATSAPP_CONSULTATION);
+  const waMsg = name && phone
+    ? `Halo, saya *${name}* (${phone}) tertarik dengan kost *${item.name}* di ${item.location}. Apakah masih tersedia?`
+    : `Halo, saya tertarik dengan kost *${item.name}* di ${item.location}. Apakah masih tersedia?`;
+  return `https://wa.me/${waNum}?text=${encodeURIComponent(waMsg)}`;
+};
+const authFetch = (url, opts = {}) => {
+  const token = getToken();
+  const headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return fetch(url, { ...opts, headers });
+};
 
 const SERVICE_FEE = 250_000;
+const WHATSAPP_CONSULTATION = "083160982717";
 
 /* ─────────────────────────────────────────────────────────────────────────
    AjukanSewaPage
@@ -589,37 +736,51 @@ function AjukanSewaPage({ item, onBack, onSubmit }) {
    MinatModal
 ───────────────────────────────────────────────────────────────────────── */
 function MinatModal({ item, onClose }) {
-  const token = getToken();
-  const userId = getCurrentUserId();
-  const isLoggedIn = !!token && !!userId;
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [email, setEmail] = useState("");
+  const profile = getCurrentUser();
+  const [name, setName] = useState(profile.name || "");
+  const [phone, setPhone] = useState(profile.phone || "");
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState(null);
   const [errMsg, setErrMsg] = useState("");
 
   const handleSubmit = async () => {
-    if (!isLoggedIn) {
-      if (name.trim().length < 2) { setErrMsg("Nama minimal 2 karakter"); return; }
-      if (phone.trim().length < 8) { setErrMsg("Nomor HP tidak valid"); return; }
-      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setErrMsg("Format email tidak valid"); return; }
-    }
-    setErrMsg(""); setLoading(true);
+    const contactName = name.trim();
+    const contactPhone = phone.trim();
+
+    if (contactName.length < 2) { setErrMsg("Nama minimal 2 karakter"); return; }
+    if (contactPhone.length < 8) { setErrMsg("Nomor WhatsApp tidak valid"); return; }
+
+    setErrMsg("");
+    setLoading(true);
     try {
-      const waNum = formatPhone(item.contactNumber);
-      const waMsg = isLoggedIn
-        ? `Halo kak, saya tertarik dengan kost *${item.name}* di ${item.location}. Apakah masih tersedia?`
-        : `Halo kak, saya *${name.trim()}* tertarik dengan kost *${item.name}* di ${item.location}. Apakah masih tersedia?`;
-      window.open(`https://wa.me/${waNum}?text=${encodeURIComponent(waMsg)}`, "_blank");
+      // POST /leads/:listingId  body: { name, phone, email? }
+      const body = { name: contactName, phone: contactPhone };
+      const email = (profile.email || "").trim();
+      if (email) body.email = email;
+
+      await postPublicJson(`/leads/${item.id}`, body);
+
+      window.open(
+        buildMinatWhatsAppUrl(item, { name: contactName, phone: contactPhone }),
+        "_blank"
+      );
       setStatus("success");
-    } catch (e) { setErrMsg(e.message || "Terjadi kesalahan"); setStatus("error"); }
-    finally { setLoading(false); }
+    } catch (e) {
+      const msg = e?.message || "";
+      setErrMsg(
+        msg === "Failed to fetch" || e instanceof TypeError
+          ? "Tidak dapat terhubung ke server. Pastikan backend berjalan (port 3000)."
+          : msg || "Terjadi kesalahan"
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end justify-center"
-      onClick={(e) => e.target === e.currentTarget && onClose()}>
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
       <div className="bg-white w-full max-w-lg rounded-t-3xl px-5 pt-3 pb-8 animate-[slideUp_0.3s_ease]">
         <div className="w-10 h-1 rounded-full bg-slate-200 mx-auto mb-5" />
         {status === "success" ? (
@@ -631,7 +792,7 @@ function MinatModal({ item, onClose }) {
               <h3 className="text-[17px] font-bold text-slate-800 mb-1">WhatsApp terbuka!</h3>
               <p className="text-[13px] text-slate-500 leading-relaxed">Lanjutkan percakapan di WhatsApp.</p>
             </div>
-            <button onClick={onClose} className="w-full h-12 rounded-2xl bg-blue-600 text-white font-semibold text-[14px]">Tutup</button>
+            <button onClick={onClose} className="w-full h-12 rounded-2xl bg-emerald-600 text-white font-semibold text-[14px]">Tutup</button>
           </div>
         ) : (
           <>
@@ -641,7 +802,7 @@ function MinatModal({ item, onClose }) {
                 <X size={16} className="text-slate-500" />
               </button>
             </div>
-            <p className="text-[12px] text-slate-400 mb-5">Informasi kamu akan diteruskan ke pemilik kost</p>
+            <p className="text-[12px] text-slate-400 mb-5">Informasi kamu akan diteruskan ke tim kami</p>
             <div className="flex items-center gap-3 bg-slate-50 rounded-2xl p-3 mb-5 border border-slate-100">
               {item?.images?.[0] ? (
                 <img src={item.images[0]} alt={item.name} className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
@@ -656,30 +817,32 @@ function MinatModal({ item, onClose }) {
               </div>
               <p className="text-[13px] font-bold text-blue-600 flex-shrink-0">Rp {Number(item?.price || 0).toLocaleString("id-ID")}</p>
             </div>
-            {isLoggedIn ? (
-              <div className="bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3 flex items-start gap-3 mb-5">
-                <ShieldCheck size={15} className="text-blue-400 flex-shrink-0 mt-0.5" />
-                <p className="text-[12px] text-blue-600 leading-relaxed">Kamu sudah login. Data profilmu akan digunakan sebagai informasi kontak.</p>
+            <div className="space-y-3 mb-5">
+              <div>
+                <label className="text-[11px] font-semibold text-slate-500 block mb-1.5">
+                  Nama Lengkap <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="contoh: Budi Santoso"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[13.5px] text-slate-700 placeholder-slate-400 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"
+                />
               </div>
-            ) : (
-              <div className="space-y-3 mb-5">
-                <div>
-                  <label className="text-[11px] font-semibold text-slate-500 block mb-1.5">Nama Lengkap <span className="text-red-400">*</span></label>
-                  <input type="text" placeholder="contoh: Budi Santoso" value={name} onChange={(e) => setName(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[13.5px] text-slate-700 placeholder-slate-400 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50" />
-                </div>
-                <div>
-                  <label className="text-[11px] font-semibold text-slate-500 block mb-1.5">Nomor HP (WhatsApp) <span className="text-red-400">*</span></label>
-                  <input type="tel" placeholder="contoh: 08123456789" value={phone} onChange={(e) => setPhone(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[13.5px] text-slate-700 placeholder-slate-400 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50" />
-                </div>
-                <div>
-                  <label className="text-[11px] font-semibold text-slate-500 block mb-1.5">Email <span className="text-slate-400 font-normal">(opsional)</span></label>
-                  <input type="email" placeholder="contoh: budi@email.com" value={email} onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[13.5px] text-slate-700 placeholder-slate-400 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50" />
-                </div>
+              <div>
+                <label className="text-[11px] font-semibold text-slate-500 block mb-1.5">
+                  Nomor WhatsApp <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="tel"
+                  placeholder="contoh: 08123456789"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[13.5px] text-slate-700 placeholder-slate-400 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"
+                />
               </div>
-            )}
+            </div>
             {errMsg && (
               <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-4 py-2.5 mb-4">
                 <AlertCircle size={14} className="text-red-400 flex-shrink-0" />
@@ -687,7 +850,8 @@ function MinatModal({ item, onClose }) {
               </div>
             )}
             <button onClick={handleSubmit} disabled={loading}
-              className="w-full h-13 py-3.5 rounded-2xl bg-blue-600 text-white font-bold text-[14px] flex items-center justify-center gap-2 active:scale-[0.97] transition-transform shadow-lg shadow-blue-200 disabled:opacity-60">
+              className="w-full py-3.5 rounded-2xl text-white font-bold text-[14px] flex items-center justify-center gap-2 active:scale-[0.97] transition-transform shadow-lg shadow-emerald-200 disabled:opacity-60"
+              style={{ background: "linear-gradient(135deg, #25D366, #128C7E)" }}>
               {loading ? <Loader2 size={16} className="animate-spin" /> : null}
               {loading ? "Mengirim..." : "Kirim Minat Saya"}
             </button>
@@ -710,16 +874,18 @@ function ReportModal({ item, onClose }) {
 
   const handleSubmit = async () => {
     if (!reason) { setErrMsg("Pilih alasan laporan terlebih dahulu"); return; }
-    setErrMsg(""); setLoading(true);
+     const token = getToken();
+  if (!token) {
+    setErrMsg("Kamu harus login terlebih dahulu untuk melaporkan listing.");
+    return;
+  }
+
+  setErrMsg(""); setLoading(true);
     try {
-      const res = await authFetch(`${API}/reports`, {
-        method: "POST",
-        body: JSON.stringify({
-          listingId: item.id,
-          reason,
-          note: note.trim() || undefined,
-        }),
-      });
+      const res = await authFetch(`${API}/listings/${item.id}/report`, {
+  method: "POST",
+  body: JSON.stringify({ reason, note: note.trim() || undefined }),
+});
       if (!res.ok) {
         const e = await res.json().catch(() => ({}));
         throw new Error(e.message || "Gagal mengirim laporan");
@@ -727,7 +893,7 @@ function ReportModal({ item, onClose }) {
       setStatus("success");
     } catch (e) {
       setErrMsg(e.message || "Terjadi kesalahan, coba lagi");
-      setStatus("error");
+     
     } finally {
       setLoading(false);
     }
@@ -740,11 +906,14 @@ function ReportModal({ item, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center px-4"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center px-4"
+      style={{ zIndex: 99999 }}
       onClick={(e) => e.target === e.currentTarget && handleClose()}
     >
-      <div className="bg-white w-full max-w-md rounded-2xl overflow-hidden animate-[slideUp_0.25s_ease] shadow-xl" style={{ maxHeight: "90vh", display: "flex", flexDirection: "column" }}>
-
+      <div
+        className="bg-white w-full max-w-md rounded-2xl overflow-hidden animate-[slideUp_0.25s_ease] shadow-xl"
+        style={{ position: "relative", zIndex: 100000, maxHeight: "90vh", display: "flex", flexDirection: "column" }}
+      >
         {status === "success" ? (
           <div className="flex flex-col items-center px-5 py-8 gap-4 text-center">
             <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center">
@@ -760,7 +929,6 @@ function ReportModal({ item, onClose }) {
           </div>
         ) : (
           <>
-            {/* Header */}
             <div className="px-5 pt-5 pb-4 border-b border-slate-100 flex-shrink-0 flex items-center justify-between">
               <div>
                 <h3 className="text-[16px] font-bold text-slate-800">Laporkan Listing</h3>
@@ -773,7 +941,6 @@ function ReportModal({ item, onClose }) {
               </button>
             </div>
 
-            {/* Scrollable body */}
             <div className="px-5 py-4 overflow-y-auto" style={{ flex: 1 }}>
               <div className="flex items-center gap-3 bg-slate-50 rounded-2xl p-3 mb-5 border border-slate-100">
                 {item?.images?.[0] ? (
@@ -791,24 +958,24 @@ function ReportModal({ item, onClose }) {
               <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Alasan Laporan</p>
               <div className="space-y-2 mb-4">
                 {REPORT_REASONS.map((r) => (
-                  <label
-                    key={r}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-colors ${reason === r ? "bg-red-50 border-red-200" : "bg-slate-50 border-slate-100"
-                      }`}
-                  >
-                    <input
-                      type="radio"
-                      name="report_reason"
-                      value={r}
-                      checked={reason === r}
-                      onChange={() => { setReason(r); setErrMsg(""); }}
-                      className="accent-red-500"
-                    />
-                    <span className={`text-[13px] font-medium ${reason === r ? "text-red-700" : "text-slate-600"}`}>
-                      {r}
-                    </span>
-                  </label>
-                ))}
+  // ✅ Fix
+<label
+  key={r.value}
+  className={`flex items-center gap-3 px-4 py-3 rounded-xl border cursor-pointer transition-colors ${reason === r.value ? "bg-red-50 border-red-200" : "bg-slate-50 border-slate-100"}`}
+>
+    <input
+      type="radio"
+      name="report_reason"
+      value={r.value}
+      checked={reason === r.value}
+      onChange={() => { setReason(r.value); setErrMsg(""); }}
+      className="accent-red-500"
+    />
+    <span className={`text-[13px] font-medium ${reason === r.value ? "text-red-700" : "text-slate-600"}`}>
+      {r.label}
+    </span>
+  </label>
+))}
               </div>
               <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide block mb-2">
                 Keterangan Tambahan <span className="text-slate-300 font-normal normal-case">(opsional)</span>
@@ -822,7 +989,6 @@ function ReportModal({ item, onClose }) {
               />
             </div>
 
-            {/* Footer */}
             <div className="px-5 pt-3 pb-5 border-t border-slate-100 flex-shrink-0">
               {errMsg && (
                 <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-4 py-2.5 mb-3">
@@ -857,6 +1023,7 @@ export default function DetailPage() {
   const [loading, setLoading] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
   const [activeImg, setActiveImg] = useState(0);
+  const [lightbox, setLightbox] = useState(null); // null = tutup, angka = index foto
   const [showSewa, setShowSewa] = useState(false);
   const [showMinat, setShowMinat] = useState(false);
   const [showReport, setShowReport] = useState(false);
@@ -983,6 +1150,7 @@ export default function DetailPage() {
   };
 
   const handleQuickReply = (q) => { setQuickUsed(true); sendMessage(q.text); };
+
   const handleSewaSubmit = ({ masuk, durasi, keluar, pesan }) => {
     alert(`Permintaan sewa berhasil dikirim!\nMasuk: ${masuk}\nDurasi: ${durasi} bulan\nKeluar: ${keluar}`);
     setShowSewa(false);
@@ -1042,53 +1210,76 @@ export default function DetailPage() {
   return (
     <>
       <div className="min-h-screen bg-white pb-36">
-        {/* ── Image gallery ── */}
-        <div className="relative overflow-hidden bg-slate-100">
-          <div className="relative h-72" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-            <img src={images[activeImg]} alt={item.name} className="w-full h-full object-cover transition-opacity duration-300" />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-transparent pointer-events-none" />
-            <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12 pb-3">
-              <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-sm">
-                <ArrowLeft size={17} className="text-slate-800" />
-              </button>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setShowShare(true)} className="w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-sm">
-                  <Share2 size={15} className="text-slate-700" />
-                </button>
-                <button onClick={toggleLike} className={`w-9 h-9 rounded-full flex items-center justify-center shadow-sm transition-all ${isLiked ? "bg-red-500" : "bg-white/90 backdrop-blur-sm"}`}>
-                  <Heart size={15} fill={isLiked ? "white" : "none"} className={isLiked ? "text-white" : "text-slate-700"} />
-                </button>
-              </div>
-            </div>
-            {images.length > 1 && (
-              <>
-                <button onClick={() => setActiveImg((p) => (p - 1 + images.length) % images.length)} className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center">
-                  <ChevronLeft size={16} className="text-slate-700" />
-                </button>
-                <button onClick={() => setActiveImg((p) => (p + 1) % images.length)} className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center">
-                  <ChevronRight size={16} className="text-slate-700" />
-                </button>
-              </>
-            )}
-            {images.length > 1 && (
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
-                {images.map((_, i) => (
-                  <button key={i} onClick={() => setActiveImg(i)} className={`h-1.5 rounded-full transition-all duration-300 ${i === activeImg ? "w-5 bg-white" : "w-1.5 bg-white/50"}`} />
-                ))}
-              </div>
-            )}
-            <div className="absolute bottom-4 right-4 bg-black/40 backdrop-blur-sm text-white text-[11px] font-medium px-2.5 py-1 rounded-full">{activeImg + 1} / {images.length}</div>
-          </div>
 
-          {images.length > 1 && (
-            <div ref={thumbsRef} className="flex gap-2 overflow-x-auto px-4 py-3 bg-white border-b border-slate-100 scrollbar-hide" style={{ scrollbarWidth: "none" }}>
-              {images.map((src, i) => (
-                <button key={i} onClick={() => setActiveImg(i)} className={`flex-shrink-0 w-16 h-14 rounded-xl overflow-hidden border-2 transition-all ${i === activeImg ? "border-blue-500 shadow-md shadow-blue-100" : "border-transparent opacity-60"}`}>
-                  <img src={src} alt={`foto ${i + 1}`} className="w-full h-full object-cover" />
+        {/* ── Image gallery ── */}
+        <div className="relative overflow-hidden bg-black">
+          <div className="grid grid-cols-3 gap-0.5" style={{ height: 300 }}>
+            {/* Foto utama */}
+            <div
+              className="col-span-2 relative overflow-hidden cursor-pointer"
+              onClick={() => setLightbox(0)}
+            >
+              <img
+                src={images[0]}
+                alt={item.name}
+                className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+              />
+              {images.length > 1 && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setLightbox(0); }}
+                  className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-white/90 backdrop-blur-sm text-slate-700 text-[12px] font-semibold px-3 py-1.5 rounded-full shadow-sm"
+                >
+                  <LayoutGrid size={13} />
+                  Lihat semua foto ({images.length})
                 </button>
+              )}
+            </div>
+
+            {/* 2 foto kecil kanan */}
+            <div className="flex flex-col gap-0.5">
+              {[1, 2].map((i) => (
+                <div
+                  key={i}
+                  className="flex-1 relative overflow-hidden cursor-pointer"
+                  onClick={() => setLightbox(i)}
+                >
+                  {images[i] ? (
+                    <img
+                      src={images[i]}
+                      alt={`foto ${i + 1}`}
+                      className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-slate-800" />
+                  )}
+                  {i === 2 && images.length > 3 && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setLightbox(0); }}
+                      className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center gap-1"
+                    >
+                      <LayoutGrid size={20} className="text-white" />
+                      <span className="text-white text-[12px] font-semibold">+{images.length - 3} foto</span>
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
-          )}
+          </div>
+
+          {/* Tombol back & action */}
+          <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-4 pt-12 pb-3 pointer-events-none">
+            <button onClick={() => navigate(-1)} className="w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-sm pointer-events-auto">
+              <ArrowLeft size={17} className="text-slate-800" />
+            </button>
+            <div className="flex items-center gap-2 pointer-events-auto">
+              <button onClick={() => setShowShare(true)} className="w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-sm">
+                <Share2 size={15} className="text-slate-700" />
+              </button>
+              <button onClick={toggleLike} className={`w-9 h-9 rounded-full flex items-center justify-center shadow-sm transition-all ${isLiked ? "bg-red-500" : "bg-white/90 backdrop-blur-sm"}`}>
+                <Heart size={15} fill={isLiked ? "white" : "none"} className={isLiked ? "text-white" : "text-slate-700"} />
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* ── Main content ── */}
@@ -1175,6 +1366,20 @@ export default function DetailPage() {
             </div>
           )}
 
+{item.rules.length > 0 && (
+            <div className="mb-6">
+              <h2 className="text-[16px] font-bold text-slate-800 mb-4">Peraturan Kost</h2>
+              <div className="rounded-2xl border border-slate-100 overflow-hidden bg-white divide-y divide-slate-50">
+                {item.rules.map((r, i) => (
+                  <div key={i} className="flex items-start gap-3 px-4 py-3.5">
+                    <div className="w-7 h-7 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0 mt-0.5 text-red-400">{ruleIcon(r)}</div>
+                    <span className="text-[13px] text-slate-600 leading-relaxed pt-0.5">{r}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Map */}
           {item.latitude && item.longitude && (
             <div className="mb-6">
@@ -1196,57 +1401,6 @@ export default function DetailPage() {
             </div>
           )}
 
-          {/* Rules */}
-          {item.rules.length > 0 && (
-            <div className="mb-6">
-              <h2 className="text-[16px] font-bold text-slate-800 mb-4">Peraturan Kost</h2>
-              <div className="rounded-2xl border border-slate-100 overflow-hidden bg-white divide-y divide-slate-50">
-                {item.rules.map((r, i) => (
-                  <div key={i} className="flex items-start gap-3 px-4 py-3.5">
-                    <div className="w-7 h-7 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0 mt-0.5 text-red-400">{ruleIcon(r)}</div>
-                    <span className="text-[13px] text-slate-600 leading-relaxed pt-0.5">{r}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Owner section */}
-          <div className="mb-6">
-            <h2 className="text-[16px] font-bold text-slate-800 mb-3">Pemilik Kost</h2>
-            <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-                  {item.ownerName?.[0]?.toUpperCase() || "P"}
-                </div>
-                <div className="flex-1">
-                  <p className="text-[14px] font-semibold text-slate-800">{item.ownerName}</p>
-                  <p className="text-[12px] text-slate-400">Pemilik Kost</p>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
-                  <span className="text-[11px] text-emerald-600 font-medium">Online</span>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2.5">
-                <button
-                  onClick={() => window.open(`https://wa.me/${formatPhone(item.contactNumber)}?text=Halo kak, saya tertarik dengan kost ${encodeURIComponent(item.name)}`, "_blank")}
-                  className="flex items-center justify-center gap-2 h-11 rounded-xl font-semibold text-[13px] text-white active:scale-[0.97] transition-transform"
-                  style={{ background: "linear-gradient(135deg, #25D366, #128C7E)" }}>
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
-                    <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.555 4.126 1.527 5.858L.057 23.617a.75.75 0 0 0 .92.92l5.818-1.488A11.946 11.946 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z" />
-                  </svg>
-                  WhatsApp
-                </button>
-                <button onClick={openChat} className="flex items-center justify-center gap-2 h-11 rounded-xl font-semibold text-[13px] text-blue-700 bg-blue-50 border border-blue-100 active:scale-[0.97] transition-transform">
-                  <MessageCircle size={16} className="text-blue-500" />
-                  Chat di App
-                </button>
-              </div>
-            </div>
-          </div>
-
           {/* Report link */}
           <div className="mb-6 flex justify-center">
             <button
@@ -1266,11 +1420,16 @@ export default function DetailPage() {
           <button onClick={toggleLike} className={`w-12 h-12 rounded-2xl border flex items-center justify-center flex-shrink-0 transition-colors ${isLiked ? "bg-red-50 border-red-200" : "bg-slate-50 border-slate-200"}`}>
             <Heart size={18} fill={isLiked ? "#EF4444" : "none"} className={isLiked ? "text-red-500" : "text-slate-500"} />
           </button>
-          <button onClick={() => setShowMinat(true)} className="flex-1 h-12 rounded-2xl border border-blue-200 bg-blue-50 text-blue-700 font-semibold text-[13px] active:scale-[0.97] transition-transform flex items-center justify-center gap-2">
-            <Star size={15} className="text-blue-500" /> Saya Minat
-          </button>
-          <button onClick={() => setShowSewa(true)} className="flex-1 h-12 rounded-2xl bg-blue-600 text-white font-semibold text-[13px] active:scale-[0.97] transition-transform shadow-lg shadow-blue-200 flex items-center justify-center gap-2">
-            <Calendar size={15} /> Ajukan Sewa
+          <button
+            onClick={() => setShowMinat(true)}
+            className="flex-1 h-12 rounded-2xl text-white font-semibold text-[13px] active:scale-[0.97] transition-transform flex items-center justify-center gap-2"
+            style={{ background: "linear-gradient(135deg, #25D366, #128C7E)" }}
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+              <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.555 4.126 1.527 5.858L.057 23.617a.75.75 0 0 0 .92.92l5.818-1.488A11.946 11.946 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z" />
+            </svg>
+            Saya Minat
           </button>
           <button
             onClick={() => setShowReport(true)}
@@ -1286,6 +1445,15 @@ export default function DetailPage() {
       {showMinat && <MinatModal item={item} onClose={() => setShowMinat(false)} />}
       {showReport && <ReportModal item={item} onClose={() => setShowReport(false)} />}
       {showShare && <ShareModal item={item} onClose={() => setShowShare(false)} />}
+
+      {/* ── Photo Lightbox ── */}
+      {lightbox !== null && (
+        <PhotoLightbox
+          images={images}
+          startIndex={lightbox}
+          onClose={() => setLightbox(null)}
+        />
+      )}
 
       {/* ── Chat modal ── */}
       {showChat && (
