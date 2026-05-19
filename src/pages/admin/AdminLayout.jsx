@@ -10,11 +10,15 @@ import {
   X,
   Bell,
   ChevronRight,
+  Star,
 } from "lucide-react";
+import { useAdminNotifications } from "../../hooks/useAdminNotifications";
+import AdminNotificationPanel from "../../components/admin/AdminNotificationPanel";
 
 const navItems = [
   { to: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/admin/listings",  icon: Building2,       label: "Kelola Listing" },
+  { to: "/admin/minat-leads", icon: Star,           label: "Minat & Leads" },
   { to: "/admin/reports",   icon: FileText,         label: "Laporan" },
   { to: "/admin/analytics", icon: BarChart3,        label: "Analitik" },
 ];
@@ -23,7 +27,17 @@ export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [checking, setChecking]       = useState(true);
   const [adminName, setAdminName]     = useState("Admin");
+  const [showNotif, setShowNotif]     = useState(false);
   const navigate = useNavigate();
+
+  const {
+    notifications,
+    unreadCount,
+    loading: notifLoading,
+    markRead,
+    markAllRead,
+    refresh: refreshNotifs,
+  } = useAdminNotifications({ enabled: !checking, pollMs: 30000 });
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -143,9 +157,21 @@ export default function AdminLayout() {
           </button>
 
           <div className="flex items-center gap-3">
-            <button className="relative w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors">
+            <button
+              type="button"
+              onClick={() => {
+                setShowNotif((v) => !v);
+                if (!showNotif) refreshNotifs();
+              }}
+              className="relative w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors"
+              aria-label="Notifikasi admin"
+            >
               <Bell size={17} className="text-slate-500" />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-blue-500" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center border-2 border-white">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
             </button>
 
             <div className="flex items-center gap-2.5">
@@ -159,6 +185,17 @@ export default function AdminLayout() {
             </div>
           </div>
         </header>
+
+        {showNotif && (
+          <AdminNotificationPanel
+            notifications={notifications}
+            unreadCount={unreadCount}
+            loading={notifLoading}
+            onClose={() => setShowNotif(false)}
+            onMarkRead={markRead}
+            onMarkAllRead={markAllRead}
+          />
+        )}
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto p-5">
