@@ -6,6 +6,47 @@ export const getApiBase = () => {
   return "http://localhost:3000";
 };
 
+const getR2PublicBase = () => {
+  const fromEnv = import.meta.env.VITE_R2_PUBLIC_URL?.trim();
+  return fromEnv ? fromEnv.replace(/\/$/, "") : "";
+};
+
+/**
+ * URL foto untuk <img src> — langsung ke R2.
+ * null = belum ada foto di database (bukan error load).
+ */
+export function resolveMediaUrl(url) {
+  if (!url || typeof url !== "string") return null;
+
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+
+  const r2Base = getR2PublicBase();
+
+  if (trimmed.startsWith("https://") || trimmed.startsWith("http://")) {
+    return trimmed;
+  }
+
+  if (
+    trimmed.startsWith("http://localhost") ||
+    trimmed.startsWith("https://localhost")
+  ) {
+    if (!r2Base) return null;
+    try {
+      const { pathname } = new URL(trimmed);
+      return `${r2Base}${pathname}`;
+    } catch {
+      return null;
+    }
+  }
+
+  if (r2Base) {
+    return `${r2Base}/${trimmed.replace(/^\//, "")}`;
+  }
+
+  return null;
+}
+
 /** POST publik tanpa Authorization (guest / Saya Minat) */
 export async function postPublicJson(path, body) {
   const headers = new Headers();

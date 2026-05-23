@@ -223,7 +223,7 @@ export default function AllListingsPage() {
             location: item.address || "Lokasi tidak tersedia",
             price: room.price ?? 0,
             gender: (item.genderType || "").toLowerCase(),
-            image: room.photos?.[0]?.url || "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267",
+            image: room.photos?.[0]?.url || null,
             available: room.availableCount ?? 0,
             isPremium: item.isPremium || false,
             updatedAt: item.updatedAt,

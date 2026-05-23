@@ -7,9 +7,12 @@ import "leaflet/dist/leaflet.css";
 import {
   Search, Clock, TrendingUp, X, MapPin, Home,
   ChevronLeft, ChevronDown, Check, Users, ArrowUpDown,
-  List, Map as MapIcon, Star, BadgeCheck, Crown,
+  List, Map as MapIcon, Crown,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { getApiBase, resolveMediaUrl } from "../../config/apiBase";
+
+const API = getApiBase();
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -77,11 +80,31 @@ function DropdownPortal({ anchorRef, children, onClose }) {
   );
 }
 
-const BASE_URL = "http://localhost:3000";
 const HISTORY_KEY = "atap_search_history";
 const TRENDS = ["Kost dekat UNS", "Kost Laweyan murah", "Kost AC wifi", "Kost Nusukan putri"];
 const GENDER_FILTERS = [{ value: "PUTRA", label: "Putra" }, { value: "PUTRI", label: "Putri" }, { value: "CAMPUR", label: "Campur" }];
-const SORT_OPTIONS = [{ value: "relevance", label: "Terdekat dulu" }, { value: "lowest_price", label: "Harga termurah" }, { value: "highest_price", label: "Harga tertinggi" }, { value: "newest", label: "Terbaru" }];
+const SORT_OPTIONS = [
+  { value: "relevance", label: "Rekomendasi" },
+  { value: "lowest_price", label: "Harga termurah" },
+  { value: "highest_price", label: "Harga tertinggi" },
+  { value: "newest", label: "Terbaru" },
+];
+
+function mapSearchResult(item) {
+  return {
+    id: item.id,
+    name: item.name,
+    price: item.cheapestPrice ?? null,
+    location: item.address ?? "",
+    gender: (item.genderType || "").toLowerCase(),
+    isPremium: Boolean(item.isPremium),
+    latitude: item.latitude ?? null,
+    longitude: item.longitude ?? null,
+    distanceKm: item.distanceKm ?? null,
+    image: resolveMediaUrl(item.thumbnailUrl),
+    facilities: Array.isArray(item.facilities) ? item.facilities : [],
+  };
+}
 const UNS_COORDS = { lat: -7.5583, lng: 110.8572 };
 const PRICE_PRESETS = [{ label: "< Rp 1jt", min: "", max: "1000000" }, { label: "Rp 1–2jt", min: "1000000", max: "2000000" }, { label: "> Rp 2jt", min: "2000000", max: "" }];
 
@@ -290,8 +313,9 @@ export default function SearchPage() {
     });
   };
 
+  // API hanya menerima satu genderType (enum Prisma)
   const toggleGender = (val) =>
-    setSelectedGenders((prev) => prev.includes(val) ? prev.filter((g) => g !== val) : [...prev, val]);
+    setSelectedGenders((prev) => (prev.includes(val) ? [] : [val]));
 
   const applyPreset = (p) => {
     if (pricePreset === p.label) {
@@ -318,17 +342,10 @@ export default function SearchPage() {
     if (selectedGendersRef.current.length >= 1) params.append("genderType", selectedGendersRef.current[0]);
     if (customCoords) { params.append("lat", customCoords.lat); params.append("lng", customCoords.lng); params.append("radiusKm", customCoords.radiusKm ?? 2); }
     try {
-      const res = await fetch(`${BASE_URL}/search/listings?${params}`);
+      const res = await fetch(`${API}/search/listings?${params}`);
+      if (!res.ok) throw new Error();
       const json = await res.json();
-      setResults((json.data || []).map((item) => ({
-        id: item.id, name: item.name, price: item.cheapestPrice ?? null,
-        location: item.address ?? "", gender: item.genderType ?? "",
-        isPremium: item.isPremium ?? false, isVerified: item.isVerified ?? true,
-        rating: item.rating ?? null, reviewCount: item.reviewCount ?? null,
-        latitude: item.latitude ? Number(item.latitude) : null,
-        longitude: item.longitude ? Number(item.longitude) : null,
-        image: item.thumbnailUrl ? (item.thumbnailUrl.startsWith("http") ? item.thumbnailUrl : `${BASE_URL}${item.thumbnailUrl}`) : null,
-      })));
+      setResults((json.data || []).map(mapSearchResult));
     } catch { setResults([]); }
     finally { setLoading(false); }
   }, []);
@@ -532,16 +549,30 @@ export default function SearchPage() {
                   <div className="sp-card-body">
                     <div>
                       <div className="sp-card-badges">
-                        {item.isPremium && <span className="sp-badge sp-badge-unggulan"><Crown size={9} /> UNGGULAN</span>}
-                        {item.isVerified && <span className="sp-badge sp-badge-verified"><BadgeCheck size={9} /> Verified</span>}
-                        {item.gender && genderBadgeClass && <span className={`sp-badge ${genderBadgeClass}`}>{item.gender.charAt(0) + item.gender.slice(1).toLowerCase()}</span>}
+                        {item.isPremium && <span className="sp-badge sp-badge-unggulan"><Crown size={9} /> Premium</span>}
+                        {item.gender && genderBadgeClass && (
+                          <span className={`sp-badge ${genderBadgeClass}`}>
+                            {item.gender.charAt(0).toUpperCase() + item.gender.slice(1)}
+                          </span>
+                        )}
                       </div>
                       <p className="sp-card-name">{item.name}</p>
-                      <p className="sp-card-loc"><MapPin size={10} style={{ flexShrink: 0 }} />{item.location}</p>
+                      <p className="sp-card-loc">
+                        <MapPin size={10} style={{ flexShrink: 0 }} />
+                        {item.location}
+                        {item.distanceKm != null && (
+                          <span style={{ marginLeft: 6, color: "#4F46E5", fontWeight: 600 }}>
+                            · {item.distanceKm < 1
+                              ? `${Math.round(item.distanceKm * 1000)} m`
+                              : `${item.distanceKm.toFixed(1)} km`}
+                          </span>
+                        )}
+                      </p>
                     </div>
                     <div className="sp-card-bottom">
-                      {item.price ? <p className="sp-card-price">Rp {Number(item.price).toLocaleString("id-ID")}<span>/bln</span></p> : <p className="sp-card-no-price">Harga belum tersedia</p>}
-                      {item.rating && <div className="sp-card-rating"><Star size={11} fill="#F59E0B" stroke="none" />{item.rating}{item.reviewCount && <span>({item.reviewCount})</span>}</div>}
+                      {item.price != null
+                        ? <p className="sp-card-price">Rp {Number(item.price).toLocaleString("id-ID")}<span>/bln</span></p>
+                        : <p className="sp-card-no-price">Harga belum tersedia</p>}
                     </div>
                   </div>
                 </div>

@@ -1,12 +1,37 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Search, SearchX, AlertCircle, RefreshCw, Heart, User, ChevronRight,
   LogOut, Settings, Map, SlidersHorizontal, Home, MessageCircle,
-  BadgeCheck, Tag, MessageSquare, Moon, Sun, BedDouble, MapPin, Bookmark, Navigation,
+  BadgeCheck, Tag, MessageSquare, Moon, Sun, MapPin, Bookmark, Navigation,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import KostCard from "../../components/kost/KostCard";
 import NotificationPanel from "../../components/ui/NotificationPanel";
+import { getApiBase, resolveMediaUrl } from "../../config/apiBase";
+
+const API = getApiBase();
+const GENDER_TO_API = { Putra: "PUTRA", Putri: "PUTRI", Campur: "CAMPUR" };
+
+function mapSearchListing(item) {
+  return {
+    id: String(item.id),
+    name: item.name || "Tanpa Nama",
+    location: item.address || "Lokasi tidak tersedia",
+    price: item.cheapestPrice ?? 0,
+    gender: (item.genderType || "").toLowerCase(),
+    image: resolveMediaUrl(item.thumbnailUrl),
+    isPremium: Boolean(item.isPremium),
+    latitude: item.latitude ?? null,
+    longitude: item.longitude ?? null,
+    distanceKm: item.distanceKm ?? null,
+  };
+}
+
+function authHeaders(token) {
+  const h = { "Content-Type": "application/json" };
+  if (token) h.Authorization = `Bearer ${token}`;
+  return h;
+}
 
 function KostCardSkeleton() {
   return (
@@ -82,8 +107,7 @@ export default function DashboardPage() {
   const [unreadChat, setUnreadChat] = useState(0);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("atap_theme") === "dark");
 
-  // Stats dinamis dari BE
-  const [stats, setStats] = useState({ kamar: 0, kota: 0, disimpan: 0 });
+  const [stats, setStats] = useState({ listings: 0, premium: 0, disimpan: 0 });
 
   // Lokasi terdekat
   const [userCoords, setUserCoords] = useState(null);
@@ -124,8 +148,8 @@ export default function DashboardPage() {
     if (!isLoggedIn || !token) return;
     const fetchUnreadChat = async () => {
       try {
-        const res = await fetch("http://localhost:3000/chats", {
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        const res = await fetch(`${API}/chats`, {
+          headers: authHeaders(token),
         });
         if (!res.ok) return;
         const json = await res.json();
@@ -150,7 +174,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!isLoggedIn) return;
-    fetch("http://localhost:3000/favorites", { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API}/favorites`, { headers: authHeaders(token) })
       .then((r) => r.json())
       .then((j) => {
         const favIds = (j.data || []).map((x) => String(x.id));
@@ -168,9 +192,9 @@ export default function DashboardPage() {
     if (!isLoggedIn) { navigate("/auth"); return; }
     const idStr = String(id), isLiked = favorites.includes(idStr);
     try {
-      const res = await fetch(`http://localhost:3000/favorites/${idStr}`, {
+      const res = await fetch(`${API}/favorites/${idStr}`, {
         method: isLiked ? "DELETE" : "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: authHeaders(token),
       });
       if (!res.ok) throw new Error();
       setFavorites((p) => isLiked ? p.filter((f) => f !== idStr) : [...p, idStr]);
@@ -178,48 +202,35 @@ export default function DashboardPage() {
   };
 
   const fetchListings = async () => {
-    setLoading(true); setError(null);
+    setLoading(true);
+    setError(null);
     try {
-      const res = await fetch("http://localhost:3000/listings?sort=newest&limit=24");
+      const params = new URLSearchParams({ sort: "newest" });
+      const genderType = GENDER_TO_API[activeFilter];
+      if (genderType) params.set("genderType", genderType);
+
+      const res = await fetch(`${API}/listings/search?${params}`);
       if (!res.ok) throw new Error(`${res.status}`);
       const json = await res.json();
-      const raw = Array.isArray(json) ? json : Array.isArray(json.data) ? json.data : [];
-
-      const mappedData = raw.map((item) => {
-        const room = item.roomTypes?.[0] || {};
-        const allPhotos = (item.roomTypes ?? []).flatMap(rt => rt.photos ?? []);
-        const firstPhotoUrl = allPhotos[0]?.url || null;
-        return {
-          id: String(item.id),
-          name: item.name || "Tanpa Nama",
-          location: item.address || "Lokasi tidak tersedia",
-          city: item.city || item.address?.split(",").pop()?.trim() || "",
-          price: room.price ?? item.cheapestPrice ?? 0,
-          gender: (item.genderType || "").toLowerCase(),
-          image: firstPhotoUrl || "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80",
-          available: room.availableCount ?? item.roomTypes?.reduce((acc, rt) => acc + (rt.availableCount || 0), 0) ?? 0,
-          isPremium: item.isPremium || false,
-          latitude: item.latitude ? Number(item.latitude) : null,
-          longitude: item.longitude ? Number(item.longitude) : null,
-        };
-      });
+      const raw = Array.isArray(json.data) ? json.data : [];
+      const mappedData = raw.map(mapSearchListing);
 
       setData(mappedData);
-
-      // Hitung stats dinamis dari data listings
-      const totalKamar = mappedData.reduce((acc, item) => acc + (item.available || 0), 0);
-      
       setStats((prev) => ({
-  ...prev,
-  kamar: totalKamar,
-  kota: mappedData.length,
-}));
-
-    } catch { setError("Gagal memuat data"); }
-    finally { setLoading(false); }
+        ...prev,
+        listings: mappedData.length,
+        premium: mappedData.filter((item) => item.isPremium).length,
+      }));
+    } catch {
+      setError("Gagal memuat data");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { fetchListings(); }, []);
+  useEffect(() => {
+    fetchListings();
+  }, [activeFilter]);
 
   // Fetch nearby: minta izin lokasi lalu sort by distance
   const fetchNearby = () => {
@@ -235,44 +246,25 @@ export default function DashboardPage() {
         const { latitude, longitude } = pos.coords;
         setUserCoords({ latitude, longitude });
         try {
-          const res = await fetch(
-            `http://localhost:3000/listings?lat=${latitude}&lng=${longitude}&sort=distance&limit=8`
-          );
+          const params = new URLSearchParams({
+            lat: String(latitude),
+            lng: String(longitude),
+            radiusKm: "15",
+            sort: "newest",
+          });
+          const res = await fetch(`${API}/listings/search?${params}`);
           if (!res.ok) throw new Error();
           const json = await res.json();
-          const raw = Array.isArray(json) ? json : Array.isArray(json.data) ? json.data : [];
+          const raw = Array.isArray(json.data) ? json.data : [];
           const mapped = raw
-            .map((item) => {
-              const room = item.roomTypes?.[0] || {};
-              const allPhotos = (item.roomTypes ?? []).flatMap(rt => rt.photos ?? []);
-              const firstPhotoUrl = allPhotos[0]?.url || null;
-              const lat = item.latitude ? Number(item.latitude) : null;
-              const lng = item.longitude ? Number(item.longitude) : null;
-              const distanceKm = (lat && lng)
-                ? getDistanceKm(latitude, longitude, lat, lng)
-                : null;
-              return {
-                id: String(item.id),
-                name: item.name || "Tanpa Nama",
-                location: item.address || "Lokasi tidak tersedia",
-                price: room.price ?? item.cheapestPrice ?? 0,
-                gender: (item.genderType || "").toLowerCase(),
-                image: firstPhotoUrl || "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80",
-                available: room.availableCount ?? 0,
-                isPremium: item.isPremium || false,
-                latitude: lat,
-                longitude: lng,
-                distanceKm,
-              };
-            })
-            .filter((x) => x.distanceKm !== null)
+            .map(mapSearchListing)
+            .filter((x) => x.distanceKm != null)
             .sort((a, b) => a.distanceKm - b.distanceKm)
             .slice(0, 8);
           setNearbyData(mapped);
         } catch {
-          // Fallback: sort data yang sudah ada berdasarkan jarak
           const sorted = data
-            .filter((x) => x.latitude && x.longitude)
+            .filter((x) => x.latitude != null && x.longitude != null)
             .map((x) => ({
               ...x,
               distanceKm: getDistanceKm(latitude, longitude, x.latitude, x.longitude),
@@ -297,17 +289,11 @@ export default function DashboardPage() {
     }
   }, [data]);
 
-  const filteredData = useMemo(
-    () => data.filter((item) => activeFilter === "Semua" || item.gender?.toLowerCase() === activeFilter.toLowerCase()),
-    [data, activeFilter]
-  );
-
-  // Stats dinamis (didefinisikan di dalam komponen agar reaktif)
   const STATS = [
-  { icon: BedDouble, label: "Kamar",   value: stats.kamar.toLocaleString("id-ID"),  color: "#3B82F6" },
-  { icon: MapPin,    label: "Listing", value: `${stats.kota} Kost`,                 color: "#8B5CF6" },
-  { icon: Bookmark,  label: "Like",    value: stats.disimpan.toLocaleString("id-ID"), color: "#EC4899" },
-];
+    { icon: MapPin, label: "Kost Aktif", value: stats.listings.toLocaleString("id-ID"), color: "#3B82F6" },
+    { icon: BadgeCheck, label: "Premium", value: stats.premium.toLocaleString("id-ID"), color: "#8B5CF6" },
+    { icon: Bookmark, label: "Favorit", value: stats.disimpan.toLocaleString("id-ID"), color: "#EC4899" },
+  ];
 
   const doLogout = () => { localStorage.removeItem("user"); localStorage.removeItem("token"); navigate("/auth"); };
 
@@ -320,15 +306,19 @@ export default function DashboardPage() {
         <button className="atap-retry-btn" onClick={fetchListings}><RefreshCw size={13} /> Coba lagi</button>
       </div>
     );
-    if (!filteredData.length) return (
+    if (!data.length) return (
       <div className="atap-empty" style={{ gridColumn: "1/-1" }}>
         <SearchX size={28} color="#CBD5E1" /><p>Kost tidak ditemukan</p>
       </div>
     );
-    return filteredData.slice(0, 8).map((item) => (
-      <KostCard key={item.id} item={item} isLiked={favorites.includes(item.id)}
-        onLike={(e) => { e?.stopPropagation(); handleToggleLike(item.id); }}
-        onClick={() => navigate(`/detail/${item.id}`)} />
+    return data.slice(0, 8).map((item) => (
+      <KostCard
+        key={item.id}
+        item={item}
+        isLiked={favorites.includes(item.id)}
+        onLike={() => handleToggleLike(item.id)}
+        onClick={() => navigate(`/detail/${item.id}`)}
+      />
     ));
   };
 
@@ -364,7 +354,7 @@ export default function DashboardPage() {
         <KostCard
           item={item}
           isLiked={favorites.includes(item.id)}
-          onLike={(e) => { e?.stopPropagation(); handleToggleLike(item.id); }}
+          onLike={() => handleToggleLike(item.id)}
           onClick={() => navigate(`/detail/${item.id}`)}
         />
       </div>

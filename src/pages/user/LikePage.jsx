@@ -5,8 +5,9 @@ import {
   Home, Map, MessageCircle, User, Settings, LogOut, Search, Moon, Sun,
 } from "lucide-react";
 import KostCard from "../../components/kost/KostCard";
+import { getApiBase } from "../../config/apiBase";
 
-const BASE_URL = "http://localhost:3000";
+const API = getApiBase();
 
 const NAV_ITEMS = [
   { label: "Home",    path: "/",       icon: Home,          desktop: true,  mobile: true,  guestMobile: true  },
@@ -195,15 +196,17 @@ export default function LikePage() {
   const fetchFavorites = async () => {
     setLoading(true); setError(null);
     try {
-      const res = await fetch(`${BASE_URL}/favorites`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${API}/favorites`, { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) throw new Error("Gagal fetch favorites");
       const json = await res.json();
       setData((json.data || []).map((item) => ({
-        id: String(item.id), name: item.name, price: item.cheapestPrice ?? null,
-        location: item.address ?? "", gender: item.genderType ?? "",
-        image: item.thumbnailUrl
-          ? (item.thumbnailUrl.startsWith("http") ? item.thumbnailUrl : `${BASE_URL}${item.thumbnailUrl}`)
-          : null,
+        id: String(item.id),
+        name: item.name,
+        price: item.cheapestPrice ?? null,
+        location: item.address ?? "",
+        gender: (item.genderType || "").toLowerCase(),
+        isPremium: Boolean(item.isPremium),
+        image: item.thumbnailUrl || null,
       })));
     } catch (err) { console.error(err); setError("Gagal memuat favorit"); }
     finally { setLoading(false); }
@@ -214,7 +217,7 @@ export default function LikePage() {
   const handleRemove = async (id, e) => {
     e.stopPropagation();
     try {
-      await fetch(`${BASE_URL}/favorites/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+      await fetch(`${API}/favorites/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
       setData((prev) => prev.filter((item) => item.id !== String(id)));
     } catch (err) { console.error(err); }
   };

@@ -6,6 +6,7 @@ import {
   LayoutGrid, Layers, Camera, ArrowLeft,
 } from "lucide-react";
 import MapPicker from "../../components/owner/MapPicker";
+import { getApiBase } from "../../config/apiBase";
 
 const RULE_OPTIONS = [
   "Tidak boleh bawa pasangan",
@@ -16,113 +17,190 @@ const RULE_OPTIONS = [
 
 const FACILITY_OPTIONS = ["Wifi", "AC", "Kamar Mandi Dalam", "Parkir", "Laundry"];
 
+const PHOTO_MAX = 8;
+const PHOTO_MIME = ["image/jpeg", "image/png", "image/webp"];
+
 const STEPS = [
   { label: "Data Kos", desc: "Informasi dasar properti kamu", icon: Home },
   { label: "Lokasi", desc: "Alamat & titik peta", icon: MapPinIcon },
-  { label: "Fasilitas", desc: "Fasilitas kamar yang tersedia", icon: Lightbulb },
-  { label: "Ketersediaan", desc: "Jumlah kamar yang bisa disewa", icon: LayoutGrid },
+  { label: "Fasilitas & Ketersediaan", desc: "Fasilitas dan jumlah kamar tersedia", icon: Lightbulb },
   { label: "Detail Kamar", desc: "Tipe, ukuran & harga kamar", icon: Layers },
   { label: "Foto Kamar", desc: "Upload foto untuk menarik penyewa", icon: Camera },
 ];
 
-const API = "http://localhost:3000";
 const getToken = () => localStorage.getItem("token") || "";
+
+const authHeaders = (json = false) => {
+  const headers = new Headers();
+  const token = getToken();
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  if (json) headers.set("Content-Type", "application/json");
+  return headers;
+};
+
+const parseApiError = async (res) => {
+  const data = await res.json().catch(() => ({}));
+  if (data?.message) return data.message;
+  if (Array.isArray(data?.error)) return data.error.map((e) => e.message).join(", ");
+  return "Request gagal";
+};
 
 export default function CreateListingPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [submitError, setSubmitError] = useState("");
 
+  // Listing data (untuk KostListing model)
   const [form, setForm] = useState({
-    name: "", address: "", genderType: "PUTRA",
-    description: "", contactNumber: "", rules: [],
+    name: "",
+    address: "",
+    genderType: "PUTRA",
+    description: "",
+    contactNumber: "",
+    rules: [],
   });
 
+  // Koordinat dari map picker
   const [latLng, setLatLng] = useState(null);
+
+  // Room type data (untuk RoomType model)
   const [room, setRoom] = useState({
-    name: "", price: "", size: "", facilities: [], availableCount: 1,
+    name: "",
+    price: "",
+    size: "",
+    facilities: [],
+    availableCount: 1,
+    newFacility: "", // Untuk input fasilitas custom
   });
-  const [roomPhotos, setRoomPhotos] = useState([]);
+
+  // Room photos dengan sortOrder
+  const [roomPhotos, setRoomPhotos] = useState([]); // Array of File objects
 
   const toggleItem = (list, item) =>
     list.includes(item) ? list.filter((x) => x !== item) : [...list, item];
 
   const validateStep = () => {
     const e = {};
+    
     if (step === 1) {
       if (form.name.trim().length < 3) e.name = "Nama minimal 3 karakter";
       if (form.description.trim().length < 10) e.description = "Deskripsi minimal 10 karakter";
       if (form.contactNumber.trim().length < 8) e.contactNumber = "Nomor kontak minimal 8 digit";
       if (form.rules.length === 0) e.rules = "Pilih minimal 1 peraturan";
     }
+    
     if (step === 2) {
       if (form.address.trim().length < 10) e.address = "Alamat minimal 10 karakter";
       if (!latLng) e.latLng = "Tandai lokasi di peta";
     }
-    if (step === 5) {
-      if (!room.name.trim()) e.roomName = "Nama tipe kamar wajib diisi";
-      if (!room.size.trim()) e.roomSize = "Ukuran kamar wajib diisi";
-      if (!room.price) e.roomPrice = "Harga wajib diisi";
+    
+    if (step === 3) {
+      if (room.facilities.length === 0) e.facilities = "Pilih minimal 1 fasilitas";
+      if (room.availableCount < 1) e.availableCount = "Minimal 1 kamar harus tersedia";
     }
+
+    if (step === 4) {
+      if (room.name.trim().length < 2) e.roomName = "Nama tipe kamar minimal 2 karakter";
+      if (!room.size.trim()) e.roomSize = "Ukuran kamar wajib diisi";
+      const price = Math.floor(Number(room.price));
+      if (!price || price <= 0) e.roomPrice = "Harga wajib diisi (angka bulat, lebih dari 0)";
+    }
+
+    if (step === 5) {
+      if (roomPhotos.length === 0) e.photos = "Upload minimal 1 foto kamar";
+      if (roomPhotos.length > PHOTO_MAX) e.photos = `Maksimal ${PHOTO_MAX} foto`;
+    }
+    
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
-  const handleNext = () => { if (validateStep()) setStep(step + 1); };
-  const handleBack = () => { if (step > 1) setStep(step - 1); };
+  const handleNext = () => {
+    if (validateStep()) setStep(step + 1);
+  };
+
+  const handleBack = () => {
+    if (step > 1) setStep(step - 1);
+  };
+
+  const addPhotos = (fileList) => {
+    const incoming = Array.from(fileList || []);
+    const next = [...roomPhotos];
+    for (const file of incoming) {
+      if (next.length >= PHOTO_MAX) break;
+      if (PHOTO_MIME.includes(file.type)) next.push(file);
+    }
+    setRoomPhotos(next);
+  };
 
   const handleSubmit = async () => {
-  if (!validateStep()) return;
+    if (!validateStep()) return;
+    if (!getToken()) {
+      setSubmitError("Sesi habis. Silakan login ulang sebagai pemilik.");
+      return;
+    }
 
-  console.log("TOKEN:", getToken());
+    setLoading(true);
+    setSubmitError("");
 
-  setLoading(true);
+    const api = getApiBase();
+    const price = Math.floor(Number(room.price));
 
-  try {
-      const resListing = await fetch(`${API}/listings/owner`, {
+    try {
+      const resListing = await fetch(`${api}/listings/owner`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+        headers: authHeaders(true),
         body: JSON.stringify({
-          name: form.name.trim(), address: form.address.trim(),
-          genderType: form.genderType, description: form.description.trim(),
-          contactNumber: form.contactNumber.trim(), rules: form.rules,
-          latitude: Number(latLng.lat), longitude: Number(latLng.lng),
+          name: form.name.trim(),
+          address: form.address.trim(),
+          genderType: form.genderType,
+          description: form.description.trim(),
+          contactNumber: form.contactNumber.trim(),
+          rules: form.rules,
+          latitude: Number(latLng.lat),
+          longitude: Number(latLng.lng),
         }),
       });
-      const listingJson = await resListing.json();
-      if (!resListing.ok) throw new Error(listingJson.message || "Gagal membuat listing");
-      const listingId = listingJson.data?.id;
 
-      const resRoom = await fetch(`${API}/owner/listings/${listingId}/room-types`, {
+      if (!resListing.ok) throw new Error(await parseApiError(resListing));
+      const listingJson = await resListing.json();
+      const listingId = listingJson.data?.id;
+      if (!listingId) throw new Error("Listing ID tidak diterima dari server");
+
+      const resRoom = await fetch(`${api}/owner/listings/${listingId}/room-types`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+        headers: authHeaders(true),
         body: JSON.stringify({
-          name: room.name.trim(), price: Number(room.price),
-          size: room.size.trim(), facilities: room.facilities,
+          name: room.name.trim(),
+          price,
+          size: room.size.trim(),
+          facilities: room.facilities,
           availableCount: Number(room.availableCount),
         }),
       });
-      const roomJson = await resRoom.json();
-      if (!resRoom.ok) throw new Error(roomJson.message || "Gagal membuat tipe kamar");
-      const roomId = roomJson.data?.id;
 
-      if (roomPhotos.length > 0) {
-  const fd = new FormData();
-  roomPhotos.forEach((f) => fd.append("photos", f));
-  
-  console.log("Jumlah foto:", roomPhotos.length); // ← tambah
-  for (let [k, v] of fd.entries()) console.log(k, v.name); // ← tambah
-  
-  await fetch(`${API}/owner/room-types/${roomId}/photos`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${getToken()}` },
-          body: fd,
-        });
-      }
+      if (!resRoom.ok) throw new Error(await parseApiError(resRoom));
+      const roomJson = await resRoom.json();
+      const roomId = roomJson.data?.id;
+      if (!roomId) throw new Error("Room Type ID tidak diterima dari server");
+
+      const formData = new FormData();
+      roomPhotos.forEach((file) => formData.append("photos", file));
+
+      const resPhotos = await fetch(`${api}/owner/room-types/${roomId}/photos`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: formData,
+      });
+
+      if (!resPhotos.ok) throw new Error(await parseApiError(resPhotos));
+
       navigate("/owner/properti");
     } catch (err) {
-      alert(err.message);
+      console.error("Create listing:", err);
+      setSubmitError(err.message || "Gagal menyimpan kost");
     } finally {
       setLoading(false);
     }
@@ -929,27 +1007,53 @@ export default function CreateListingPage() {
                 </div>
               </div>
             </div>
-
             {/* FORM CARD */}
             <div className="clp-form-card">
+              {submitError && (
+                <div
+                  style={{
+                    background: "#fef2f2",
+                    border: "1px solid #fecaca",
+                    borderRadius: 10,
+                    padding: "12px 16px",
+                    fontSize: 13,
+                    color: "#b91c1c",
+                    fontWeight: 600,
+                    marginBottom: 20,
+                  }}
+                >
+                  {submitError}
+                </div>
+              )}
 
-              {/* STEP 1 */}
+              {/* STEP 1: Data Kos */}
               {step === 1 && (
                 <>
                   <div className="clp-field">
                     <label className="clp-label">Nama Kost</label>
-                    <input className={`clp-input${errors.name ? " err" : ""}`}
-                      placeholder="cth. Kost Melati Indah" value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                    <input
+                      className={`clp-input${errors.name ? " err" : ""}`}
+                      placeholder="cth. Kost Melati Indah"
+                      value={form.name}
+                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    />
                     {errors.name && <p className="clp-error">⚠ {errors.name}</p>}
                   </div>
 
                   <div className="clp-field">
                     <label className="clp-label">Tipe Kost</label>
                     <div className="clp-gender-group">
-                      {[{ val: "PUTRA", label: "🧑 Putra" }, { val: "PUTRI", label: "👩 Putri" }, { val: "CAMPUR", label: "👥 Campur" }].map(({ val, label }) => (
-                        <button key={val} type="button" className={`clp-gender-btn${form.genderType === val ? " active" : ""}`}
-                          onClick={() => setForm({ ...form, genderType: val })}>
+                      {[
+                        { val: "PUTRA", label: "🧑 Putra" },
+                        { val: "PUTRI", label: "👩 Putri" },
+                        { val: "CAMPUR", label: "👥 Campur" },
+                      ].map(({ val, label }) => (
+                        <button
+                          key={val}
+                          type="button"
+                          className={`clp-gender-btn${form.genderType === val ? " active" : ""}`}
+                          onClick={() => setForm({ ...form, genderType: val })}
+                        >
                           {label}
                         </button>
                       ))}
@@ -958,32 +1062,50 @@ export default function CreateListingPage() {
 
                   <div className="clp-field">
                     <label className="clp-label">Nomor Kontak (WhatsApp)</label>
-                    <input className={`clp-input${errors.contactNumber ? " err" : ""}`}
-                      placeholder="cth. 08123456789" value={form.contactNumber}
-                      onChange={(e) => setForm({ ...form, contactNumber: e.target.value })} />
+                    <input
+                      className={`clp-input${errors.contactNumber ? " err" : ""}`}
+                      placeholder="cth. 08123456789"
+                      value={form.contactNumber}
+                      onChange={(e) => setForm({ ...form, contactNumber: e.target.value })}
+                    />
                     {errors.contactNumber && <p className="clp-error">⚠ {errors.contactNumber}</p>}
                   </div>
 
                   <div className="clp-field">
                     <label className="clp-label">Deskripsi</label>
-                    <textarea className={`clp-textarea${errors.description ? " err" : ""}`}
-                      rows={4} placeholder="Ceritakan tentang kost kamu, lingkungan sekitar, akses transportasi..."
+                    <textarea
+                      className={`clp-textarea${errors.description ? " err" : ""}`}
+                      rows={4}
+                      placeholder="Ceritakan tentang kost kamu, lingkungan sekitar, akses transportasi..."
                       value={form.description}
-                      onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                      onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    />
                     {errors.description && <p className="clp-error">⚠ {errors.description}</p>}
                   </div>
 
                   <div className="clp-field">
                     <label className="clp-label">Peraturan Kos</label>
-                    <p style={{ fontSize: 12, color: "#94a3b8", fontWeight: 500, marginBottom: 10 }}>Pilih minimal 1 peraturan yang berlaku</p>
+                    <p style={{ fontSize: 12, color: "#94a3b8", fontWeight: 500, marginBottom: 10 }}>
+                      Pilih minimal 1 peraturan yang berlaku
+                    </p>
                     <div className="clp-toggle-list">
                       {RULE_OPTIONS.map((rule) => {
                         const checked = form.rules.includes(rule);
                         return (
-                          <button key={rule} type="button" onClick={() => setForm({ ...form, rules: toggleItem(form.rules, rule) })}
-                            className={`clp-toggle-row${checked ? " active" : ""}`}>
+                          <button
+                            key={rule}
+                            type="button"
+                            onClick={() =>
+                              setForm({ ...form, rules: toggleItem(form.rules, rule) })
+                            }
+                            className={`clp-toggle-row${checked ? " active" : ""}`}
+                          >
                             <span>{rule}</span>
-                            {checked && <span className="clp-toggle-check"><Check size={12} color="white" /></span>}
+                            {checked && (
+                              <span className="clp-toggle-check">
+                                <Check size={12} color="white" />
+                              </span>
+                            )}
                           </button>
                         );
                       })}
@@ -998,22 +1120,26 @@ export default function CreateListingPage() {
                 </>
               )}
 
-              {/* STEP 2 */}
+              {/* STEP 2: Lokasi */}
               {step === 2 && (
                 <>
                   <div className="clp-field">
                     <label className="clp-label">Alamat Lengkap</label>
-                    <textarea className={`clp-textarea${errors.address ? " err" : ""}`}
-                      rows={3} placeholder="Jl. Contoh No. 12, Kel. ..., Kec. ..., Kota ..."
+                    <textarea
+                      className={`clp-textarea${errors.address ? " err" : ""}`}
+                      rows={3}
+                      placeholder="Jl. Contoh No. 12, Kel. ..., Kec. ..., Kota ..."
                       value={form.address}
-                      onChange={(e) => setForm({ ...form, address: e.target.value })} />
+                      onChange={(e) => setForm({ ...form, address: e.target.value })}
+                    />
                     {errors.address && <p className="clp-error">⚠ {errors.address}</p>}
                   </div>
 
                   <div className="clp-field">
                     <label className="clp-label">Tandai Lokasi di Peta</label>
                     <p className="clp-info-note">
-                      📍 Klik pada peta untuk menentukan lokasi kost secara akurat. Titik pin bisa digeser kembali setelah ditandai.
+                      📍 Klik pada peta untuk menentukan lokasi kost secara akurat. Titik pin bisa
+                      digeser kembali setelah ditandai.
                     </p>
                     <div className="clp-map-container">
                       <MapPicker setLatLng={setLatLng} />
@@ -1021,8 +1147,20 @@ export default function CreateListingPage() {
                     {latLng && (
                       <div className="clp-coord-badge">
                         <MapPin size={15} />
-                        <span>{Number(latLng.lat).toFixed(5)}, {Number(latLng.lng).toFixed(5)}</span>
-                        <span style={{ background: "#22c55e", color: "white", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 6, marginLeft: 4 }}>
+                        <span>
+                          {Number(latLng.lat).toFixed(5)}, {Number(latLng.lng).toFixed(5)}
+                        </span>
+                        <span
+                          style={{
+                            background: "#22c55e",
+                            color: "white",
+                            fontSize: 10,
+                            fontWeight: 700,
+                            padding: "2px 8px",
+                            borderRadius: 6,
+                            marginLeft: 4,
+                          }}
+                        >
                           Tersimpan
                         </span>
                       </div>
@@ -1032,74 +1170,235 @@ export default function CreateListingPage() {
                 </>
               )}
 
-              {/* STEP 3 */}
+              {/* STEP 3: Fasilitas & Ketersediaan */}
               {step === 3 && (
                 <>
-                  <p className="clp-info-note">Pilih semua fasilitas yang tersedia di dalam kamar kost kamu.</p>
-                  <div className="clp-toggle-list">
-                    {FACILITY_OPTIONS.map((f) => {
-                      const checked = room.facilities.includes(f);
-                      return (
-                        <button key={f} type="button" onClick={() => setRoom({ ...room, facilities: toggleItem(room.facilities, f) })}
-                          className={`clp-toggle-row${checked ? " active" : ""}`}>
-                          <span>{f}</span>
-                          {checked && <span className="clp-toggle-check"><Check size={12} color="white" /></span>}
+                  <div className="clp-field">
+                    <label className="clp-label">Fasilitas Kamar</label>
+                    <p className="clp-info-note">Pilih fasilitas yang tersedia atau tambahkan fasilitas custom.</p>
+                    
+                    {/* Fasilitas yang sudah ditentukan */}
+                    <p style={{ fontSize: 12, color: "#64748b", fontWeight: 600, marginBottom: 10 }}>
+                      Fasilitas Standar
+                    </p>
+                    <div className="clp-toggle-list">
+                      {FACILITY_OPTIONS.map((f) => {
+                        const checked = room.facilities.includes(f);
+                        return (
+                          <button
+                            key={f}
+                            type="button"
+                            onClick={() =>
+                              setRoom({ ...room, facilities: toggleItem(room.facilities, f) })
+                            }
+                            className={`clp-toggle-row${checked ? " active" : ""}`}
+                          >
+                            <span>{f}</span>
+                            {checked && (
+                              <span className="clp-toggle-check">
+                                <Check size={12} color="white" />
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Input untuk fasilitas custom */}
+                    <div style={{ marginTop: 24, paddingTop: 24, borderTop: "1px solid #e8eaf2" }}>
+                      <p style={{ fontSize: 12, color: "#64748b", fontWeight: 600, marginBottom: 10 }}>
+                        Tambah Fasilitas Custom
+                      </p>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <input
+                          type="text"
+                          className="clp-input"
+                          placeholder="cth. Kulkas, Microwave, TV"
+                          value={room.newFacility || ""}
+                          onChange={(e) => setRoom({ ...room, newFacility: e.target.value })}
+                          onKeyPress={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              if (room.newFacility?.trim()) {
+                                const newFac = room.newFacility.trim();
+                                if (!room.facilities.includes(newFac)) {
+                                  setRoom({
+                                    ...room,
+                                    facilities: [...room.facilities, newFac],
+                                    newFacility: "",
+                                  });
+                                }
+                              }
+                            }
+                          }}
+                          style={{ flex: 1 }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (room.newFacility?.trim()) {
+                              const newFac = room.newFacility.trim();
+                              if (!room.facilities.includes(newFac)) {
+                                setRoom({
+                                  ...room,
+                                  facilities: [...room.facilities, newFac],
+                                  newFacility: "",
+                                });
+                              }
+                            }
+                          }}
+                          style={{
+                            padding: "11px 16px",
+                            background: "#1d4ed8",
+                            color: "white",
+                            border: "none",
+                            borderRadius: 10,
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            fontSize: 13,
+                            whiteSpace: "nowrap",
+                            transition: "all 0.2s",
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.background = "#1e40af")}
+                          onMouseLeave={(e) => (e.currentTarget.style.background = "#1d4ed8")}
+                        >
+                          + Tambah
                         </button>
-                      );
-                    })}
+                      </div>
+                    </div>
+
+                    {/* Daftar semua fasilitas yang dipilih (standar + custom) */}
+                    {room.facilities.length > 0 && (
+                      <div style={{ marginTop: 24 }}>
+                        <p style={{ fontSize: 12, color: "#64748b", fontWeight: 600, marginBottom: 10 }}>
+                          Fasilitas Terpilih ({room.facilities.length})
+                        </p>
+                        <div
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: 8,
+                          }}
+                        >
+                          {room.facilities.map((fac) => (
+                            <div
+                              key={fac}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 8,
+                                padding: "8px 12px",
+                                background: "#eff6ff",
+                                border: "1.5px solid #bfdbfe",
+                                borderRadius: 10,
+                                color: "#1d4ed8",
+                                fontSize: 13,
+                                fontWeight: 600,
+                              }}
+                            >
+                              <span>{fac}</span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setRoom({
+                                    ...room,
+                                    facilities: room.facilities.filter((x) => x !== fac),
+                                  })
+                                }
+                                style={{
+                                  background: "none",
+                                  border: "none",
+                                  color: "#1d4ed8",
+                                  cursor: "pointer",
+                                  fontSize: 16,
+                                  padding: 0,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  width: 18,
+                                  height: 18,
+                                }}
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {errors.facilities && <p className="clp-error">⚠ {errors.facilities}</p>}
                   </div>
-                  {room.facilities.length > 0 && (
-                    <p style={{ fontSize: 13, color: "#22c55e", fontWeight: 700, marginTop: 16 }}>
-                      ✓ {room.facilities.length} fasilitas dipilih
+
+                  <div className="clp-field">
+                    <label className="clp-label">Jumlah Kamar Tersedia</label>
+                    <p className="clp-info-note">Masukkan jumlah kamar yang bisa disewa saat ini.</p>
+                    <div className="clp-counter-wrap">
+                      <button
+                        type="button"
+                        className="clp-counter-btn"
+                        onClick={() =>
+                          setRoom({
+                            ...room,
+                            availableCount: Math.max(1, Number(room.availableCount) - 1),
+                          })
+                        }
+                      >
+                        −
+                      </button>
+                      <input
+                        type="number"
+                        min="1"
+                        className="clp-counter-input"
+                        value={room.availableCount}
+                        onChange={(e) =>
+                          setRoom({
+                            ...room,
+                            availableCount: Math.max(1, Number(e.target.value)),
+                          })
+                        }
+                      />
+                      <button
+                        type="button"
+                        className="clp-counter-btn"
+                        onClick={() =>
+                          setRoom({
+                            ...room,
+                            availableCount: Number(room.availableCount) + 1,
+                          })
+                        }
+                      >
+                        +
+                      </button>
+                    </div>
+                    <p style={{ textAlign: "center", fontSize: 13, color: "#64748b", fontWeight: 600 }}>
+                      kamar tersedia
                     </p>
-                  )}
-                  {room.facilities.length === 0 && (
-                    <p style={{ fontSize: 12, color: "#94a3b8", fontWeight: 500, marginTop: 12 }}>
-                      Kamu bisa melanjutkan tanpa memilih fasilitas.
-                    </p>
-                  )}
+                  </div>
                 </>
               )}
 
-              {/* STEP 4 */}
+              {/* STEP 4: Detail Kamar */}
               {step === 4 && (
-                <>
-                  <p className="clp-info-note">Masukkan jumlah kamar yang bisa disewa saat ini.</p>
-                  <div className="clp-counter-wrap">
-                    <button type="button" className="clp-counter-btn"
-                      onClick={() => setRoom({ ...room, availableCount: Math.max(0, Number(room.availableCount) - 1) })}>
-                      −
-                    </button>
-                    <input type="number" min="0" className="clp-counter-input"
-                      value={room.availableCount}
-                      onChange={(e) => setRoom({ ...room, availableCount: e.target.value })} />
-                    <button type="button" className="clp-counter-btn"
-                      onClick={() => setRoom({ ...room, availableCount: Number(room.availableCount) + 1 })}>
-                      +
-                    </button>
-                  </div>
-                  <p style={{ textAlign: "center", fontSize: 13, color: "#64748b", fontWeight: 600 }}>kamar tersedia</p>
-                </>
-              )}
-
-              {/* STEP 5 */}
-              {step === 5 && (
                 <>
                   <div className="clp-field">
                     <label className="clp-label">Nama Tipe Kamar</label>
-                    <input className={`clp-input${errors.roomName ? " err" : ""}`}
+                    <input
+                      className={`clp-input${errors.roomName ? " err" : ""}`}
                       placeholder="cth. Kamar Standar, Kamar Deluxe"
                       value={room.name}
-                      onChange={(e) => setRoom({ ...room, name: e.target.value })} />
+                      onChange={(e) => setRoom({ ...room, name: e.target.value })}
+                    />
                     {errors.roomName && <p className="clp-error">⚠ {errors.roomName}</p>}
                   </div>
 
                   <div className="clp-field">
                     <label className="clp-label">Ukuran Kamar</label>
-                    <input className={`clp-input${errors.roomSize ? " err" : ""}`}
+                    <input
+                      className={`clp-input${errors.roomSize ? " err" : ""}`}
                       placeholder="cth. 3x4 m, 4x5 m"
                       value={room.size}
-                      onChange={(e) => setRoom({ ...room, size: e.target.value })} />
+                      onChange={(e) => setRoom({ ...room, size: e.target.value })}
+                    />
                     {errors.roomSize && <p className="clp-error">⚠ {errors.roomSize}</p>}
                   </div>
 
@@ -1107,11 +1406,14 @@ export default function CreateListingPage() {
                     <label className="clp-label">Harga per Bulan</label>
                     <div className="clp-price-wrap">
                       <span className="clp-price-prefix">Rp</span>
-                      <input type="number" min="0"
+                      <input
+                        type="number"
+                        min="0"
                         className={`clp-input clp-price-input${errors.roomPrice ? " err" : ""}`}
                         placeholder="800000"
                         value={room.price}
-                        onChange={(e) => setRoom({ ...room, price: e.target.value })} />
+                        onChange={(e) => setRoom({ ...room, price: e.target.value })}
+                      />
                     </div>
                     {errors.roomPrice && <p className="clp-error">⚠ {errors.roomPrice}</p>}
                     {room.price && (
@@ -1123,32 +1425,78 @@ export default function CreateListingPage() {
                 </>
               )}
 
-              {/* STEP 6 */}
-              {step === 6 && (
+              {/* STEP 5: Foto Kamar */}
+              {step === 5 && (
                 <>
-                  <p className="clp-info-note">Upload foto kamar yang menarik untuk meningkatkan minat penyewa. Bisa lebih dari 1 foto.</p>
+                  <p className="clp-info-note">
+                    Upload minimal 1 foto (maks. {PHOTO_MAX}). Format JPG, PNG, atau WEBP — maks. 5MB
+                    per file.
+                  </p>
+                  {errors.photos && <p className="clp-error" style={{ marginBottom: 12 }}>⚠ {errors.photos}</p>}
                   <label style={{ cursor: "pointer", display: "block" }}>
                     <div className={`clp-upload-zone${roomPhotos.length > 0 ? " has-files" : ""}`}>
                       <div className="clp-upload-icon-wrap">
-                        {roomPhotos.length > 0 ? <ImageIcon size={24} /> : <Upload size={24} />}
+                        {roomPhotos.length > 0 ? (
+                          <ImageIcon size={24} />
+                        ) : (
+                          <Upload size={24} />
+                        )}
                       </div>
                       <p className="clp-upload-text">
-                        {roomPhotos.length > 0 ? `${roomPhotos.length} foto dipilih — klik untuk tambah lagi` : "Klik untuk upload foto"}
+                        {roomPhotos.length > 0
+                          ? `${roomPhotos.length} foto dipilih — klik untuk tambah lagi`
+                          : "Klik untuk upload foto"}
                       </p>
-                      <p className="clp-upload-sub">JPG, PNG — bisa pilih beberapa sekaligus</p>
+                      <p className="clp-upload-sub">
+                        JPG, PNG, WEBP — {roomPhotos.length}/{PHOTO_MAX} foto
+                      </p>
                     </div>
-                    <input type="file" multiple accept="image/*" style={{ display: "none" }}
-                      onChange={(e) => setRoomPhotos([...roomPhotos, ...Array.from(e.target.files)])} />
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/jpeg,image/png,image/webp"
+                      style={{ display: "none" }}
+                      onChange={(e) => {
+                        addPhotos(e.target.files);
+                        e.target.value = "";
+                      }}
+                    />
                   </label>
 
                   {roomPhotos.length > 0 && (
                     <>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 24 }}>
-                        <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.6px", textTransform: "uppercase", color: "#334155" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginTop: 24,
+                        }}
+                      >
+                        <p
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 700,
+                            letterSpacing: "0.6px",
+                            textTransform: "uppercase",
+                            color: "#334155",
+                          }}
+                        >
                           Preview ({roomPhotos.length} foto)
                         </p>
-                        <button type="button" onClick={() => setRoomPhotos([])}
-                          style={{ fontSize: 12, color: "#ef4444", background: "none", border: "none", cursor: "pointer", fontWeight: 700, fontFamily: "inherit" }}>
+                        <button
+                          type="button"
+                          onClick={() => setRoomPhotos([])}
+                          style={{
+                            fontSize: 12,
+                            color: "#ef4444",
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            fontWeight: 700,
+                            fontFamily: "inherit",
+                          }}
+                        >
                           Hapus semua
                         </button>
                       </div>
@@ -1157,7 +1505,12 @@ export default function CreateListingPage() {
                           <div key={i} className="clp-photo-item">
                             <img src={URL.createObjectURL(file)} alt={`preview-${i}`} />
                             <div className="clp-photo-del">
-                              <button type="button" onClick={() => setRoomPhotos(roomPhotos.filter((_, idx) => idx !== i))}>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setRoomPhotos(roomPhotos.filter((_, idx) => idx !== i))
+                                }
+                              >
                                 <Trash2 size={14} />
                               </button>
                             </div>
@@ -1178,7 +1531,11 @@ export default function CreateListingPage() {
                     <ChevronLeft size={16} /> Kembali
                   </button>
                 ) : (
-                  <button type="button" onClick={() => navigate("/owner/dashboard")} className="clp-btn clp-btn-outline">
+                  <button
+                    type="button"
+                    onClick={() => navigate("/owner/dashboard")}
+                    className="clp-btn clp-btn-outline"
+                  >
                     <ArrowLeft size={15} /> Dashboard
                   </button>
                 )}
@@ -1193,11 +1550,21 @@ export default function CreateListingPage() {
                     Lanjut <ChevronRight size={16} />
                   </button>
                 ) : (
-                  <button type="button" onClick={handleSubmit} disabled={loading} className="clp-btn clp-btn-primary">
+                  <button
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={loading}
+                    className="clp-btn clp-btn-primary"
+                  >
                     {loading ? (
-                      <><Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> Menyimpan...</>
+                      <>
+                        <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} />
+                        Menyimpan...
+                      </>
                     ) : (
-                      <><Check size={16} /> Simpan Kost</>
+                      <>
+                        <Check size={16} /> Simpan Kost
+                      </>
                     )}
                   </button>
                 )}
