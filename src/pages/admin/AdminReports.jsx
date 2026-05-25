@@ -5,46 +5,8 @@ import {
   CheckCircle, XCircle, User, Building2,
 } from "lucide-react";
 
-const BASE_URL = "http://localhost:3000";
-function getToken() { return localStorage.getItem("token"); }
-
-async function apiFetch(path, options = {}) {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${getToken()}`,
-      ...options.headers,
-    },
-  });
-  if (res.status === 401) throw new Error("UNAUTHORIZED");
-  if (!res.ok) {
-    const json = await res.json().catch(() => ({}));
-    throw new Error(json.message || "Terjadi kesalahan server");
-  }
-  return res.json();
-}
-
-// ─── Badge ────────────────────────────────────────────────────────────────────
-const STATUS_CFG = {
-  PENDING:   { label: "Menunggu",  bg: "#fffbeb", color: "#d97706", dot: "#f59e0b" },
-  RESOLVED:  { label: "Selesai",   bg: "#ecfdf5", color: "#059669", dot: "#10b981" },
-  DISMISSED: { label: "Diabaikan", bg: "#f8fafc", color: "#64748b", dot: "#94a3b8" },
-};
-
-function Badge({ status }) {
-  const cfg = STATUS_CFG[status?.toUpperCase()] ?? { label: status ?? "-", bg: "#f3f4f6", color: "#374151", dot: "#9ca3af" };
-  return (
-    <span style={{
-      display: "inline-flex", alignItems: "center", gap: 5,
-      fontSize: 12, fontWeight: 600, borderRadius: 99,
-      padding: "3px 10px", background: cfg.bg, color: cfg.color,
-    }}>
-      <span style={{ width: 6, height: 6, borderRadius: "50%", background: cfg.dot, flexShrink: 0 }} />
-      {cfg.label}
-    </span>
-  );
-}
+import { adminApiFetch, handleAdminAuthError } from "./adminApi";
+import { REPORT_STATUS, StatusBadge } from "./adminUi";
 
 // ─── Action Modal ─────────────────────────────────────────────────────────────
 function ActionModal({ report, onConfirm, onClose, loading }) {
@@ -143,11 +105,11 @@ export default function AdminReports() {
       // GET /admin/reports?status=&limit=50
       // response: { message, data: [...] }
       const query = filterStatus ? `?status=${filterStatus}&limit=50` : "?limit=50";
-      const res = await apiFetch(`/admin/reports${query}`);
+      const res = await adminApiFetch(`/admin/reports${query}`);
       setReports(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
-      if (err.message === "UNAUTHORIZED") { localStorage.removeItem("token"); navigate("/auth"); }
-      else setError(err.message);
+      if (handleAdminAuthError(err, navigate)) return;
+      setError(err.message);
     } finally { setLoading(false); }
   };
 
@@ -158,7 +120,7 @@ export default function AdminReports() {
     if (!reviewTarget) return;
     setActionLoading(`review-${reviewTarget.id}`);
     try {
-      await apiFetch(`/admin/reports/${reviewTarget.id}`, {
+      await adminApiFetch(`/admin/reports/${reviewTarget.id}`, {
         method: "PATCH",
         body: JSON.stringify({ action }),
       });
@@ -351,7 +313,7 @@ export default function AdminReports() {
                     <td style={{ ...tdStyle, color: "#94a3b8", fontSize: 12 }}>
                       {r.createdAt ? new Date(r.createdAt).toLocaleDateString("id-ID") : "-"}
                     </td>
-                    <td style={tdStyle}><Badge status={r.status} /></td>
+                    <td style={tdStyle}><StatusBadge status={r.status} map={REPORT_STATUS} /></td>
                     <td style={tdStyle}>
                       {r.reviewedBy
                         ? <span style={{ fontSize: 12, color: "#475569" }}>{r.reviewedBy.name}</span>

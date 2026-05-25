@@ -11,16 +11,18 @@ import {
   Bell,
   ChevronRight,
   Star,
+  User,
 } from "lucide-react";
 import { useAdminNotifications } from "../../hooks/useAdminNotifications";
 import AdminNotificationPanel from "../../components/admin/AdminNotificationPanel";
 
 const navItems = [
   { to: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/admin/listings",  icon: Building2,       label: "Kelola Listing" },
-  { to: "/admin/minat-leads", icon: Star,           label: "Minat & Leads" },
-  { to: "/admin/reports",   icon: FileText,         label: "Laporan" },
-  { to: "/admin/analytics", icon: BarChart3,        label: "Analitik" },
+  { to: "/admin/analytics", icon: BarChart3, label: "Analitik" },
+  { to: "/admin/reports", icon: FileText, label: "Laporan" },
+  { to: "/admin/listings", icon: Building2, label: "Kelola Listing" },
+  { to: "/admin/minat-leads", icon: Star, label: "Leads Minat" },
+  { to: "/admin/profil", icon: User, label: "Profil" },
 ];
 
 export default function AdminLayout() {
@@ -64,6 +66,19 @@ export default function AdminLayout() {
     }
 
     setChecking(false);
+  }, []);
+
+  useEffect(() => {
+    const syncName = () => {
+      try {
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+        if (user?.name) setAdminName(user.name);
+      } catch {
+        /* ignore */
+      }
+    };
+    window.addEventListener("admin-user-updated", syncName);
+    return () => window.removeEventListener("admin-user-updated", syncName);
   }, []);
 
   const handleLogout = () => {
@@ -174,15 +189,18 @@ export default function AdminLayout() {
               )}
             </button>
 
-            <div className="flex items-center gap-2.5">
+            <NavLink
+              to="/admin/profil"
+              className="flex items-center gap-2.5 rounded-lg px-1.5 py-1 hover:bg-slate-100 transition-colors"
+            >
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold">
                 {adminName.charAt(0).toUpperCase()}
               </div>
-              <div className="hidden sm:block">
+              <div className="hidden sm:block text-left">
                 <p className="text-xs font-semibold text-slate-700">{adminName}</p>
                 <p className="text-[10px] text-slate-400">Superadmin</p>
               </div>
-            </div>
+            </NavLink>
           </div>
         </header>
 
