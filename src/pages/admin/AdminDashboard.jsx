@@ -1,439 +1,340 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
-  Home, CheckCircle, Users, KeyRound, UserPlus, Eye,
-  AlertTriangle, Flag, RefreshCw, TrendingUp, Building2,
-  MessageSquare, Heart, ChevronRight, Star,
+  Home,
+  CheckCircle,
+  Users,
+  KeyRound,
+  UserPlus,
+  Eye,
+  Building2,
+  Flag,
+  ChevronRight,
+  MessageSquare,
 } from "lucide-react";
+import { adminApiFetch, handleAdminAuthError } from "./adminApi";
+import { AdminError, AdminLoading, PageHeader, REPORT_STATUS, StatCard, StatusBadge } from "./adminUi";
 
-const BASE_URL = "http://localhost:3000";
-function getToken() { return localStorage.getItem("token"); }
-
-async function apiFetch(path) {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
-  });
-  if (res.status === 401) throw new Error("UNAUTHORIZED");
-  if (!res.ok) {
-    const json = await res.json().catch(() => ({}));
-    throw new Error(json.message || json.error || "Terjadi kesalahan server");
+function TopListingsPreview({ listings }) {
+  if (!listings?.length) {
+    return (
+      <p style={{ padding: 32, textAlign: "center", color: "#94a3b8", fontSize: 13, margin: 0 }}>
+        Belum ada listing.
+      </p>
+    );
   }
-  return res.json();
-}
-
-// ─── Badge ────────────────────────────────────────────────────────────────────
-const STATUS_CFG = {
-  ACTIVE:    { label: "Aktif",    bg: "#ecfdf5", color: "#059669", dot: "#10b981" },
-  PENDING:   { label: "Pending",  bg: "#fffbeb", color: "#d97706", dot: "#f59e0b" },
-  INACTIVE:  { label: "Nonaktif", bg: "#f9fafb", color: "#6b7280", dot: "#9ca3af" },
-  SUSPENDED: { label: "Suspend",  bg: "#fef2f2", color: "#dc2626", dot: "#ef4444" },
-  OPEN:      { label: "Baru",     bg: "#eff6ff", color: "#2563eb", dot: "#3b82f6" },
-  RESOLVED:  { label: "Selesai",  bg: "#ecfdf5", color: "#059669", dot: "#10b981" },
-};
-
-function Badge({ status }) {
-  const cfg = STATUS_CFG[status?.toUpperCase()] ?? { label: status ?? "-", bg: "#f3f4f6", color: "#374151", dot: "#9ca3af" };
-  return (
-    <span style={{
-      display: "inline-flex", alignItems: "center", gap: 5,
-      fontSize: 12, fontWeight: 600, borderRadius: 99,
-      padding: "3px 10px", background: cfg.bg, color: cfg.color,
-    }}>
-      <span style={{ width: 6, height: 6, borderRadius: "50%", background: cfg.dot, flexShrink: 0 }} />
-      {cfg.label}
-    </span>
-  );
-}
-
-// ─── Stat Card ────────────────────────────────────────────────────────────────
-function StatCard({ label, value, icon: Icon, accent, sub }) {
-  const [count, setCount] = useState(0);
-  const isNum = typeof value === "number";
-
-  useEffect(() => {
-    if (!isNum || value === 0) return;
-    let cur = 0;
-    const step = Math.ceil(value / 40);
-    const t = setInterval(() => {
-      cur += step;
-      if (cur >= value) { setCount(value); clearInterval(t); }
-      else setCount(cur);
-    }, 18);
-    return () => clearInterval(t);
-  }, [value]);
 
   return (
-    <div style={{
-      background: "#fff",
-      border: "1px solid #f1f5f9",
-      borderRadius: 14,
-      padding: "20px 22px",
-      display: "flex",
-      flexDirection: "column",
-      gap: 12,
-      boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)",
-      transition: "box-shadow 0.2s",
-    }}
-      onMouseEnter={e => e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.08)"}
-      onMouseLeave={e => e.currentTarget.style.boxShadow = "0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)"}
-    >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <span style={{ fontSize: 13, color: "#64748b", fontWeight: 500 }}>{label}</span>
-        <div style={{
-          width: 36, height: 36, borderRadius: 10,
-          background: accent + "15",
-          display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
-          <Icon size={18} color={accent} strokeWidth={2} />
-        </div>
-      </div>
-      <div>
-        <div style={{ fontSize: 26, fontWeight: 700, color: "#0f172a", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
-          {isNum ? count.toLocaleString("id-ID") : (value ?? "0")}
-        </div>
-        {sub && <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>{sub}</div>}
-      </div>
-    </div>
-  );
-}
-
-// ─── Listing Terbaru Table ────────────────────────────────────────────────────
-function RecentListingsTable({ listings }) {
-  if (!listings?.length) return (
-    <div style={{ padding: "40px 24px", textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
-      <Building2 size={32} color="#e2e8f0" style={{ margin: "0 auto 8px" }} />
-      <p style={{ margin: 0 }}>Belum ada listing</p>
-    </div>
-  );
-
-  return (
-    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-      <thead>
-        <tr style={{ background: "#f8fafc" }}>
-          {["Nama Kost", "Pemilik", "Status", "Terakhir Diperbarui"].map((h, i) => (
-            <th key={i} style={{
-              textAlign: i === 3 ? "center" : "left",
-              padding: "11px 16px", color: "#64748b",
-              fontWeight: 600, fontSize: 11.5,
-              letterSpacing: "0.04em", textTransform: "uppercase",
-              borderBottom: "1px solid #f1f5f9",
-            }}>{h}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {listings.map((l, i) => (
-          <tr key={l.id}
-            style={{ transition: "background 0.15s" }}
-            onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
-            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-          >
-            <td style={{ padding: "13px 16px", fontWeight: 600, color: "#0f172a", borderBottom: "1px solid #f8fafc" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div style={{
-                  width: 28, height: 28, borderRadius: 8,
-                  background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 12, fontWeight: 700, color: "#94a3b8", flexShrink: 0,
-                }}>
-                  {i + 1}
-                </div>
-                {l.name ?? "-"}
-              </div>
-            </td>
-            <td style={{ padding: "13px 16px", color: "#475569", borderBottom: "1px solid #f8fafc" }}>{l.owner?.name ?? "-"}</td>
-            <td style={{ padding: "13px 16px", borderBottom: "1px solid #f8fafc" }}><Badge status={l.status} /></td>
-            <td style={{ padding: "13px 16px", textAlign: "center", color: "#475569", borderBottom: "1px solid #f8fafc", fontVariantNumeric: "tabular-nums" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
-                <Eye size={13} color="#94a3b8" /> {l.totalViews ?? 0}
-              </div>
-            </td>
-            <td style={{ padding: "13px 16px", textAlign: "center", color: "#475569", borderBottom: "1px solid #f8fafc", fontVariantNumeric: "tabular-nums" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
-                <MessageSquare size={13} color="#94a3b8" /> {l.totalLeads ?? 0}
-              </div>
-            </td>
-            <td style={{ padding: "13px 16px", textAlign: "center", color: "#475569", borderBottom: "1px solid #f8fafc", fontVariantNumeric: "tabular-nums" }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
-                <Heart size={13} color="#94a3b8" /> {l.totalFavorites ?? 0}
-              </div>
-            </td>
+    <div style={{ overflowX: "auto" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+        <thead>
+          <tr style={{ background: "#f8fafc" }}>
+            {["Kost", "Pemilik", "Views", "Chat", "Favorit"].map((h, i) => (
+              <th
+                key={h}
+                style={{
+                  textAlign: i >= 2 ? "center" : "left",
+                  padding: "11px 16px",
+                  color: "#64748b",
+                  fontWeight: 600,
+                  fontSize: 11,
+                  textTransform: "uppercase",
+                  borderBottom: "1px solid #f1f5f9",
+                }}
+              >
+                {h}
+              </th>
+            ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
-
-// ─── Reports Table ────────────────────────────────────────────────────────────
-function ReportsTable({ reports, onResolve, actionLoading }) {
-  if (!reports?.length) return (
-    <div style={{ padding: "40px 24px", textAlign: "center", color: "#94a3b8", fontSize: 13 }}>
-      <Flag size={32} color="#e2e8f0" style={{ margin: "0 auto 8px" }} />
-      <p style={{ margin: 0 }}>Tidak ada laporan masuk</p>
-    </div>
-  );
-
-  return (
-    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-      <thead>
-        <tr style={{ background: "#f8fafc" }}>
-          {["Pelapor", "Target", "Kategori", "Tanggal", "Status", "Aksi"].map((h, i) => (
-            <th key={i} style={{
-              textAlign: "left", padding: "11px 16px", color: "#64748b",
-              fontWeight: 600, fontSize: 11.5, letterSpacing: "0.04em",
-              textTransform: "uppercase", borderBottom: "1px solid #f1f5f9",
-            }}>{h}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {reports.map((r) => {
-          const status = (r.status ?? "").toUpperCase();
-          const isLoading = actionLoading === `report-${r.id}`;
-          return (
-            <tr key={r.id}
-              style={{ transition: "background 0.15s" }}
-              onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
-              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-            >
-              <td style={{ padding: "13px 16px", fontWeight: 600, color: "#0f172a", borderBottom: "1px solid #f8fafc" }}>
-                {r.reporter?.name ?? r.pelapor ?? "-"}
+        </thead>
+        <tbody>
+          {listings.slice(0, 8).map((l) => (
+            <tr key={l.id}>
+              <td style={{ padding: "12px 16px", fontWeight: 600, borderBottom: "1px solid #f8fafc" }}>
+                {l.name}
               </td>
-              <td style={{ padding: "13px 16px", color: "#475569", borderBottom: "1px solid #f8fafc" }}>
-                {r.listing?.name ?? r.listing?.title ?? r.target ?? "-"}
+              <td style={{ padding: "12px 16px", color: "#475569", borderBottom: "1px solid #f8fafc" }}>
+                {l.owner?.name ?? "-"}
               </td>
-              <td style={{ padding: "13px 16px", color: "#475569", borderBottom: "1px solid #f8fafc" }}>
-                {r.category ?? r.kategori ?? "-"}
+              <td style={{ padding: "12px 16px", textAlign: "center", borderBottom: "1px solid #f8fafc" }}>
+                {l.totalViews ?? 0}
               </td>
-              <td style={{ padding: "13px 16px", color: "#94a3b8", borderBottom: "1px solid #f8fafc" }}>
-                {r.createdAt ? new Date(r.createdAt).toLocaleDateString("id-ID") : "-"}
+              <td style={{ padding: "12px 16px", textAlign: "center", borderBottom: "1px solid #f8fafc" }}>
+                {l.totalLeads ?? 0}
               </td>
-              <td style={{ padding: "13px 16px", borderBottom: "1px solid #f8fafc" }}>
-                <Badge status={r.status} />
-              </td>
-              <td style={{ padding: "13px 16px", borderBottom: "1px solid #f8fafc" }}>
-                {(status === "OPEN" || status === "PENDING") && (
-                  <button
-                    disabled={isLoading}
-                    onClick={() => onResolve(r.id)}
-                    style={{
-                      padding: "5px 12px", fontSize: 12, fontWeight: 600,
-                      border: "1px solid #e0e7ff", background: "#eef2ff",
-                      color: "#4f46e5", borderRadius: 7, cursor: "pointer",
-                      fontFamily: "inherit", opacity: isLoading ? 0.6 : 1,
-                      transition: "all 0.15s",
-                    }}
-                  >
-                    {isLoading ? "..." : "Selesaikan"}
-                  </button>
-                )}
+              <td style={{ padding: "12px 16px", textAlign: "center", borderBottom: "1px solid #f8fafc" }}>
+                {l.totalFavorites ?? 0}
               </td>
             </tr>
-          );
-        })}
-      </tbody>
-    </table>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
+function ReportsPreview({ reports }) {
+  const pending = reports.filter((r) => (r.status ?? "").toUpperCase() === "PENDING");
+
+  if (!pending.length) {
+    return (
+      <p style={{ padding: 32, textAlign: "center", color: "#94a3b8", fontSize: 13, margin: 0 }}>
+        Tidak ada laporan menunggu tinjauan.
+      </p>
+    );
+  }
+
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+        <thead>
+          <tr style={{ background: "#f8fafc" }}>
+            {["Pelapor", "Kost", "Alasan", "Status"].map((h) => (
+              <th
+                key={h}
+                style={{
+                  textAlign: "left",
+                  padding: "11px 16px",
+                  color: "#64748b",
+                  fontWeight: 600,
+                  fontSize: 11,
+                  textTransform: "uppercase",
+                  borderBottom: "1px solid #f1f5f9",
+                }}
+              >
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {pending.slice(0, 6).map((r) => (
+            <tr key={r.id}>
+              <td style={{ padding: "12px 16px", fontWeight: 600, borderBottom: "1px solid #f8fafc" }}>
+                {r.user?.name ?? "-"}
+              </td>
+              <td style={{ padding: "12px 16px", color: "#475569", borderBottom: "1px solid #f8fafc" }}>
+                {r.listing?.name ?? "-"}
+              </td>
+              <td style={{ padding: "12px 16px", color: "#475569", borderBottom: "1px solid #f8fafc" }}>
+                {r.reason ?? "-"}
+              </td>
+              <td style={{ padding: "12px 16px", borderBottom: "1px solid #f8fafc" }}>
+                <StatusBadge status={r.status} map={REPORT_STATUS} />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const [stats, setStats]             = useState(null);
+  const [stats, setStats] = useState(null);
   const [topListings, setTopListings] = useState([]);
-  const [reports, setReports]         = useState([]);
-  const [loading, setLoading]         = useState(true);
-  const [error, setError]             = useState("");
-  const [activeTab, setActiveTab]     = useState("listing");
-  const [actionLoading, setActionLoading] = useState(null);
+  const [reports, setReports] = useState([]);
+  const [pendingListings, setPendingListings] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const load = async () => {
     setLoading(true);
     setError("");
     try {
-      const [dashRes, topRes, reportsRes] = await Promise.all([
-        apiFetch("/admin/dashboard"),
-        apiFetch("/admin/analytics/recent-listings?limit=10"),
-        apiFetch("/admin/reports"),
+      const [dashRes, topRes, reportsRes, pendingRes] = await Promise.all([
+        adminApiFetch("/admin/dashboard"),
+        adminApiFetch("/admin/analytics/top-listings?limit=10"),
+        adminApiFetch("/admin/reports?limit=20"),
+        adminApiFetch("/admin/listings/pending"),
       ]);
-      setStats(dashRes.data);
+
+      setStats(dashRes.data ?? null);
       setTopListings(Array.isArray(topRes.data) ? topRes.data : []);
-      const r = reportsRes;
-      setReports(Array.isArray(r) ? r : Array.isArray(r?.data) ? r.data : r?.reports ?? []);
+      setReports(Array.isArray(reportsRes.data) ? reportsRes.data : []);
+      const pending = pendingRes?.data ?? pendingRes;
+      setPendingListings(Array.isArray(pending) ? pending.length : 0);
     } catch (err) {
-      if (err.message === "UNAUTHORIZED") { localStorage.removeItem("token"); navigate("/auth"); }
-      else setError(err.message);
-    } finally { setLoading(false); }
+      if (handleAdminAuthError(err, navigate)) return;
+      setError(err.message || "Gagal memuat dashboard");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
-  const handleResolve = async (id) => {
-    setActionLoading(`report-${id}`);
-    try {
-      const res = await fetch(`${BASE_URL}/admin/reports/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
-        body: JSON.stringify({ status: "RESOLVED" }),
-      });
-      if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.message || "Gagal"); }
-      await load();
-    } catch (err) { alert(err.message); }
-    finally { setActionLoading(null); }
-  };
+  if (loading) return <AdminLoading />;
+  if (error) return <AdminError message={error} onRetry={load} />;
 
-  if (loading) return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh", flexDirection: "column", gap: 12 }}>
-      <div style={{ width: 32, height: 32, borderRadius: "50%", border: "2.5px solid #e2e8f0", borderTop: "2.5px solid #6366f1", animation: "spin 0.8s linear infinite" }} />
-      <span style={{ color: "#94a3b8", fontSize: 13 }}>Memuat data...</span>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
-  );
+  const pendingReports = reports.filter((r) => (r.status ?? "").toUpperCase() === "PENDING").length;
+  const inactiveListings = Math.max(0, (stats?.totalListings ?? 0) - (stats?.activeListings ?? 0));
 
-  if (error) return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "60vh", gap: 12 }}>
-      <AlertTriangle size={36} color="#f87171" />
-      <p style={{ color: "#ef4444", fontWeight: 600, margin: 0 }}>{error}</p>
-      <button onClick={load} style={{ padding: "8px 20px", background: "#6366f1", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 600 }}>Coba Lagi</button>
-    </div>
-  );
-
-  const openReports = reports.filter(r => (r.status ?? "").toUpperCase() === "OPEN").length;
-  const inactiveListings = (stats?.totalListings ?? 0) - (stats?.activeListings ?? 0);
-
-  const STAT_CARDS = [
-    { label: "Total Listing",     value: stats?.totalListings,   icon: Home,       accent: "#6366f1" },
-    { label: "Listing Aktif",     value: stats?.activeListings,  icon: CheckCircle, accent: "#10b981" },
-    { label: "Total Mahasiswa",   value: stats?.totalStudents,   icon: Users,       accent: "#3b82f6" },
-    { label: "Total Pemilik",     value: stats?.totalOwners,     icon: KeyRound,    accent: "#f59e0b" },
-    { label: "User Baru",         value: stats?.newUsersThisWeek, icon: UserPlus,   accent: "#8b5cf6", sub: "7 hari terakhir" },
-    { label: "Views Hari Ini",    value: stats?.totalViewsToday, icon: Eye,         accent: "#ec4899", sub: "hari ini" },
-    { label: "Total Minat",       value: stats?.totalMinat,      icon: Star,        accent: "#f59e0b" },
-    { label: "Total Leads Chat",  value: stats?.totalLeads,      icon: MessageSquare, accent: "#8b5cf6" },
-  ];
-
-  const ATTENTION = [
-    { label: "Listing tidak aktif",      value: inactiveListings,        icon: Home,          color: "#f59e0b" },
-    { label: "Laporan belum ditangani",  value: openReports,             icon: Flag,          color: "#ef4444" },
-    { label: "Listing aktif",            value: stats?.activeListings ?? 0, icon: CheckCircle, color: "#10b981" },
-    { label: "Pemilik terdaftar",        value: stats?.totalOwners ?? 0, icon: KeyRound,      color: "#6366f1" },
+  const quickLinks = [
+    { to: "/admin/listings", label: "Kelola Listing", desc: `${pendingListings} menunggu review`, icon: Building2, color: "#6366f1" },
+    { to: "/admin/reports", label: "Laporan Pengguna", desc: `${pendingReports} belum ditinjau`, icon: Flag, color: "#ef4444" },
+    { to: "/admin/analytics", label: "Analitik", desc: "Grafik & performa", icon: Eye, color: "#8b5cf6" },
+    { to: "/admin/minat-leads", label: "Leads Minat", desc: "Formulir Saya Minat", icon: MessageSquare, color: "#f59e0b" },
   ];
 
   return (
     <div style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif", color: "#0f172a" }}>
+      <PageHeader
+        title="Dashboard"
+        subtitle={new Date().toLocaleDateString("id-ID", {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })}
+        onRefresh={load}
+      />
 
-      {/* Header */}
-      <div style={{ marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0, color: "#0f172a" }}>Dashboard Admin</h1>
-          <p style={{ margin: "4px 0 0", color: "#64748b", fontSize: 13 }}>Ringkasan aktivitas platform kost</p>
-        </div>
-        <button onClick={load} style={{
-          display: "flex", alignItems: "center", gap: 6,
-          padding: "7px 14px", background: "#fff",
-          border: "1px solid #e2e8f0", borderRadius: 9,
-          fontSize: 13, fontWeight: 500, cursor: "pointer", color: "#475569",
-          boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-        }}>
-          <RefreshCw size={14} /> Refresh
-        </button>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+          gap: 14,
+          marginBottom: 20,
+        }}
+      >
+        <StatCard label="Total Listing" value={(stats?.totalListings ?? 0).toLocaleString("id-ID")} icon={Home} accent="#6366f1" />
+        <StatCard label="Listing Aktif" value={(stats?.activeListings ?? 0).toLocaleString("id-ID")} icon={CheckCircle} accent="#10b981" />
+        <StatCard label="Mahasiswa" value={(stats?.totalStudents ?? 0).toLocaleString("id-ID")} icon={Users} accent="#3b82f6" />
+        <StatCard label="Pemilik" value={(stats?.totalOwners ?? 0).toLocaleString("id-ID")} icon={KeyRound} accent="#f59e0b" />
+        <StatCard label="User Baru (7 hari)" value={(stats?.newUsersThisWeek ?? 0).toLocaleString("id-ID")} icon={UserPlus} accent="#8b5cf6" />
+        <StatCard label="Views Hari Ini" value={(stats?.totalViewsToday ?? 0).toLocaleString("id-ID")} icon={Eye} accent="#ec4899" />
       </div>
 
-      {/* Stat Cards — 4 kolom × 2 baris */}
-      <div className="admin-stat-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14, marginBottom: 20 }}>
-        {STAT_CARDS.map((s, i) => <StatCard key={i} {...s} />)}
-      </div>
-      <style>{`
-        @media (max-width: 1100px) {
-          .admin-stat-grid { grid-template-columns: repeat(2, 1fr) !important; }
-        }
-        @media (max-width: 520px) {
-          .admin-stat-grid { grid-template-columns: 1fr !important; }
-        }
-      `}</style>
-
-      {/* Perlu Perhatian */}
-      <div style={{
-        background: "#fff", border: "1px solid #f1f5f9", borderRadius: 14,
-        padding: "20px 22px", marginBottom: 20,
-        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-          <TrendingUp size={16} color="#6366f1" />
-          <span style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>Perlu Perhatian</span>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 10 }}>
-          {ATTENTION.map((item, i) => (
-            <div key={i} style={{
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              padding: "12px 14px", borderRadius: 10,
-              background: item.color + "08", border: `1px solid ${item.color}20`,
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{
-                  width: 30, height: 30, borderRadius: 8,
-                  background: item.color + "15",
-                  display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                }}>
-                  <item.icon size={15} color={item.color} />
-                </div>
-                <span style={{ fontSize: 13, color: "#475569", fontWeight: 500 }}>{item.label}</span>
-              </div>
-              <span style={{ fontWeight: 700, color: item.color, fontSize: 18, fontVariantNumeric: "tabular-nums" }}>
-                {item.value}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Tabel Tab */}
-      <div style={{
-        background: "#fff", border: "1px solid #f1f5f9",
-        borderRadius: 14, overflow: "hidden",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-      }}>
-        {/* Tab header */}
-        <div style={{ display: "flex", borderBottom: "1px solid #f1f5f9", padding: "0 22px", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ display: "flex" }}>
-            {[
-              { key: "listing", label: "Listing Terbaru", icon: Building2 },
-              { key: "report",  label: "Laporan Terbaru", icon: Flag },
-            ].map((tab) => (
-              <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
-                display: "flex", alignItems: "center", gap: 6,
-                padding: "14px 0", marginRight: 24,
-                background: "none", border: "none", cursor: "pointer",
-                fontSize: 13, fontWeight: 600,
-                color: activeTab === tab.key ? "#6366f1" : "#94a3b8",
-                borderBottom: activeTab === tab.key ? "2px solid #6366f1" : "2px solid transparent",
-                transition: "all 0.15s",
-              }}>
-                <tab.icon size={14} />
-                {tab.label}
-                {tab.key === "report" && openReports > 0 && (
-                  <span style={{
-                    background: "#ef4444", color: "#fff",
-                    fontSize: 10, fontWeight: 700, borderRadius: 99, padding: "1px 6px",
-                  }}>{openReports}</span>
-                )}
-              </button>
-            ))}
-          </div>
-          {(activeTab === "listing" || activeTab === "report") && (
-            <a
-              href={activeTab === "listing" ? "/admin/listings" : "/admin/reports"}
-              style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "#6366f1", fontWeight: 600, textDecoration: "none" }}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+          gap: 12,
+          marginBottom: 20,
+        }}
+      >
+        {quickLinks.map((item) => (
+          <Link
+            key={item.to}
+            to={item.to}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+              padding: "14px 16px",
+              background: "#fff",
+              border: "1px solid #f1f5f9",
+              borderRadius: 12,
+              textDecoration: "none",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+            }}
+          >
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                background: `${item.color}12`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
             >
-              Lihat semua <ChevronRight size={13} />
-            </a>
-          )}
-        </div>
+              <item.icon size={18} color={item.color} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{item.label}</p>
+              <p style={{ margin: "2px 0 0", fontSize: 11, color: "#94a3b8" }}>{item.desc}</p>
+            </div>
+            <ChevronRight size={16} color="#cbd5e1" />
+          </Link>
+        ))}
+      </div>
 
-        {activeTab === "listing" && <RecentListingsTable listings={topListings} />}
-        {activeTab === "report" && (
-          <ReportsTable reports={reports} onResolve={handleResolve} actionLoading={actionLoading} />
-        )}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+          gap: 10,
+          marginBottom: 20,
+          padding: "16px 18px",
+          background: "#fff",
+          border: "1px solid #f1f5f9",
+          borderRadius: 14,
+        }}
+      >
+        {[
+          { label: "Listing nonaktif", value: inactiveListings, color: "#64748b" },
+          { label: "Laporan pending", value: pendingReports, color: "#ef4444" },
+          { label: "Review listing", value: pendingListings, color: "#d97706" },
+        ].map((item) => (
+          <div key={item.label} style={{ textAlign: "center" }}>
+            <p style={{ margin: 0, fontSize: 22, fontWeight: 700, color: item.color }}>{item.value}</p>
+            <p style={{ margin: "4px 0 0", fontSize: 12, color: "#94a3b8" }}>{item.label}</p>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 14 }}>
+        <section
+          style={{
+            background: "#fff",
+            border: "1px solid #f1f5f9",
+            borderRadius: 14,
+            overflow: "hidden",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "14px 18px",
+              borderBottom: "1px solid #f1f5f9",
+            }}
+          >
+            <span style={{ fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center", gap: 8 }}>
+              <Building2 size={16} color="#6366f1" /> Top Listing
+            </span>
+            <Link to="/admin/analytics" style={{ fontSize: 12, color: "#6366f1", fontWeight: 600, textDecoration: "none" }}>
+              Lihat analitik <ChevronRight size={12} style={{ verticalAlign: "middle" }} />
+            </Link>
+          </div>
+          <TopListingsPreview listings={topListings} />
+        </section>
+
+        <section
+          style={{
+            background: "#fff",
+            border: "1px solid #f1f5f9",
+            borderRadius: 14,
+            overflow: "hidden",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "14px 18px",
+              borderBottom: "1px solid #f1f5f9",
+            }}
+          >
+            <span style={{ fontWeight: 700, fontSize: 14, display: "flex", alignItems: "center", gap: 8 }}>
+              <Flag size={16} color="#ef4444" /> Laporan Pending
+            </span>
+            <Link to="/admin/reports" style={{ fontSize: 12, color: "#6366f1", fontWeight: 600, textDecoration: "none" }}>
+              Kelola laporan <ChevronRight size={12} style={{ verticalAlign: "middle" }} />
+            </Link>
+          </div>
+          <ReportsPreview reports={reports} />
+        </section>
       </div>
     </div>
   );

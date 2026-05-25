@@ -7,24 +7,10 @@ import {
   Calendar, Image as ImageIcon, Layers,
 } from "lucide-react";
 
-const BASE_URL = "http://localhost:3000";
-function getToken() { return localStorage.getItem("token"); }
+import { adminApiFetch, handleAdminAuthError } from "./adminApi";
 
 async function apiFetch(path, options = {}) {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${getToken()}`,
-      ...options.headers,
-    },
-  });
-  if (res.status === 401) throw new Error("UNAUTHORIZED");
-  if (!res.ok) {
-    const json = await res.json().catch(() => ({}));
-    throw new Error(json.message || "Terjadi kesalahan server");
-  }
-  return res.json();
+  return adminApiFetch(path, options);
 }
 
 // ─── Badge ─────────────────────────────────────────────────────────────────

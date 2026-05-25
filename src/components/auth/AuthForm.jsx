@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Field from "../ui/Field";
 import { getAuthAction } from "../../utils/authAction";
+import { getApiBase } from "../../config/apiBase";
 
 export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
   const navigate = useNavigate();
@@ -100,7 +101,7 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
       if (isLogin) {
         // Coba login sebagai admin dulu lewat /auth/admin/login
         try {
-          const adminRes = await fetch("http://localhost:3000/auth/admin/login", {
+          const adminRes = await fetch(`${getApiBase()}/auth/admin/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email: form.email, password: form.password }),

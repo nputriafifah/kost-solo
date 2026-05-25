@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
-  Star, MessageSquare, RefreshCw, AlertTriangle, Search,
+  Star, RefreshCw, AlertTriangle, Search,
   Phone, Mail, ExternalLink,
 } from "lucide-react";
 import { adminApiFetch } from "./adminApi";
@@ -106,7 +106,7 @@ function MinatTable({ rows }) {
     <table style={{ width: "100%", borderCollapse: "collapse" }}>
       <thead>
         <tr>
-          {["Calon Penyewa", "Kontak", "Kost", "Pemilik", "Tanggal"].map((h) => (
+          {["Calon Penyewa", "Kontak", "Kost", "Kontak Kost", "Tanggal"].map((h) => (
             <th key={h} style={thStyle}>{h}</th>
           ))}
         </tr>
@@ -147,42 +147,8 @@ function MinatTable({ rows }) {
               <div style={{ fontWeight: 600, color: "#0f172a" }}>{row.listing?.name ?? "-"}</div>
               {row.listing?.status && <div style={{ marginTop: 4 }}><Badge status={row.listing.status} /></div>}
             </td>
-            <td style={tdStyle}>{row.listing?.owner?.name ?? "-"}</td>
+            <td style={tdStyle}>{row.listing?.contactNumber ?? "—"}</td>
             <td style={{ ...tdStyle, color: "#94a3b8" }}>{formatDt(row.createdAt)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
-
-function LeadsTable({ rows }) {
-  if (!rows?.length) {
-    return <Empty icon={MessageSquare} title="Belum ada leads chat" desc="Thread chat muncul saat calon penyewa memulai percakapan dengan pemilik." />;
-  }
-  return (
-    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-      <thead>
-        <tr>
-          {["Calon Penyewa", "Kost", "Pemilik", "Mulai Chat", "Terakhir Aktif"].map((h, i) => (
-            <th key={h} style={{ ...thStyle, textAlign: i >= 3 ? "center" : "left" }}>{h}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((row) => (
-          <tr key={row.id}>
-            <td style={tdStyle}>
-              <div style={{ fontWeight: 600, color: "#0f172a" }}>{row.student?.name ?? "-"}</div>
-              {row.student?.phone && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{row.student.phone}</div>}
-            </td>
-            <td style={tdStyle}>
-              <div style={{ fontWeight: 600, color: "#0f172a" }}>{row.listing?.name ?? "-"}</div>
-              {row.listing?.status && <div style={{ marginTop: 4 }}><Badge status={row.listing.status} /></div>}
-            </td>
-            <td style={tdStyle}>{row.owner?.name ?? "-"}</td>
-            <td style={{ ...tdStyle, textAlign: "center", color: "#94a3b8" }}>{formatDt(row.createdAt)}</td>
-            <td style={{ ...tdStyle, textAlign: "center", color: "#94a3b8" }}>{formatDt(row.updatedAt)}</td>
           </tr>
         ))}
       </tbody>
@@ -192,26 +158,17 @@ function LeadsTable({ rows }) {
 
 export default function AdminMinatLeads() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState("minat");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
-  const [summary, setSummary] = useState(null);
-  const [minatRows, setMinatRows] = useState([]);
-  const [leadsRows, setLeadsRows] = useState([]);
+  const [rows, setRows] = useState([]);
 
   const load = async () => {
     setLoading(true);
     setError("");
     try {
-      const [dashRes, minatRes, leadsRes] = await Promise.all([
-        adminApiFetch("/admin/dashboard"),
-        adminApiFetch("/admin/analytics/minat?limit=100"),
-        adminApiFetch("/admin/analytics/leads?limit=100"),
-      ]);
-      setSummary(dashRes.data ?? null);
-      setMinatRows(Array.isArray(minatRes.data) ? minatRes.data : []);
-      setLeadsRows(Array.isArray(leadsRes.data) ? leadsRes.data : []);
+      const leadsRes = await adminApiFetch("/leads?limit=100");
+      setRows(Array.isArray(leadsRes.data) ? leadsRes.data : []);
     } catch (err) {
       if (err.message === "UNAUTHORIZED") {
         localStorage.removeItem("token");
@@ -228,19 +185,17 @@ export default function AdminMinatLeads() {
 
   const q = search.toLowerCase();
 
-  const filteredMinat = useMemo(() => minatRows.filter((r) =>
-    (r.user?.name ?? "").toLowerCase().includes(q) ||
-    (r.user?.phone ?? "").toLowerCase().includes(q) ||
-    (r.listing?.name ?? "").toLowerCase().includes(q) ||
-    (r.listing?.owner?.name ?? "").toLowerCase().includes(q)
-  ), [minatRows, search]);
-
-  const filteredLeads = useMemo(() => leadsRows.filter((r) =>
-    (r.student?.name ?? "").toLowerCase().includes(q) ||
-    (r.student?.phone ?? "").toLowerCase().includes(q) ||
-    (r.listing?.name ?? "").toLowerCase().includes(q) ||
-    (r.owner?.name ?? "").toLowerCase().includes(q)
-  ), [leadsRows, search]);
+  const filteredRows = useMemo(
+    () =>
+      rows.filter(
+        (r) =>
+          (r.user?.name ?? "").toLowerCase().includes(q) ||
+          (r.user?.phone ?? "").toLowerCase().includes(q) ||
+          (r.user?.email ?? "").toLowerCase().includes(q) ||
+          (r.listing?.name ?? "").toLowerCase().includes(q)
+      ),
+    [rows, search]
+  );
 
   if (loading) {
     return (
@@ -266,9 +221,9 @@ export default function AdminMinatLeads() {
     <div style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif", color: "#0f172a" }}>
       <div style={{ marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Minat & Leads</h1>
+          <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Leads (Saya Minat)</h1>
           <p style={{ margin: "4px 0 0", color: "#64748b", fontSize: 13 }}>
-            Minat dari formulir tertarik · Leads dari chat calon penyewa
+            Calon penyewa yang mengisi formulir minat pada listing
           </p>
         </div>
         <button onClick={load} style={{
@@ -281,20 +236,8 @@ export default function AdminMinatLeads() {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 14, marginBottom: 20 }}>
-        <StatCard
-          label="Total Minat"
-          value={(summary?.totalMinat ?? minatRows.length).toLocaleString("id-ID")}
-          sub="formulir Saya Minat"
-          accent="#f59e0b"
-        />
-        <StatCard
-          label="Total Leads Chat"
-          value={(summary?.totalLeads ?? leadsRows.length).toLocaleString("id-ID")}
-          sub="thread percakapan"
-          accent="#6366f1"
-        />
-        <StatCard label="Minat (filter)" value={filteredMinat.length} sub="hasil pencarian" accent="#d97706" />
-        <StatCard label="Leads (filter)" value={filteredLeads.length} sub="hasil pencarian" accent="#8b5cf6" />
+        <StatCard label="Total Leads" value={rows.length.toLocaleString("id-ID")} sub="semua data" accent="#6366f1" />
+        <StatCard label="Hasil Filter" value={filteredRows.length} sub="pencarian aktif" accent="#f59e0b" />
       </div>
 
       <div style={{
@@ -305,32 +248,9 @@ export default function AdminMinatLeads() {
           display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between",
           gap: 12, padding: "14px 18px", borderBottom: "1px solid #f1f5f9",
         }}>
-          <div style={{ display: "flex", gap: 8 }}>
-            {[
-              { key: "minat", label: "Minat", icon: Star, count: minatRows.length },
-              { key: "leads", label: "Leads Chat", icon: MessageSquare, count: leadsRows.length },
-            ].map(({ key, label, icon: Icon, count }) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setTab(key)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 6,
-                  padding: "8px 14px", borderRadius: 9, border: "none", cursor: "pointer",
-                  fontSize: 13, fontWeight: 600,
-                  background: tab === key ? "#eef2ff" : "#f8fafc",
-                  color: tab === key ? "#4f46e5" : "#64748b",
-                }}
-              >
-                <Icon size={14} />
-                {label}
-                <span style={{
-                  fontSize: 10, fontWeight: 700, borderRadius: 99, padding: "1px 6px",
-                  background: tab === key ? "#6366f1" : "#e2e8f0",
-                  color: tab === key ? "#fff" : "#64748b",
-                }}>{count}</span>
-              </button>
-            ))}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: "#475569" }}>
+            <Star size={14} color="#f59e0b" />
+            {rows.length} leads terdaftar
           </div>
           <div style={{ position: "relative", minWidth: 240 }}>
             <Search size={14} color="#94a3b8" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
@@ -347,8 +267,7 @@ export default function AdminMinatLeads() {
           </div>
         </div>
 
-        {tab === "minat" && <MinatTable rows={filteredMinat} />}
-        {tab === "leads" && <LeadsTable rows={filteredLeads} />}
+        <MinatTable rows={filteredRows} />
       </div>
 
       <p style={{ marginTop: 14, fontSize: 12, color: "#94a3b8" }}>

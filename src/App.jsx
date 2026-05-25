@@ -42,6 +42,8 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminListings from "./pages/admin/AdminListings";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminMinatLeads from "./pages/admin/AdminMinatLeads";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
+import AdminProfile from "./pages/admin/AdminProfile";
 
 // COMPONENT
 import ProtectedRoute from "./components/common/ProtectedRoute";
@@ -291,6 +293,8 @@ export default function App() {
           <Route path="listings" element={<AdminListings />} />
           <Route path="minat-leads" element={<AdminMinatLeads />} />
           <Route path="reports" element={<AdminReports />} />
+          <Route path="analytics" element={<AdminAnalytics />} />
+          <Route path="profil" element={<AdminProfile />} />
         </Route>
 
         {/* FALLBACK — satu saja, paling bawah */}
