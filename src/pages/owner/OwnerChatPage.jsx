@@ -36,7 +36,7 @@ const BOTTOM_NAV_ITEMS = [
   { id: "home",     icon: Home,          label: "Beranda",  path: "/owner/dashboard" },
   { id: "properti", icon: Building2,     label: "Properti", path: "/owner/properti"  },
   { id: "pesan",    icon: MessageCircle, label: "Pesan",    path: "/owner/chat", badge: true },
-  { id: "akun",     icon: User,          label: "Profil",   path: null               },
+  { id: "akun",     icon: User,          label: "Profil",   path: "/owner/profil"    },
 ];
 
 export default function OwnerChatPage() {

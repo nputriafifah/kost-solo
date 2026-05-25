@@ -27,6 +27,11 @@ import CreateListingPage from "./pages/owner/CreateListingPage";
 import EditListingPage from "./pages/owner/EditListingPage";
 import DetailListingPage from "./pages/owner/DetailListingPage";
 import PropertiPage from "./pages/owner/PropertiPage";
+import PromosiPage from "./pages/owner/PromosiPage";
+import SurveyPage from "./pages/owner/SurveyPage";
+import StatistikPage from "./pages/owner/Statisctic";
+import PendapatanPage from "./pages/owner/PendapatanPage";
+import OwnerProfilPage from "./pages/owner/ProfilPage";
 import OwnerChatPage from "./pages/owner/OwnerChatPage";
 
 
@@ -229,6 +234,51 @@ export default function App() {
           element={
             <ProtectedRoute role="pemilik">
               <PropertiPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/owner/promosi"
+          element={
+            <ProtectedRoute role="pemilik">
+              <PromosiPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/owner/survey"
+          element={
+            <ProtectedRoute role="pemilik">
+              <SurveyPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/owner/statistik"
+          element={
+            <ProtectedRoute role="pemilik">
+              <StatistikPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/owner/pendapatan"
+          element={
+            <ProtectedRoute role="pemilik">
+              <PendapatanPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/owner/profil"
+          element={
+            <ProtectedRoute role="pemilik">
+              <OwnerProfilPage />
             </ProtectedRoute>
           }
         />

@@ -5,6 +5,9 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Sidebar, { NAV_ITEMS } from "../../components/owner/Sidebar";
+import { getApiBase, resolveMediaUrl } from "../../config/apiBase";
+
+const listingId = (item) => item?.id ?? item?._id;
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
@@ -24,15 +27,26 @@ const GENDER_STYLE = {
 // ─── OWNER CARD ───────────────────────────────────────────────────────────────
 
 function OwnerCard({ item, onEdit, onDelete, onDetail }) {
+  const id = listingId(item);
   const st = STATUS_CONFIG[item.status] ?? STATUS_CONFIG.PENDING;
   const gn = GENDER_STYLE[item.genderType] ?? { label: item.genderType, style: "bg-slate-50 text-slate-500" };
   const hargaMin   = item.roomTypes?.length ? Math.min(...item.roomTypes.map((r) => r.price)) : null;
   const kamarAvail = item.roomTypes?.reduce((a, r) => a + (r.availableCount || 0), 0) ?? 0;
+  const coverUrl = resolveMediaUrl(item.roomTypes?.[0]?.photos?.[0]?.url);
+
+  const openDetail = () => {
+    if (id) onDetail(id);
+  };
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-      {item.roomTypes?.[0]?.photos?.[0]?.url ? (
-        <img src={item.roomTypes[0].photos[0].url} alt={item.name} className="w-full h-36 object-cover" />
+      <button
+        type="button"
+        onClick={openDetail}
+        className="w-full text-left block active:opacity-95 transition-opacity"
+      >
+      {coverUrl ? (
+        <img src={coverUrl} alt={item.name} className="w-full h-36 object-cover" />
       ) : (
         <div className="w-full h-36 bg-gradient-to-br from-indigo-50 to-slate-100 flex items-center justify-center">
           <Building2 size={28} className="text-indigo-200" />
@@ -85,17 +99,18 @@ function OwnerCard({ item, onEdit, onDelete, onDetail }) {
           </div>
         </div>
       </div>
+      </button>
 
       <div className="flex border-t border-slate-100">
-        <button onClick={() => onEdit(item.id)}
+        <button type="button" onClick={() => id && onEdit(id)}
           className="flex-1 flex items-center justify-center gap-1.5 py-3 text-indigo-600 font-black text-xs border-r border-slate-100 hover:bg-indigo-50 transition-colors">
           <Edit3 size={12} /> Edit
         </button>
-        <button onClick={() => onDetail(item.id)}
-          className="flex-1 flex items-center justify-center gap-1.5 py-3 text-slate-500 font-black text-xs border-r border-slate-100 hover:bg-slate-50 transition-colors">
+        <button type="button" onClick={openDetail}
+          className="flex-1 flex items-center justify-center gap-1.5 py-3 text-blue-600 font-black text-xs border-r border-slate-100 hover:bg-blue-50 transition-colors">
           <Eye size={12} /> Detail
         </button>
-        <button onClick={() => onDelete(item.id)}
+        <button type="button" onClick={() => id && onDelete(id)}
           className="flex-1 flex items-center justify-center gap-1.5 py-3 text-red-400 font-black text-xs hover:bg-red-50 transition-colors">
           <Trash2 size={12} /> Hapus
         </button>
@@ -123,7 +138,7 @@ export default function PropertiPage() {
     (async () => {
       try {
         const token = localStorage.getItem("token");
-        const res   = await fetch("http://localhost:3000/listings/owner", {
+        const res   = await fetch(`${getApiBase()}/listings/owner`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const text = await res.text();
@@ -149,7 +164,7 @@ export default function PropertiPage() {
   const handleDelete = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res   = await fetch(`http://localhost:3000/listings/owner/${deleteId}/deactivate`, {
+      const res   = await fetch(`${getApiBase()}/listings/owner/${deleteId}/deactivate`, {
         method:  "PATCH",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -282,9 +297,9 @@ export default function PropertiPage() {
                   <OwnerCard
                     key={item.id}
                     item={item}
-                    onEdit={(id) => navigate(`/owner/edit/${id}`)}
-                    onDetail={(id) => navigate(`/owner/listing/${id}`)}
-                    onDelete={(id) => setDeleteId(id)}
+                    onEdit={(lid) => navigate(`/owner/edit/${lid}`)}
+                    onDetail={(lid) => navigate(`/owner/listing/${lid}`)}
+                    onDelete={(lid) => setDeleteId(lid)}
                   />
                 ))}
               </div>

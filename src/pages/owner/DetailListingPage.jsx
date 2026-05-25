@@ -1,1226 +1,501 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import {
-  ChevronLeft, ChevronRight, Check, MapPin, Loader2,
-  Upload, ImageIcon, Trash2, Home, MapPinIcon, Lightbulb,
-  LayoutGrid, Layers, Camera, ArrowLeft,
+  ArrowLeft, MapPin, Phone, Edit3, BedDouble, Crown, AlertCircle,
+  ChevronLeft, ChevronRight, Wifi, Users, Wind, Zap, Droplets,
+  ImageOff, Shield, Ruler, Building2, Sparkles,
 } from "lucide-react";
-import MapPicker from "../../components/owner/MapPicker";
+import { getApiBase, resolveMediaUrl } from "../../config/apiBase";
 
-const RULE_OPTIONS = [
-  "Tidak boleh bawa pasangan",
-  "Jam malam pukul 22.00",
-  "Tidak boleh merokok",
-  "Tidak boleh bawa hewan peliharaan",
-];
+const STATUS = {
+  PENDING:  { label: "Menunggu Review", pill: "bg-amber-100 text-amber-700 border-amber-200", dot: "bg-amber-400" },
+  ACTIVE:   { label: "Aktif",           pill: "bg-emerald-100 text-emerald-700 border-emerald-200", dot: "bg-emerald-400" },
+  INACTIVE: { label: "Nonaktif",        pill: "bg-slate-100 text-slate-500 border-slate-200", dot: "bg-slate-400" },
+  REJECTED: { label: "Ditolak",         pill: "bg-red-100 text-red-600 border-red-200", dot: "bg-red-400" },
+};
 
-const FACILITY_OPTIONS = ["Wifi", "AC", "Kamar Mandi Dalam", "Parkir", "Laundry"];
+const GENDER = {
+  PUTRA:  { label: "Putra",  cls: "bg-blue-100 text-blue-700 border-blue-200" },
+  PUTRI:  { label: "Putri",  cls: "bg-pink-100 text-pink-700 border-pink-200" },
+  CAMPUR: { label: "Campur", cls: "bg-violet-100 text-violet-700 border-violet-200" },
+};
 
-const STEPS = [
-  { label: "Data Kos", desc: "Informasi dasar properti kamu", icon: Home },
-  { label: "Lokasi", desc: "Alamat & titik peta", icon: MapPinIcon },
-  { label: "Fasilitas", desc: "Fasilitas kamar yang tersedia", icon: Lightbulb },
-  { label: "Ketersediaan", desc: "Jumlah kamar yang bisa disewa", icon: LayoutGrid },
-  { label: "Detail Kamar", desc: "Tipe, ukuran & harga kamar", icon: Layers },
-  { label: "Foto Kamar", desc: "Upload foto untuk menarik penyewa", icon: Camera },
-];
+const facIcon = (f) => {
+  const k = String(f).toLowerCase();
+  if (k.includes("wifi")) return <Wifi size={13} />;
+  if (k.includes("ac")) return <Wind size={13} />;
+  if (k.includes("listrik")) return <Zap size={13} />;
+  if (k.includes("air")) return <Droplets size={13} />;
+  return <Sparkles size={13} />;
+};
 
-const API = "http://localhost:3000";
-const getToken = () => localStorage.getItem("token") || "";
+const fmtPrice = (n) =>
+  n != null && !isNaN(Number(n)) ? `Rp ${Number(n).toLocaleString("id-ID")}` : "—";
 
-export default function CreateListingPage() {
+function Section({ icon: Icon, title, children, badge }) {
+  return (
+    <section className="bg-white rounded-3xl border border-blue-100/80 shadow-sm shadow-blue-100/40 overflow-hidden">
+      <div className="flex items-center justify-between gap-3 px-5 sm:px-6 py-4 border-b border-blue-50 bg-gradient-to-r from-blue-50/80 to-white">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-sky-500 flex items-center justify-center text-white shadow-md shadow-blue-200">
+            <Icon size={18} />
+          </div>
+          <h2 className="text-sm sm:text-base font-black text-slate-900">{title}</h2>
+        </div>
+        {badge}
+      </div>
+      <div className="px-5 sm:px-6 py-5">{children}</div>
+    </section>
+  );
+}
+
+export default function DetailListingPage() {
+  const { id } = useParams();
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({});
+  const [listing, setListing] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [imgIdx, setImgIdx] = useState(0);
 
-  const [form, setForm] = useState({
-    name: "", address: "", genderType: "PUTRA",
-    description: "", contactNumber: "", rules: [],
-  });
+  const token = localStorage.getItem("token");
 
-  const [latLng, setLatLng] = useState(null);
-  const [room, setRoom] = useState({
-    name: "", price: "", size: "", facilities: [], availableCount: 1,
-  });
-  const [roomPhotos, setRoomPhotos] = useState([]);
-
-  const toggleItem = (list, item) =>
-    list.includes(item) ? list.filter((x) => x !== item) : [...list, item];
-
-  const validateStep = () => {
-    const e = {};
-    if (step === 1) {
-      if (form.name.trim().length < 3) e.name = "Nama minimal 3 karakter";
-      if (form.description.trim().length < 10) e.description = "Deskripsi minimal 10 karakter";
-      if (form.contactNumber.trim().length < 8) e.contactNumber = "Nomor kontak minimal 8 digit";
-      if (form.rules.length === 0) e.rules = "Pilih minimal 1 peraturan";
-    }
-    if (step === 2) {
-      if (form.address.trim().length < 10) e.address = "Alamat minimal 10 karakter";
-      if (!latLng) e.latLng = "Tandai lokasi di peta";
-    }
-    if (step === 5) {
-      if (!room.name.trim()) e.roomName = "Nama tipe kamar wajib diisi";
-      if (!room.size.trim()) e.roomSize = "Ukuran kamar wajib diisi";
-      if (!room.price) e.roomPrice = "Harga wajib diisi";
-    }
-    setErrors(e);
-    return Object.keys(e).length === 0;
-  };
-
-  const handleNext = () => { if (validateStep()) setStep(step + 1); };
-  const handleBack = () => { if (step > 1) setStep(step - 1); };
-
-  const handleSubmit = async () => {
-    if (!validateStep()) return;
-
-    console.log("TOKEN:", getToken());
-
-    setLoading(true);
-
-    try {
-      const resListing = await fetch(`${API}/listings/owner`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
-        body: JSON.stringify({
-          name: form.name.trim(), address: form.address.trim(),
-          genderType: form.genderType, description: form.description.trim(),
-          contactNumber: form.contactNumber.trim(), rules: form.rules,
-          latitude: Number(latLng.lat), longitude: Number(latLng.lng),
-        }),
-      });
-      const listingJson = await resListing.json();
-      if (!resListing.ok) throw new Error(listingJson.message || "Gagal membuat listing");
-      const listingId = listingJson.data?.id;
-
-      const resRoom = await fetch(`${API}/owner/listings/${listingId}/room-types`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
-        body: JSON.stringify({
-          name: room.name.trim(), price: Number(room.price),
-          size: room.size.trim(), facilities: room.facilities,
-          availableCount: Number(room.availableCount),
-        }),
-      });
-      const roomJson = await resRoom.json();
-      if (!resRoom.ok) throw new Error(roomJson.message || "Gagal membuat tipe kamar");
-      const roomId = roomJson.data?.id;
-
-      if (roomPhotos.length > 0) {
-        const fd = new FormData();
-        roomPhotos.forEach((f) => fd.append("photos", f));
-
-        console.log("Jumlah foto:", roomPhotos.length);
-        for (let [k, v] of fd.entries()) console.log(k, v.name);
-
-        await fetch(`${API}/owner/room-types/${roomId}/photos`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${getToken()}` },
-          body: fd,
+  useEffect(() => {
+    if (!token) { navigate("/auth"); return; }
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`${getApiBase()}/listings/owner/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
         });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(json.message || "Gagal memuat detail properti");
+        const raw = json.data ?? json;
+        setListing(raw?.listing ?? raw);
+      } catch (e) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
       }
-      navigate("/owner/properti");
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    })();
+  }, [id, token, navigate]);
 
-  // ── FIX: handler foto dengan functional update + reset input ──
-  const handlePhotoChange = (e) => {
-    const newFiles = Array.from(e.target.files);
-    if (newFiles.length > 0) {
-      setRoomPhotos((prev) => [...prev, ...newFiles]);
-    }
-    e.target.value = ""; // reset supaya file yang sama bisa dipilih lagi
-  };
+  const data = listing ?? {};
+  const has = Boolean(listing && (listing.id || listing._id));
+  const st = STATUS[data.status] ?? STATUS.PENDING;
+  const gn = GENDER[data.genderType] ?? { label: data.genderType || "—", cls: "bg-slate-100 text-slate-600 border-slate-200" };
 
-  const currentStepData = STEPS[step - 1];
-  const CurrentIcon = currentStepData.icon;
+  const allImages = [
+    ...(data.photos || []),
+    ...(data.roomTypes?.flatMap((r) => r?.photos || []) || []),
+  ].filter((p) => p?.url);
+
+  const coverUrl = allImages[imgIdx]?.url ? resolveMediaUrl(allImages[imgIdx].url) : null;
+  const totalRooms = data.roomTypes?.reduce((s, r) => s + (r?.availableCount || 0), 0) || 0;
+  const allFac = [...new Set(data.roomTypes?.flatMap((r) => r?.facilities || []) || [])];
+  const minPrice = data.roomTypes?.length
+    ? Math.min(...data.roomTypes.map((r) => Number(r.price)).filter((p) => !isNaN(p)))
+    : null;
+
+  const prevImg = () => setImgIdx((i) => (i - 1 + allImages.length) % allImages.length);
+  const nextImg = () => setImgIdx((i) => (i + 1) % allImages.length);
 
   return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
-
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-        .clp-root {
-          font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
-          background: #f5f6fa;
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-        }
-
-        /* TOP HEADER */
-        .clp-topbar {
-          background: #1d4ed8;
-          padding: 0 32px;
-          height: 64px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          flex-shrink: 0;
-          box-shadow: 0 2px 8px rgba(29,78,216,0.18);
-        }
-
-        .clp-topbar-left {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-        }
-
-        .clp-topbar-brand {
-          font-size: 20px;
-          font-weight: 800;
-          color: white;
-          letter-spacing: -0.5px;
-        }
-
-        .clp-topbar-divider {
-          width: 1px;
-          height: 20px;
-          background: rgba(255,255,255,0.25);
-        }
-
-        .clp-topbar-title {
-          font-size: 14px;
-          font-weight: 600;
-          color: rgba(255,255,255,0.85);
-        }
-
-        .clp-back-dashboard {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 16px;
-          background: rgba(255,255,255,0.12);
-          border: 1px solid rgba(255,255,255,0.2);
-          border-radius: 8px;
-          color: white;
-          font-size: 13px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: background 0.2s;
-          font-family: inherit;
-        }
-
-        .clp-back-dashboard:hover {
-          background: rgba(255,255,255,0.22);
-        }
-
-        /* MAIN LAYOUT */
-        .clp-body {
-          display: flex;
-          flex: 1;
-          min-height: 0;
-        }
-
-        /* SIDEBAR */
-        .clp-sidebar {
-          width: 280px;
-          flex-shrink: 0;
-          background: white;
-          border-right: 1px solid #e8eaf2;
-          display: flex;
-          flex-direction: column;
-          padding: 32px 0;
-        }
-
-        .clp-sidebar-heading {
-          font-size: 11px;
-          font-weight: 700;
-          letter-spacing: 1px;
-          text-transform: uppercase;
-          color: #94a3b8;
-          padding: 0 24px;
-          margin-bottom: 16px;
-        }
-
-        .clp-sidebar-steps {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-          padding: 0 12px;
-        }
-
-        .clp-sidebar-step {
-          display: flex;
-          align-items: center;
-          gap: 14px;
-          padding: 12px 14px;
-          border-radius: 10px;
-          cursor: pointer;
-          transition: all 0.2s;
-          border: 1px solid transparent;
-          background: transparent;
-          text-align: left;
-          font-family: inherit;
-          width: 100%;
-        }
-
-        .clp-sidebar-step.inactive {
-          cursor: default;
-          opacity: 0.45;
-          pointer-events: none;
-        }
-
-        .clp-sidebar-step.done {
-          background: #f0fdf4;
-          border-color: #bbf7d0;
-        }
-
-        .clp-sidebar-step.done:hover {
-          background: #dcfce7;
-        }
-
-        .clp-sidebar-step.active {
-          background: #eff6ff;
-          border-color: #bfdbfe;
-        }
-
-        .clp-step-num {
-          width: 34px;
-          height: 34px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-          font-size: 12px;
-          font-weight: 700;
-          transition: all 0.2s;
-        }
-
-        .clp-sidebar-step.todo .clp-step-num {
-          background: #f1f5f9;
-          color: #94a3b8;
-          border: 1.5px solid #e2e8f0;
-        }
-
-        .clp-sidebar-step.done .clp-step-num {
-          background: #22c55e;
-          color: white;
-          border: none;
-        }
-
-        .clp-sidebar-step.active .clp-step-num {
-          background: #1d4ed8;
-          color: white;
-          border: none;
-          box-shadow: 0 0 0 4px rgba(29,78,216,0.15);
-        }
-
-        .clp-step-info { flex: 1; min-width: 0; }
-
-        .clp-step-name {
-          font-size: 13px;
-          font-weight: 600;
-          color: #0f172a;
-          line-height: 1.2;
-        }
-
-        .clp-sidebar-step.done .clp-step-name { color: #15803d; }
-        .clp-sidebar-step.active .clp-step-name { color: #1d4ed8; }
-
-        .clp-step-subdesc {
-          font-size: 11px;
-          color: #94a3b8;
-          margin-top: 2px;
-          line-height: 1.3;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .clp-sidebar-step.active .clp-step-subdesc { color: #93c5fd; }
-        .clp-sidebar-step.done .clp-step-subdesc { color: #86efac; }
-
-        /* Progress bar in sidebar */
-        .clp-sidebar-progress {
-          padding: 24px 24px 0;
-          margin-top: 8px;
-          border-top: 1px solid #f1f5f9;
-        }
-
-        .clp-sidebar-progress-label {
-          display: flex;
-          justify-content: space-between;
-          font-size: 11px;
-          font-weight: 600;
-          color: #64748b;
-          margin-bottom: 8px;
-        }
-
-        .clp-sidebar-progress-bar {
-          height: 4px;
-          background: #e8eaf2;
-          border-radius: 4px;
-          overflow: hidden;
-        }
-
-        .clp-sidebar-progress-fill {
-          height: 100%;
-          background: #1d4ed8;
-          border-radius: 4px;
-          transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
-        }
-
-        /* MAIN CONTENT */
-        .clp-content {
-          flex: 1;
-          overflow-y: auto;
-          padding: 40px 48px;
-          display: flex;
-          flex-direction: column;
-          gap: 0;
-        }
-
-        @media (max-width: 900px) {
-          .clp-sidebar { width: 220px; }
-          .clp-content { padding: 24px 20px; }
-        }
-
-        @media (max-width: 640px) {
-          .clp-sidebar { display: none; }
-          .clp-content { padding: 20px 16px; }
-        }
-
-        /* CONTENT HEADER */
-        .clp-content-header {
-          margin-bottom: 32px;
-        }
-
-        .clp-content-breadcrumb {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 12px;
-          color: #94a3b8;
-          font-weight: 500;
-          margin-bottom: 12px;
-        }
-
-        .clp-content-breadcrumb span { color: #1d4ed8; font-weight: 600; }
-
-        .clp-content-title-row {
-          display: flex;
-          align-items: center;
-          gap: 14px;
-        }
-
-        .clp-content-icon-wrap {
-          width: 48px;
-          height: 48px;
-          background: #eff6ff;
-          border: 1.5px solid #bfdbfe;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #1d4ed8;
-          flex-shrink: 0;
-        }
-
-        .clp-content-title {
-          font-size: 24px;
-          font-weight: 800;
-          color: #0f172a;
-          letter-spacing: -0.5px;
-        }
-
-        .clp-content-subtitle {
-          font-size: 13px;
-          color: #64748b;
-          margin-top: 2px;
-          font-weight: 500;
-        }
-
-        /* FORM CARD */
-        .clp-form-card {
-          background: white;
-          border: 1px solid #e8eaf2;
-          border-radius: 16px;
-          padding: 32px;
-          flex: 1;
-        }
-
-        @media (max-width: 640px) {
-          .clp-form-card { padding: 20px; border-radius: 12px; }
-        }
-
-        /* FORM FIELDS */
-        .clp-field {
-          margin-bottom: 24px;
-        }
-
-        .clp-label {
-          display: block;
-          font-size: 12px;
-          font-weight: 700;
-          letter-spacing: 0.6px;
-          text-transform: uppercase;
-          color: #334155;
-          margin-bottom: 8px;
-        }
-
-        .clp-input, .clp-textarea {
-          width: 100%;
-          padding: 11px 14px;
-          border: 1.5px solid #e2e8f0;
-          border-radius: 10px;
-          font-size: 14px;
-          color: #0f172a;
-          background: #fafbff;
-          outline: none;
-          transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
-          font-family: inherit;
-          font-weight: 500;
-        }
-
-        .clp-input:focus, .clp-textarea:focus {
-          border-color: #3b82f6;
-          background: white;
-          box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
-        }
-
-        .clp-input.err, .clp-textarea.err {
-          border-color: #ef4444;
-          background: #fff5f5;
-        }
-
-        .clp-textarea { resize: vertical; min-height: 90px; }
-        .clp-input::placeholder, .clp-textarea::placeholder { color: #cbd5e1; }
-
-        .clp-error {
-          font-size: 12px;
-          color: #ef4444;
-          font-weight: 600;
-          margin-top: 6px;
-        }
-
-        /* CHIPS */
-        .clp-chip-group {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-        }
-
-        .clp-chip {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 9px 16px;
-          border: 1.5px solid #e2e8f0;
-          border-radius: 8px;
-          background: #fafbff;
-          color: #475569;
-          font-size: 13px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.18s;
-          font-family: inherit;
-        }
-
-        .clp-chip:hover { border-color: #93c5fd; background: #f0f9ff; }
-
-        .clp-chip.active {
-          border-color: #1d4ed8;
-          background: #eff6ff;
-          color: #1d4ed8;
-        }
-
-        .clp-chip-check {
-          width: 16px;
-          height: 16px;
-          background: #1d4ed8;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        /* TOGGLE ROWS */
-        .clp-toggle-list {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .clp-toggle-row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 13px 16px;
-          border: 1.5px solid #e2e8f0;
-          border-radius: 10px;
-          background: #fafbff;
-          cursor: pointer;
-          transition: all 0.18s;
-          font-family: inherit;
-          color: #334155;
-          font-size: 14px;
-          font-weight: 500;
-          text-align: left;
-        }
-
-        .clp-toggle-row:hover { border-color: #93c5fd; background: #f0f9ff; }
-
-        .clp-toggle-row.active {
-          border-color: #1d4ed8;
-          background: #eff6ff;
-          color: #1d4ed8;
-          font-weight: 600;
-        }
-
-        .clp-toggle-check {
-          width: 20px;
-          height: 20px;
-          border-radius: 50%;
-          background: #1d4ed8;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-
-        /* GENDER CHIPS */
-        .clp-gender-group {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 10px;
-        }
-
-        .clp-gender-btn {
-          padding: 11px;
-          text-align: center;
-          border: 1.5px solid #e2e8f0;
-          border-radius: 10px;
-          background: #fafbff;
-          color: #475569;
-          font-size: 14px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.18s;
-          font-family: inherit;
-        }
-
-        .clp-gender-btn:hover { border-color: #93c5fd; }
-        .clp-gender-btn.active {
-          border-color: #1d4ed8;
-          background: #eff6ff;
-          color: #1d4ed8;
-        }
-
-        /* MAP */
-        .clp-map-container {
-          height: 320px;
-          border-radius: 12px;
-          overflow: hidden;
-          border: 1.5px solid #e2e8f0;
-        }
-
-        .clp-coord-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 9px 14px;
-          background: #eff6ff;
-          border: 1.5px solid #bfdbfe;
-          border-radius: 10px;
-          color: #1d4ed8;
-          font-size: 13px;
-          font-weight: 600;
-          margin-top: 12px;
-        }
-
-        /* COUNTER */
-        .clp-counter-wrap {
-          display: flex;
-          align-items: center;
-          gap: 20px;
-          justify-content: center;
-          padding: 40px 0;
-        }
-
-        .clp-counter-btn {
-          width: 52px;
-          height: 52px;
-          border-radius: 12px;
-          border: 1.5px solid #e2e8f0;
-          background: #fafbff;
-          color: #334155;
-          font-size: 24px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-family: inherit;
-        }
-
-        .clp-counter-btn:hover { border-color: #1d4ed8; background: #eff6ff; color: #1d4ed8; }
-        .clp-counter-btn:active { transform: scale(0.95); }
-
-        .clp-counter-input {
-          width: 80px;
-          text-align: center;
-          font-size: 36px;
-          font-weight: 800;
-          color: #0f172a;
-          border: none;
-          background: transparent;
-          font-family: inherit;
-          outline: none;
-        }
-
-        /* UPLOAD */
-        .clp-upload-zone {
-          border: 2px dashed #cbd5e1;
-          border-radius: 14px;
-          padding: 48px 24px;
-          text-align: center;
-          cursor: pointer;
-          transition: all 0.2s;
-          background: #fafbff;
-        }
-
-        .clp-upload-zone:hover, .clp-upload-zone.has-files {
-          border-color: #3b82f6;
-          background: #eff6ff;
-        }
-
-        .clp-upload-icon-wrap {
-          width: 52px;
-          height: 52px;
-          margin: 0 auto 14px;
-          background: #1d4ed8;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-        }
-
-        .clp-upload-text { font-size: 15px; font-weight: 700; color: #1e293b; }
-        .clp-upload-sub { font-size: 12px; color: #94a3b8; margin-top: 6px; }
-
-        .clp-photo-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-          gap: 12px;
-          margin-top: 20px;
-        }
-
-        .clp-photo-item {
-          position: relative;
-          aspect-ratio: 1;
-          border-radius: 10px;
-          overflow: hidden;
-          border: 1.5px solid #e2e8f0;
-          background: #f8faff;
-        }
-
-        .clp-photo-item img { width: 100%; height: 100%; object-fit: cover; }
-
-        .clp-photo-del {
-          position: absolute;
-          inset: 0;
-          background: rgba(0,0,0,0.45);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          opacity: 0;
-          transition: opacity 0.2s;
-        }
-
-        .clp-photo-item:hover .clp-photo-del { opacity: 1; }
-
-        .clp-photo-del button {
-          width: 30px; height: 30px;
-          border-radius: 8px;
-          background: #ef4444;
-          border: none;
-          color: white;
-          cursor: pointer;
-          display: flex; align-items: center; justify-content: center;
-        }
-
-        /* FOOTER NAV */
-        .clp-nav {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-top: 32px;
-          gap: 12px;
-        }
-
-        .clp-nav-left {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .clp-btn {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 12px 22px;
-          border-radius: 10px;
-          font-size: 14px;
-          font-weight: 700;
-          border: none;
-          cursor: pointer;
-          transition: all 0.2s;
-          font-family: inherit;
-          white-space: nowrap;
-        }
-
-        .clp-btn-primary {
-          background: #1d4ed8;
-          color: white;
-          box-shadow: 0 4px 14px rgba(29,78,216,0.25);
-        }
-
-        .clp-btn-primary:hover:not(:disabled) {
-          background: #1e40af;
-          box-shadow: 0 6px 20px rgba(29,78,216,0.3);
-          transform: translateY(-1px);
-        }
-
-        .clp-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-
-        .clp-btn-outline {
-          background: white;
-          color: #475569;
-          border: 1.5px solid #e2e8f0;
-        }
-
-        .clp-btn-outline:hover {
-          border-color: #1d4ed8;
-          color: #1d4ed8;
-          background: #eff6ff;
-        }
-
-        .clp-btn-ghost {
-          background: transparent;
-          color: #94a3b8;
-          padding: 12px 16px;
-        }
-
-        .clp-btn-ghost:hover { color: #475569; background: #f1f5f9; }
-
-        /* PRICE PREFIX */
-        .clp-price-wrap { position: relative; }
-        .clp-price-prefix {
-          position: absolute;
-          left: 14px;
-          top: 50%;
-          transform: translateY(-50%);
-          font-size: 13px;
-          font-weight: 700;
-          color: #64748b;
-          pointer-events: none;
-        }
-        .clp-price-input { padding-left: 42px; }
-
-        /* STEP CONNECTOR in sidebar */
-        .clp-sidebar-connector {
-          width: 2px;
-          height: 12px;
-          background: #e8eaf2;
-          margin: 2px auto;
-          display: block;
-        }
-
-        .clp-sidebar-connector.done { background: #bbf7d0; }
-
-        .clp-info-note {
-          background: #f0f9ff;
-          border: 1px solid #bae6fd;
-          border-radius: 10px;
-          padding: 12px 16px;
-          font-size: 13px;
-          color: #0369a1;
-          font-weight: 500;
-          margin-bottom: 20px;
-        }
-      `}</style>
-
-      <div className="clp-root">
-        {/* TOP HEADER */}
-        <header className="clp-topbar">
-          <div className="clp-topbar-left">
-            <span className="clp-topbar-brand">Atap</span>
-            <div className="clp-topbar-divider" />
-            <span className="clp-topbar-title">Daftarkan Kost Baru</span>
+    <div
+      className="min-h-screen bg-gradient-to-b from-blue-50 via-slate-50 to-white pb-12"
+      style={{ fontFamily: "'Plus Jakarta Sans','Inter',sans-serif" }}
+    >
+      {/* Top bar */}
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-blue-100">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              type="button"
+              onClick={() => navigate("/owner/properti")}
+              className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 hover:bg-blue-100 active:scale-95 transition-all flex-shrink-0"
+            >
+              <ArrowLeft size={18} />
+            </button>
+            <div className="min-w-0">
+              <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Properti</p>
+              <p className="text-sm font-black text-slate-900 truncate">Detail Listing</p>
+            </div>
           </div>
-          <button className="clp-back-dashboard" onClick={() => navigate("/owner/dashboard")}>
-            <ArrowLeft size={15} />
-            Kembali ke Dashboard
-          </button>
-        </header>
+          {has && (
+            <button
+              type="button"
+              onClick={() => navigate(`/owner/edit/${id}`)}
+              className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-sky-500 text-white text-xs sm:text-sm font-black px-4 py-2.5 rounded-2xl shadow-lg shadow-blue-200 active:scale-95 transition-all flex-shrink-0"
+            >
+              <Edit3 size={16} /> Edit
+            </button>
+          )}
+        </div>
+      </header>
 
-        <div className="clp-body">
-          {/* SIDEBAR */}
-          <aside className="clp-sidebar">
-            <p className="clp-sidebar-heading">Langkah Pendaftaran</p>
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-32 gap-4">
+          <div className="w-14 h-14 rounded-full border-4 border-blue-100 border-t-blue-600 animate-spin" />
+          <p className="text-sm font-bold text-slate-500">Memuat detail properti...</p>
+        </div>
+      )}
 
-            <div className="clp-sidebar-steps">
-              {STEPS.map((s, i) => {
-                const num = i + 1;
-                const done = num < step;
-                const active = num === step;
-                const todo = num > step;
-                const StepIcon = s.icon;
-                const stateClass = done ? "done" : active ? "active" : "todo inactive";
+      {!loading && error && (
+        <div className="max-w-md mx-auto mt-16 px-4">
+          <div className="bg-white rounded-3xl border border-red-100 p-8 text-center shadow-lg">
+            <AlertCircle size={40} className="text-red-400 mx-auto mb-3" />
+            <p className="text-sm font-black text-red-600 mb-4">{error}</p>
+            <button
+              type="button"
+              onClick={() => navigate("/owner/properti")}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-black"
+            >
+              <ArrowLeft size={14} /> Kembali ke Properti
+            </button>
+          </div>
+        </div>
+      )}
 
-                return (
-                  <div key={num}>
-                    <button
-                      type="button"
-                      className={`clp-sidebar-step ${stateClass}`}
-                      onClick={() => !todo && setStep(num)}
+      {!loading && has && (
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-5 sm:pt-8 space-y-6 sm:space-y-8">
+          {/* Hero */}
+          <div className="relative rounded-[2rem] overflow-hidden shadow-xl shadow-blue-200/50 border border-blue-100">
+            <div
+              className="absolute inset-0"
+              style={{ background: "linear-gradient(135deg,#0F172A 0%,#1E3A8A 40%,#2563EB 70%,#38BDF8 100%)" }}
+            />
+            <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-sky-400/20 blur-2xl" />
+            <div className="absolute -bottom-16 -left-16 w-48 h-48 rounded-full bg-blue-300/20 blur-2xl" />
+
+            <div className="relative z-10 grid lg:grid-cols-2 gap-6 lg:gap-8 p-6 sm:p-8 lg:p-10">
+              {/* Info */}
+              <div className="flex flex-col justify-center order-2 lg:order-1">
+                <p className="text-blue-200 text-[11px] font-black uppercase tracking-[0.2em] mb-2">
+                  Detail Properti
+                </p>
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white leading-tight tracking-tight mb-3">
+                  {data.name}
+                </h1>
+                <div className="flex items-start gap-2 text-blue-100 mb-4">
+                  <MapPin size={16} className="flex-shrink-0 mt-0.5" />
+                  <p className="text-sm leading-relaxed">{data.address || "—"}</p>
+                </div>
+
+                <div className="flex flex-wrap gap-2 mb-6">
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black border ${st.pill}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
+                    {st.label}
+                  </span>
+                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-[11px] font-black border ${gn.cls}`}>
+                    {gn.label}
+                  </span>
+                  {data.isPremium && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-black bg-amber-400/20 text-amber-200 border border-amber-300/40">
+                      <Crown size={12} /> Premium
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { label: "Kamar", value: totalRooms, sub: "tersedia" },
+                    { label: "Tipe", value: data.roomTypes?.length || 0, sub: "kamar" },
+                    { label: "Mulai", value: minPrice ? `${(minPrice / 1000).toFixed(0)}rb` : "—", sub: "/ bulan" },
+                  ].map((s) => (
+                    <div
+                      key={s.label}
+                      className="bg-white/15 backdrop-blur rounded-2xl px-3 py-4 border border-white/20 text-center"
                     >
-                      <div className="clp-step-num">
-                        {done ? <Check size={16} /> : active ? <StepIcon size={15} /> : <span>{num}</span>}
-                      </div>
-                      <div className="clp-step-info">
-                        <p className="clp-step-name">{s.label}</p>
-                        <p className="clp-step-subdesc">{s.desc}</p>
-                      </div>
-                    </button>
-                    {i < STEPS.length - 1 && (
-                      <span className={`clp-sidebar-connector${done ? " done" : ""}`} />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="clp-sidebar-progress">
-              <div className="clp-sidebar-progress-label">
-                <span>Progres</span>
-                <span style={{ color: "#1d4ed8", fontWeight: 700 }}>
-                  {step - 1}/{STEPS.length - 1}
-                </span>
-              </div>
-              <div className="clp-sidebar-progress-bar">
-                <div
-                  className="clp-sidebar-progress-fill"
-                  style={{ width: `${((step - 1) / (STEPS.length - 1)) * 100}%` }}
-                />
-              </div>
-            </div>
-          </aside>
-
-          {/* MAIN CONTENT */}
-          <main className="clp-content">
-            {/* Content header */}
-            <div className="clp-content-header">
-              <div className="clp-content-breadcrumb">
-                Daftar Kost
-                <ChevronRight size={12} />
-                <span>{currentStepData.label}</span>
-              </div>
-              <div className="clp-content-title-row">
-                <div className="clp-content-icon-wrap">
-                  <CurrentIcon size={22} />
-                </div>
-                <div>
-                  <h1 className="clp-content-title">{currentStepData.label}</h1>
-                  <p className="clp-content-subtitle">{currentStepData.desc}</p>
+                      <p className="text-xl sm:text-2xl font-black text-white leading-none">{s.value}</p>
+                      <p className="text-[10px] text-blue-200 font-bold mt-1">{s.label}</p>
+                      <p className="text-[9px] text-blue-300/80">{s.sub}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </div>
 
-            {/* FORM CARD */}
-            <div className="clp-form-card">
-
-              {/* STEP 1 */}
-              {step === 1 && (
-                <>
-                  <div className="clp-field">
-                    <label className="clp-label">Nama Kost</label>
-                    <input className={`clp-input${errors.name ? " err" : ""}`}
-                      placeholder="cth. Kost Melati Indah" value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })} />
-                    {errors.name && <p className="clp-error">⚠ {errors.name}</p>}
-                  </div>
-
-                  <div className="clp-field">
-                    <label className="clp-label">Tipe Kost</label>
-                    <div className="clp-gender-group">
-                      {[{ val: "PUTRA", label: "🧑 Putra" }, { val: "PUTRI", label: "👩 Putri" }, { val: "CAMPUR", label: "👥 Campur" }].map(({ val, label }) => (
-                        <button key={val} type="button" className={`clp-gender-btn${form.genderType === val ? " active" : ""}`}
-                          onClick={() => setForm({ ...form, genderType: val })}>
-                          {label}
-                        </button>
-                      ))}
+              {/* Gallery */}
+              <div className="order-1 lg:order-2">
+                <div className="relative rounded-2xl overflow-hidden bg-blue-900/40 border-2 border-white/25 shadow-2xl aspect-[4/3] sm:aspect-[5/4] min-h-[220px] sm:min-h-[280px]">
+                  {coverUrl ? (
+                    <img src={coverUrl} alt={data.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-blue-200/60 gap-2">
+                      <ImageOff size={48} strokeWidth={1.5} />
+                      <span className="text-sm font-semibold">Belum ada foto</span>
                     </div>
-                  </div>
-
-                  <div className="clp-field">
-                    <label className="clp-label">Nomor Kontak (WhatsApp)</label>
-                    <input className={`clp-input${errors.contactNumber ? " err" : ""}`}
-                      placeholder="cth. 08123456789" value={form.contactNumber}
-                      onChange={(e) => setForm({ ...form, contactNumber: e.target.value })} />
-                    {errors.contactNumber && <p className="clp-error">⚠ {errors.contactNumber}</p>}
-                  </div>
-
-                  <div className="clp-field">
-                    <label className="clp-label">Deskripsi</label>
-                    <textarea className={`clp-textarea${errors.description ? " err" : ""}`}
-                      rows={4} placeholder="Ceritakan tentang kost kamu, lingkungan sekitar, akses transportasi..."
-                      value={form.description}
-                      onChange={(e) => setForm({ ...form, description: e.target.value })} />
-                    {errors.description && <p className="clp-error">⚠ {errors.description}</p>}
-                  </div>
-
-                  <div className="clp-field">
-                    <label className="clp-label">Peraturan Kos</label>
-                    <p style={{ fontSize: 12, color: "#94a3b8", fontWeight: 500, marginBottom: 10 }}>Pilih minimal 1 peraturan yang berlaku</p>
-                    <div className="clp-toggle-list">
-                      {RULE_OPTIONS.map((rule) => {
-                        const checked = form.rules.includes(rule);
-                        return (
-                          <button key={rule} type="button" onClick={() => setForm({ ...form, rules: toggleItem(form.rules, rule) })}
-                            className={`clp-toggle-row${checked ? " active" : ""}`}>
-                            <span>{rule}</span>
-                            {checked && <span className="clp-toggle-check"><Check size={12} color="white" /></span>}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {errors.rules && <p className="clp-error">⚠ {errors.rules}</p>}
-                    {form.rules.length > 0 && (
-                      <p style={{ fontSize: 12, color: "#22c55e", fontWeight: 600, marginTop: 8 }}>
-                        ✓ {form.rules.length} peraturan dipilih
-                      </p>
-                    )}
-                  </div>
-                </>
-              )}
-
-              {/* STEP 2 */}
-              {step === 2 && (
-                <>
-                  <div className="clp-field">
-                    <label className="clp-label">Alamat Lengkap</label>
-                    <textarea className={`clp-textarea${errors.address ? " err" : ""}`}
-                      rows={3} placeholder="Jl. Contoh No. 12, Kel. ..., Kec. ..., Kota ..."
-                      value={form.address}
-                      onChange={(e) => setForm({ ...form, address: e.target.value })} />
-                    {errors.address && <p className="clp-error">⚠ {errors.address}</p>}
-                  </div>
-
-                  <div className="clp-field">
-                    <label className="clp-label">Tandai Lokasi di Peta</label>
-                    <p className="clp-info-note">
-                      📍 Klik pada peta untuk menentukan lokasi kost secara akurat. Titik pin bisa digeser kembali setelah ditandai.
-                    </p>
-                    <div className="clp-map-container">
-                      <MapPicker setLatLng={setLatLng} />
-                    </div>
-                    {latLng && (
-                      <div className="clp-coord-badge">
-                        <MapPin size={15} />
-                        <span>{Number(latLng.lat).toFixed(5)}, {Number(latLng.lng).toFixed(5)}</span>
-                        <span style={{ background: "#22c55e", color: "white", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 6, marginLeft: 4 }}>
-                          Tersimpan
-                        </span>
-                      </div>
-                    )}
-                    {errors.latLng && <p className="clp-error">⚠ {errors.latLng}</p>}
-                  </div>
-                </>
-              )}
-
-              {/* STEP 3 */}
-              {step === 3 && (
-                <>
-                  <p className="clp-info-note">Pilih semua fasilitas yang tersedia di dalam kamar kost kamu.</p>
-                  <div className="clp-toggle-list">
-                    {FACILITY_OPTIONS.map((f) => {
-                      const checked = room.facilities.includes(f);
-                      return (
-                        <button key={f} type="button" onClick={() => setRoom({ ...room, facilities: toggleItem(room.facilities, f) })}
-                          className={`clp-toggle-row${checked ? " active" : ""}`}>
-                          <span>{f}</span>
-                          {checked && <span className="clp-toggle-check"><Check size={12} color="white" /></span>}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {room.facilities.length > 0 && (
-                    <p style={{ fontSize: 13, color: "#22c55e", fontWeight: 700, marginTop: 16 }}>
-                      ✓ {room.facilities.length} fasilitas dipilih
-                    </p>
                   )}
-                  {room.facilities.length === 0 && (
-                    <p style={{ fontSize: 12, color: "#94a3b8", fontWeight: 500, marginTop: 12 }}>
-                      Kamu bisa melanjutkan tanpa memilih fasilitas.
-                    </p>
-                  )}
-                </>
-              )}
 
-              {/* STEP 4 */}
-              {step === 4 && (
-                <>
-                  <p className="clp-info-note">Masukkan jumlah kamar yang bisa disewa saat ini.</p>
-                  <div className="clp-counter-wrap">
-                    <button type="button" className="clp-counter-btn"
-                      onClick={() => setRoom({ ...room, availableCount: Math.max(0, Number(room.availableCount) - 1) })}>
-                      −
-                    </button>
-                    <input type="number" min="0" className="clp-counter-input"
-                      value={room.availableCount}
-                      onChange={(e) => setRoom({ ...room, availableCount: e.target.value })} />
-                    <button type="button" className="clp-counter-btn"
-                      onClick={() => setRoom({ ...room, availableCount: Number(room.availableCount) + 1 })}>
-                      +
-                    </button>
-                  </div>
-                  <p style={{ textAlign: "center", fontSize: 13, color: "#64748b", fontWeight: 600 }}>kamar tersedia</p>
-                </>
-              )}
-
-              {/* STEP 5 */}
-              {step === 5 && (
-                <>
-                  <div className="clp-field">
-                    <label className="clp-label">Nama Tipe Kamar</label>
-                    <input className={`clp-input${errors.roomName ? " err" : ""}`}
-                      placeholder="cth. Kamar Standar, Kamar Deluxe"
-                      value={room.name}
-                      onChange={(e) => setRoom({ ...room, name: e.target.value })} />
-                    {errors.roomName && <p className="clp-error">⚠ {errors.roomName}</p>}
-                  </div>
-
-                  <div className="clp-field">
-                    <label className="clp-label">Ukuran Kamar</label>
-                    <input className={`clp-input${errors.roomSize ? " err" : ""}`}
-                      placeholder="cth. 3x4 m, 4x5 m"
-                      value={room.size}
-                      onChange={(e) => setRoom({ ...room, size: e.target.value })} />
-                    {errors.roomSize && <p className="clp-error">⚠ {errors.roomSize}</p>}
-                  </div>
-
-                  <div className="clp-field">
-                    <label className="clp-label">Harga per Bulan</label>
-                    <div className="clp-price-wrap">
-                      <span className="clp-price-prefix">Rp</span>
-                      <input type="number" min="0"
-                        className={`clp-input clp-price-input${errors.roomPrice ? " err" : ""}`}
-                        placeholder="800000"
-                        value={room.price}
-                        onChange={(e) => setRoom({ ...room, price: e.target.value })} />
-                    </div>
-                    {errors.roomPrice && <p className="clp-error">⚠ {errors.roomPrice}</p>}
-                    {room.price && (
-                      <p style={{ marginTop: 10, fontSize: 13, color: "#1d4ed8", fontWeight: 700 }}>
-                        ✓ Rp {Number(room.price).toLocaleString("id-ID")} / bulan
-                      </p>
-                    )}
-                  </div>
-                </>
-              )}
-
-              {/* STEP 6 */}
-              {step === 6 && (
-                <>
-                  <p className="clp-info-note">Upload foto kamar yang menarik untuk meningkatkan minat penyewa. Bisa lebih dari 1 foto.</p>
-                  <label style={{ cursor: "pointer", display: "block" }}>
-                    <div className={`clp-upload-zone${roomPhotos.length > 0 ? " has-files" : ""}`}>
-                      <div className="clp-upload-icon-wrap">
-                        {roomPhotos.length > 0 ? <ImageIcon size={24} /> : <Upload size={24} />}
-                      </div>
-                      <p className="clp-upload-text">
-                        {roomPhotos.length > 0 ? `${roomPhotos.length} foto dipilih — klik untuk tambah lagi` : "Klik untuk upload foto"}
-                      </p>
-                      <p className="clp-upload-sub">JPG, PNG — bisa pilih beberapa sekaligus</p>
-                    </div>
-                    {/* ── FIX: pakai handlePhotoChange ── */}
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      style={{ display: "none" }}
-                      onChange={handlePhotoChange}
-                    />
-                  </label>
-
-                  {roomPhotos.length > 0 && (
+                  {allImages.length > 1 && (
                     <>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 24 }}>
-                        <p style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.6px", textTransform: "uppercase", color: "#334155" }}>
-                          Preview ({roomPhotos.length} foto)
-                        </p>
-                        <button type="button" onClick={() => setRoomPhotos([])}
-                          style={{ fontSize: 12, color: "#ef4444", background: "none", border: "none", cursor: "pointer", fontWeight: 700, fontFamily: "inherit" }}>
-                          Hapus semua
-                        </button>
-                      </div>
-                      <div className="clp-photo-grid">
-                        {roomPhotos.map((file, i) => (
-                          <div key={i} className="clp-photo-item">
-                            <img src={URL.createObjectURL(file)} alt={`preview-${i}`} />
-                            <div className="clp-photo-del">
-                              <button type="button" onClick={() => setRoomPhotos((prev) => prev.filter((_, idx) => idx !== i))}>
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-                          </div>
+                      <span className="absolute top-3 right-3 bg-black/50 backdrop-blur text-white text-xs font-black px-3 py-1 rounded-full">
+                        {imgIdx + 1} / {allImages.length}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={prevImg}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/95 text-slate-800 flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-transform"
+                      >
+                        <ChevronLeft size={20} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={nextImg}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/95 text-slate-800 flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-transform"
+                      >
+                        <ChevronRight size={20} />
+                      </button>
+                      <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5 px-4">
+                        {allImages.slice(0, 8).map((_, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => setImgIdx(i)}
+                            className={`h-1.5 rounded-full transition-all ${
+                              imgIdx === i ? "w-6 bg-white" : "w-1.5 bg-white/50 hover:bg-white/80"
+                            }`}
+                          />
                         ))}
                       </div>
                     </>
                   )}
-                </>
+                </div>
+
+                {allImages.length > 1 && (
+                  <div className="flex gap-2 mt-3 overflow-x-auto pb-1 scrollbar-hide">
+                    {allImages.map((img, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setImgIdx(i)}
+                        className={`flex-shrink-0 w-16 h-14 sm:w-20 sm:h-16 rounded-xl overflow-hidden border-2 transition-all ${
+                          imgIdx === i ? "border-white scale-105 shadow-lg" : "border-white/30 opacity-70 hover:opacity-100"
+                        }`}
+                      >
+                        <img
+                          src={resolveMediaUrl(img.url)}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Body grid */}
+          <div className="grid lg:grid-cols-[1fr_300px] gap-6 lg:gap-8 items-start">
+            <div className="space-y-5 sm:space-y-6">
+              {data.description && (
+                <Section icon={Building2} title="Deskripsi">
+                  <p className="text-sm sm:text-base text-slate-600 leading-relaxed bg-blue-50/60 rounded-2xl p-4 sm:p-5 border border-blue-100">
+                    {data.description}
+                  </p>
+                </Section>
               )}
+
+              <Section icon={Phone} title="Informasi Kost">
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {[
+                    { label: "Kontak", value: data.contactNumber, icon: Phone, highlight: false },
+                    { label: "Tipe Kost", value: gn.label, icon: Users, highlight: false },
+                    { label: "Kamar Tersedia", value: `${totalRooms} kamar`, icon: BedDouble, highlight: true },
+                    { label: "Jumlah Tipe", value: `${data.roomTypes?.length || 0} tipe`, icon: Ruler, highlight: true },
+                  ].map(({ label, value, icon: Icon, highlight }) => (
+                    <div
+                      key={label}
+                      className={`rounded-2xl p-4 border ${
+                        highlight
+                          ? "bg-gradient-to-br from-blue-600 to-sky-500 border-transparent text-white shadow-md shadow-blue-200"
+                          : "bg-white border-blue-100"
+                      }`}
+                    >
+                      <div className={`flex items-center gap-2 mb-2 ${highlight ? "text-blue-100" : "text-slate-400"}`}>
+                        <Icon size={14} />
+                        <span className="text-[10px] font-black uppercase tracking-wider">{label}</span>
+                      </div>
+                      <p className={`text-base font-black ${highlight ? "text-white" : "text-slate-900"}`}>
+                        {value || "—"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                {data.status === "REJECTED" && data.rejectionReason && (
+                  <div className="mt-4 flex gap-3 p-4 rounded-2xl bg-red-50 border border-red-100">
+                    <AlertCircle size={18} className="text-red-500 flex-shrink-0" />
+                    <div>
+                      <p className="text-xs font-black text-red-700 mb-1">Alasan penolakan</p>
+                      <p className="text-sm text-red-600 leading-relaxed">{data.rejectionReason}</p>
+                    </div>
+                  </div>
+                )}
+              </Section>
+
+              <Section icon={MapPin} title="Lokasi">
+                <p className="text-sm text-slate-600 leading-relaxed mb-3">{data.address}</p>
+                {(data.latitude != null || data.longitude != null) && (
+                  <div className="rounded-2xl bg-gradient-to-br from-blue-100 to-sky-50 border border-blue-200 p-6 text-center">
+                    <MapPin size={28} className="text-blue-600 mx-auto mb-2" />
+                    <p className="text-sm font-black text-blue-800">Titik lokasi terdaftar</p>
+                    <p className="text-xs text-blue-600/80 mt-1 font-mono">
+                      {Number(data.latitude).toFixed(5)}, {Number(data.longitude).toFixed(5)}
+                    </p>
+                  </div>
+                )}
+              </Section>
+
+              {allFac.length > 0 && (
+                <Section icon={Sparkles} title="Fasilitas">
+                  <div className="flex flex-wrap gap-2">
+                    {allFac.map((f, i) => (
+                      <span
+                        key={i}
+                        className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold"
+                      >
+                        {facIcon(f)}
+                        {f}
+                      </span>
+                    ))}
+                  </div>
+                </Section>
+              )}
+
+              {data.rules?.length > 0 && (
+                <Section icon={Shield} title="Peraturan Penghuni">
+                  <ul className="space-y-2">
+                    {data.rules.map((rule, i) => (
+                      <li
+                        key={i}
+                        className="flex items-center gap-3 text-sm text-slate-700 bg-blue-50/50 rounded-xl px-4 py-3 border border-blue-100"
+                      >
+                        <span className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                          <svg width="10" height="8" viewBox="0 0 9 7" fill="none">
+                            <path d="M1 3.5L3.5 6L8 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </span>
+                        {rule}
+                      </li>
+                    ))}
+                  </ul>
+                </Section>
+              )}
+
+              <Section
+                icon={BedDouble}
+                title="Tipe Kamar"
+                badge={
+                  <span className="text-[11px] font-black text-blue-600 bg-blue-100 px-2.5 py-1 rounded-full">
+                    {data.roomTypes?.length || 0} tipe
+                  </span>
+                }
+              >
+                {!data.roomTypes?.length ? (
+                  <div className="text-center py-12 text-slate-400">
+                    <BedDouble size={36} className="mx-auto mb-2 opacity-30" />
+                    <p className="text-sm font-bold">Belum ada tipe kamar</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {data.roomTypes.map((room) => {
+                      const thumb = room?.photos?.[0]?.url ? resolveMediaUrl(room.photos[0].url) : null;
+                      const facs = (room?.facilities || []).filter(Boolean);
+                      return (
+                        <article
+                          key={room?.id}
+                          className="rounded-2xl border border-blue-100 overflow-hidden hover:border-blue-300 hover:shadow-md hover:shadow-blue-100/50 transition-all bg-white"
+                        >
+                          <div className="flex gap-4 p-4 sm:p-5">
+                            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden bg-blue-50 border border-blue-100 flex-shrink-0 flex items-center justify-center">
+                              {thumb ? (
+                                <img src={thumb} alt={room?.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <BedDouble size={28} className="text-blue-200" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-base font-black text-slate-900 mb-1">{room?.name || "Kamar"}</h3>
+                              <p className="text-xs text-slate-500 mb-2">
+                                {room?.size ? `${room.size} · ` : ""}
+                                <span className="text-blue-600 font-black">{fmtPrice(room?.price)}</span>
+                                <span className="text-slate-400"> / bulan</span>
+                              </p>
+                              {facs.length > 0 && (
+                                <div className="flex flex-wrap gap-1.5">
+                                  {facs.slice(0, 5).map((f, i) => (
+                                    <span
+                                      key={i}
+                                      className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded-lg border border-blue-100"
+                                    >
+                                      {facIcon(f)} {f}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between px-4 sm:px-5 py-3 bg-gradient-to-r from-blue-50 to-sky-50 border-t border-blue-100">
+                            <span className="text-xs font-black text-emerald-600 flex items-center gap-1.5">
+                              <Users size={14} /> {room?.availableCount ?? 0} kamar tersedia
+                            </span>
+                            <span className="text-base font-black text-blue-700">{fmtPrice(room?.price)}</span>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+              </Section>
             </div>
 
-            {/* NAVIGATION BUTTONS */}
-            <div className="clp-nav">
-              <div className="clp-nav-left">
-                {step > 1 ? (
-                  <button type="button" onClick={handleBack} className="clp-btn clp-btn-outline">
-                    <ChevronLeft size={16} /> Kembali
+            {/* Sidebar */}
+            <aside className="lg:sticky lg:top-20 space-y-4">
+              <div
+                className="rounded-3xl overflow-hidden shadow-xl shadow-blue-200/60 border border-blue-200"
+                style={{ background: "linear-gradient(160deg,#1E3A8A 0%,#2563EB 50%,#0EA5E9 100%)" }}
+              >
+                <div className="p-5 sm:p-6 border-b border-white/15">
+                  <p className="text-[10px] font-black text-blue-200 uppercase tracking-widest mb-1">Ringkasan</p>
+                  <p className="text-lg font-black text-white leading-snug line-clamp-2">{data.name}</p>
+                </div>
+                <div className="p-5 sm:p-6 space-y-3">
+                  {[
+                    { label: "Status", value: st.label },
+                    { label: "Kontak", value: data.contactNumber },
+                    { label: "Kamar", value: `${totalRooms} tersedia · ${data.roomTypes?.length || 0} tipe` },
+                    ...(minPrice ? [{ label: "Harga mulai", value: fmtPrice(minPrice) }] : []),
+                  ].map((row) => (
+                    <div
+                      key={row.label}
+                      className="rounded-2xl bg-white/10 border border-white/15 px-4 py-3 backdrop-blur-sm"
+                    >
+                      <p className="text-[10px] font-bold text-blue-200 uppercase tracking-wide mb-0.5">{row.label}</p>
+                      <p className="text-sm font-black text-white">{row.value || "—"}</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="p-5 sm:p-6 pt-0">
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/owner/edit/${id}`)}
+                    className="w-full py-3.5 rounded-2xl bg-white text-blue-700 font-black text-sm shadow-lg active:scale-[0.98] transition-transform flex items-center justify-center gap-2 hover:bg-blue-50"
+                  >
+                    <Edit3 size={16} /> Edit Properti
                   </button>
-                ) : (
-                  <button type="button" onClick={() => navigate("/owner/dashboard")} className="clp-btn clp-btn-outline">
-                    <ArrowLeft size={15} /> Dashboard
+                  <button
+                    type="button"
+                    onClick={() => navigate("/owner/properti")}
+                    className="w-full mt-2 py-3 rounded-2xl border border-white/30 text-white/90 font-bold text-sm hover:bg-white/10 transition-colors"
+                  >
+                    Kembali ke daftar
                   </button>
-                )}
+                </div>
               </div>
-
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600 }}>
-                  {step} / {STEPS.length}
-                </span>
-                {step < STEPS.length ? (
-                  <button type="button" onClick={handleNext} className="clp-btn clp-btn-primary">
-                    Lanjut <ChevronRight size={16} />
-                  </button>
-                ) : (
-                  <button type="button" onClick={handleSubmit} disabled={loading} className="clp-btn clp-btn-primary">
-                    {loading ? (
-                      <><Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} /> Menyimpan...</>
-                    ) : (
-                      <><Check size={16} /> Simpan Kost</>
-                    )}
-                  </button>
-                )}
-              </div>
-            </div>
-          </main>
+            </aside>
+          </div>
         </div>
-      </div>
-    </>
+      )}
+    </div>
   );
 }
