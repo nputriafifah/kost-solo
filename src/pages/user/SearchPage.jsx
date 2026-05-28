@@ -11,8 +11,10 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getApiBase, resolveMediaUrl } from "../../config/apiBase";
+import { GENDER_OPTIONS } from "../../constants/listing";
 
 const API = getApiBase();
+const GENDER_FILTERS = GENDER_OPTIONS;
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -82,7 +84,6 @@ function DropdownPortal({ anchorRef, children, onClose }) {
 
 const HISTORY_KEY = "atap_search_history";
 const TRENDS = ["Kost dekat UNS", "Kost Laweyan murah", "Kost AC wifi", "Kost Nusukan putri"];
-const GENDER_FILTERS = [{ value: "PUTRA", label: "Putra" }, { value: "PUTRI", label: "Putri" }, { value: "CAMPUR", label: "Campur" }];
 const SORT_OPTIONS = [
   { value: "relevance", label: "Rekomendasi" },
   { value: "lowest_price", label: "Harga termurah" },

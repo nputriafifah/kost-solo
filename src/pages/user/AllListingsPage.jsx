@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import KostCard from "../../components/kost/KostCard";
+import { getApiBase, resolveMediaUrl } from "../../config/apiBase";
 
 /* =========================================================
    SKELETON
@@ -63,6 +64,13 @@ const NAV_ITEMS = [
 const DESKTOP_LINKS = NAV_ITEMS.filter((n) => n.desktop);
 const MOBILE_NAV = NAV_ITEMS.filter((n) => n.mobile);
 const GUEST_MOBILE = NAV_ITEMS.filter((n) => n.guestMobile);
+const API = getApiBase();
+
+function authHeaders(token) {
+  const h = { "Content-Type": "application/json" };
+  if (token) h.Authorization = `Bearer ${token}`;
+  return h;
+}
 
 /* =========================================================
    COMPONENT
@@ -135,8 +143,8 @@ export default function AllListingsPage() {
     if (!isLoggedIn || !token) return;
     const fetchUnreadChat = async () => {
       try {
-        const res = await fetch("http://localhost:3000/chats", {
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        const res = await fetch(`${API}/chats`, {
+          headers: authHeaders(token),
         });
         if (!res.ok) return;
         const json = await res.json();
@@ -184,8 +192,8 @@ export default function AllListingsPage() {
   /* favorites */
   useEffect(() => {
     if (!isLoggedIn) return;
-    fetch("http://localhost:3000/favorites", {
-      headers: { Authorization: `Bearer ${token}` },
+    fetch(`${API}/favorites`, {
+      headers: authHeaders(token),
     })
       .then((r) => r.json())
       .then((j) => setFavorites((j.data || []).map((x) => String(x.id))))
@@ -197,9 +205,9 @@ export default function AllListingsPage() {
     const idStr = String(id);
     const isLiked = favorites.includes(idStr);
     try {
-      const res = await fetch(`http://localhost:3000/favorites/${idStr}`, {
+      const res = await fetch(`${API}/favorites/${idStr}`, {
         method: isLiked ? "DELETE" : "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: authHeaders(token),
       });
       if (!res.ok) throw new Error();
       setFavorites((p) => isLiked ? p.filter((f) => f !== idStr) : [...p, idStr]);
@@ -210,22 +218,28 @@ export default function AllListingsPage() {
   const fetchListings = async () => {
     setLoading(true); setError(null);
     try {
-      const res = await fetch("http://localhost:3000/listings?sort=newest");
+      const res = await fetch(`${API}/search/listings?sort=newest`);
       if (!res.ok) throw new Error(`${res.status}`);
       const json = await res.json();
       const raw = Array.isArray(json) ? json : Array.isArray(json.data) ? json.data : [];
       setData(
         raw.map((item) => {
           const room = item.roomTypes?.[0] || {};
+          const fallbackPrice =
+            room.price ??
+            (Array.isArray(item.roomTypes) && item.roomTypes.length
+              ? Math.min(...item.roomTypes.map((r) => Number(r.price) || 0))
+              : 0);
+          const fallbackPhoto = room.photos?.[0]?.url || room.photos?.[0] || null;
           return {
             id: String(item.id),
             name: item.name || "Tanpa Nama",
             location: item.address || "Lokasi tidak tersedia",
-            price: room.price ?? 0,
+            price: item.cheapestPrice ?? fallbackPrice ?? 0,
             gender: (item.genderType || "").toLowerCase(),
-            image: room.photos?.[0]?.url || null,
+            image: resolveMediaUrl(item.thumbnailUrl || fallbackPhoto),
             available: room.availableCount ?? 0,
-            isPremium: item.isPremium || false,
+            isPremium: Boolean(item.isPremium),
             updatedAt: item.updatedAt,
           };
         })

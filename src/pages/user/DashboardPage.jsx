@@ -8,9 +8,10 @@ import { useNavigate, useLocation } from "react-router-dom";
 import KostCard from "../../components/kost/KostCard";
 import NotificationPanel from "../../components/ui/NotificationPanel";
 import { getApiBase, resolveMediaUrl } from "../../config/apiBase";
+import { GENDER_OPTIONS } from "../../constants/listing";
 
 const API = getApiBase();
-const GENDER_TO_API = { Putra: "PUTRA", Putri: "PUTRI", Campur: "CAMPUR" };
+const GENDER_TO_API = Object.fromEntries(GENDER_OPTIONS.map((g) => [g.label, g.value]));
 
 function mapSearchListing(item) {
   return {

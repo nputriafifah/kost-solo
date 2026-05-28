@@ -4,9 +4,15 @@ import {
   ArrowLeft, Send, MoreVertical, CheckCheck, Check,
   MessageCircle, Loader2,
 } from "lucide-react";
-import { useDarkModeContext } from "../../context/DarkModeContext";
+import { getApiBase } from "../../config/apiBase";
 
-const API = "http://localhost:8080";
+const API = getApiBase();
+
+function authHeaders(token) {
+  const h = { "Content-Type": "application/json" };
+  if (token) h.Authorization = `Bearer ${token}`;
+  return h;
+}
 
 const GRADIENTS = [
   "linear-gradient(135deg,#3B82F6,#22D3EE)",
@@ -32,8 +38,6 @@ export default function ChatDetailPage() {
   const navigate = useNavigate();
   const bottomRef = useRef(null);
   const inputRef = useRef(null);
-
-  const { darkMode } = useDarkModeContext();
 
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const token = localStorage.getItem("token");
@@ -112,14 +116,21 @@ export default function ChatDetailPage() {
   const fetchThread = useCallback(async () => {
     if (!token) { navigate("/auth"); return; }
     try {
-      const res = await fetch(`${API}/chats/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${API}/chats/${id}`, { headers: authHeaders(token) });
       if (res.status === 401) { localStorage.removeItem("token"); navigate("/auth"); return; }
+      if (!res.ok) return;
       const json = await res.json();
       const t = json.data;
       if (!t) return;
       const isOwner = user?.id === t.owner?.id;
-      const partnerName = isOwner ? t.student?.name : (t.owner?.kostName || t.owner?.name);
-      setThread({ id: t.id, partnerName: partnerName || "Pengguna", kostName: t.listing?.name || "" });
+      const partnerName = isOwner
+        ? (t.student?.name || "Penyewa")
+        : (t.owner?.name || "Pemilik Kost");
+      setThread({
+        id: t.id,
+        partnerName,
+        kostName: t.listing?.name || t.owner?.kostName || "",
+      });
       setMessages(
         (t.messages || []).map((m) => ({
           id: m.id,
@@ -148,7 +159,7 @@ export default function ChatDetailPage() {
     try {
       const res = await fetch(`${API}/chats/${id}/messages`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: authHeaders(token),
         body: JSON.stringify({ message: text }),
       });
       if (!res.ok) throw new Error("send failed");

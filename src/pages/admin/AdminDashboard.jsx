@@ -12,6 +12,7 @@ import {
   ChevronRight,
   MessageSquare,
 } from "lucide-react";
+import { reportReasonLabel } from "../../constants/admin";
 import { adminApiFetch, handleAdminAuthError } from "./adminApi";
 import { AdminError, AdminLoading, PageHeader, REPORT_STATUS, StatCard, StatusBadge } from "./adminUi";
 
@@ -29,7 +30,7 @@ function TopListingsPreview({ listings }) {
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
         <thead>
           <tr style={{ background: "#f8fafc" }}>
-            {["Kost", "Pemilik", "Views", "Chat", "Favorit"].map((h, i) => (
+            {["Kost", "Pemilik", "Views", "Thread chat", "Favorit"].map((h, i) => (
               <th
                 key={h}
                 style={{
@@ -74,9 +75,7 @@ function TopListingsPreview({ listings }) {
 }
 
 function ReportsPreview({ reports }) {
-  const pending = reports.filter((r) => (r.status ?? "").toUpperCase() === "PENDING");
-
-  if (!pending.length) {
+  if (!reports?.length) {
     return (
       <p style={{ padding: 32, textAlign: "center", color: "#94a3b8", fontSize: 13, margin: 0 }}>
         Tidak ada laporan menunggu tinjauan.
@@ -108,7 +107,7 @@ function ReportsPreview({ reports }) {
           </tr>
         </thead>
         <tbody>
-          {pending.slice(0, 6).map((r) => (
+          {reports.slice(0, 6).map((r) => (
             <tr key={r.id}>
               <td style={{ padding: "12px 16px", fontWeight: 600, borderBottom: "1px solid #f8fafc" }}>
                 {r.user?.name ?? "-"}
@@ -117,7 +116,10 @@ function ReportsPreview({ reports }) {
                 {r.listing?.name ?? "-"}
               </td>
               <td style={{ padding: "12px 16px", color: "#475569", borderBottom: "1px solid #f8fafc" }}>
-                {r.reason ?? "-"}
+                {reportReasonLabel(r.reason)}
+                {r.note ? (
+                  <span style={{ display: "block", fontSize: 11, color: "#94a3b8", marginTop: 2 }}>{r.note}</span>
+                ) : null}
               </td>
               <td style={{ padding: "12px 16px", borderBottom: "1px solid #f8fafc" }}>
                 <StatusBadge status={r.status} map={REPORT_STATUS} />
@@ -146,7 +148,7 @@ export default function AdminDashboard() {
       const [dashRes, topRes, reportsRes, pendingRes] = await Promise.all([
         adminApiFetch("/admin/dashboard"),
         adminApiFetch("/admin/analytics/top-listings?limit=10"),
-        adminApiFetch("/admin/reports?limit=20"),
+        adminApiFetch("/admin/reports?status=PENDING&limit=20"),
         adminApiFetch("/admin/listings/pending"),
       ]);
 
@@ -170,7 +172,7 @@ export default function AdminDashboard() {
   if (loading) return <AdminLoading />;
   if (error) return <AdminError message={error} onRetry={load} />;
 
-  const pendingReports = reports.filter((r) => (r.status ?? "").toUpperCase() === "PENDING").length;
+  const pendingReports = reports.length;
   const inactiveListings = Math.max(0, (stats?.totalListings ?? 0) - (stats?.activeListings ?? 0));
 
   const quickLinks = [

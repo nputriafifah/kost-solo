@@ -26,6 +26,7 @@ const formatPrice = (price) => {
   return `${Math.round(price / 1_000)}rb`;
 };
 
+
 const NAV_ITEMS = [
   { label: "Home", path: "/", icon: Home, desktop: true, mobile: true, guestMobile: true },
   { label: "Search", path: "/search", icon: Search, desktop: true, mobile: true, guestMobile: true },

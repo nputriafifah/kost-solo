@@ -1,14 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  ArrowLeft, Save, Loader2, Camera, X, Check, BedDouble, Wifi,
+  ArrowLeft, Save, Loader2, Camera, X, Check, BedDouble,
+  Plus, Trash2, ChevronRight,
 } from "lucide-react";
+import { getApiBase, resolveMediaUrl } from "../../config/apiBase";
+import { FACILITY_OPTIONS, GENDER_OPTIONS, RULE_OPTIONS } from "../../constants/listing";
 
-const API = "http://localhost:3000";
-const getToken = () => localStorage.getItem("token") || "";
+const EMPTY_NEW_ROOM = {
+  name: "",
+  price: "",
+  size: "",
+  facilities: [],
+  availableCount: 1,
+};
 
 const STEPS = [
   { label: "Data Kos", desc: "Perbarui info dasar kost" },
+  { label: "Tipe Kamar", desc: "Tambah atau kelola tipe kamar" },
   { label: "Foto Kamar", desc: "Kelola foto tiap tipe kamar" },
 ];
 
@@ -62,52 +71,80 @@ const STYLES = `
   .clp-upload-zone:hover { border-color: #3b82f6; background: #eff6ff; }
   .clp-room-card { background: white; border: 1px solid #e8edf6; border-radius: 18px; overflow: hidden; }
   .clp-step-fade { animation: clpFade 0.25s ease; }
+  .clp-fac-chip {
+    padding: 8px 12px; border-radius: 10px; border: 1px solid #e2e8f4;
+    background: #f8faff; font-size: 12px; font-weight: 600; color: #475569;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .clp-fac-chip.active { background: #eff6ff; border-color: #3b82f6; color: #1d4ed8; }
   @keyframes clpFade { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
 `;
+
+const getToken = () => localStorage.getItem("token") || "";
+
+const parseApiError = async (res) => {
+  const data = await res.json().catch(() => ({}));
+  if (data?.message) return data.message;
+  if (Array.isArray(data?.error)) return data.error.map((e) => e.message).join(", ");
+  return "Request gagal";
+};
 
 export default function EditListingPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const api = getApiBase();
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
+  const [roomErrors, setRoomErrors] = useState({});
 
   const [form, setForm] = useState({
-    name: "", address: "", description: "", contactNumber: "",
+    name: "",
+    address: "",
+    description: "",
+    contactNumber: "",
+    genderType: "PUTRA",
+    rules: [],
   });
 
   const [roomTypes, setRoomTypes] = useState([]);
-
-  // photoState: { [roomTypeId]: { newFiles: [], deletedIds: [], uploading: false } }
+  const [newRoom, setNewRoom] = useState({ ...EMPTY_NEW_ROOM });
   const [photoState, setPhotoState] = useState({});
+
+  const syncPhotoState = useCallback((types) => {
+    const init = {};
+    (types || []).forEach((rt) => {
+      init[rt.id] = { newFiles: [], deletedIds: [], uploading: false };
+    });
+    setPhotoState(init);
+  }, []);
+
+  const refreshListing = useCallback(async () => {
+    const res = await fetch(`${api}/listings/owner/${id}`, {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(json.message || "Gagal memuat data");
+    const d = json.data || json;
+    setRoomTypes(d.roomTypes || []);
+    syncPhotoState(d.roomTypes || []);
+    return d;
+  }, [api, id, syncPhotoState]);
 
   useEffect(() => {
     const fetch_ = async () => {
       try {
-        const res = await fetch(`${API}/listings/owner/${id}`, {
-          headers: { Authorization: `Bearer ${getToken()}` },
-        });
-        const text = await res.text();
-        let json;
-        try { json = JSON.parse(text); } catch { json = { message: text }; }
-        if (!res.ok) throw new Error(json.message || "Gagal memuat data");
-
-        const d = json.data || json;
+        const d = await refreshListing();
         setForm({
           name: d.name || "",
           address: d.address || "",
           description: d.description || "",
           contactNumber: d.contactNumber || "",
+          genderType: d.genderType || "PUTRA",
+          rules: Array.isArray(d.rules) ? d.rules : [],
         });
-        setRoomTypes(d.roomTypes || []);
-
-        const init = {};
-        (d.roomTypes || []).forEach((rt) => {
-          init[rt.id] = { newFiles: [], deletedIds: [], uploading: false };
-        });
-        setPhotoState(init);
       } catch (err) {
         alert(err.message);
       } finally {
@@ -115,38 +152,70 @@ export default function EditListingPage() {
       }
     };
     fetch_();
-  }, [id]);
+  }, [refreshListing]);
 
-  // ---- Validasi step 1 ----
   const validate = () => {
     const e = {};
     if (form.name.trim().length < 3) e.name = "Nama minimal 3 karakter";
     if (form.address.trim().length < 10) e.address = "Alamat minimal 10 karakter";
     if (form.description.trim().length < 10) e.description = "Deskripsi minimal 10 karakter";
     if (form.contactNumber.trim().length < 8) e.contactNumber = "Nomor kontak minimal 8 digit";
+    if (!GENDER_OPTIONS.some((g) => g.value === form.genderType)) e.genderType = "Pilih tipe kost";
+    if (!form.rules?.length) e.rules = "Pilih minimal 1 peraturan";
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
-  // ---- Submit data kost ----
+  const toggleRule = (rule) => {
+    setForm((prev) => ({
+      ...prev,
+      rules: prev.rules.includes(rule)
+        ? prev.rules.filter((r) => r !== rule)
+        : [...prev.rules, rule],
+    }));
+  };
+
+  const validateNewRoom = () => {
+    const e = {};
+    if (newRoom.name.trim().length < 2) e.name = "Nama tipe minimal 2 karakter";
+    if (!newRoom.size.trim()) e.size = "Ukuran wajib diisi";
+    const price = Math.floor(Number(newRoom.price));
+    if (!price || price <= 0) e.price = "Harga wajib (angka bulat > 0)";
+    if (newRoom.facilities.length === 0) e.facilities = "Pilih minimal 1 fasilitas";
+    if (newRoom.availableCount < 0) e.availableCount = "Stok tidak valid";
+    setRoomErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const toggleFacility = (f) => {
+    setNewRoom((prev) => ({
+      ...prev,
+      facilities: prev.facilities.includes(f)
+        ? prev.facilities.filter((x) => x !== f)
+        : [...prev.facilities, f],
+    }));
+  };
+
   const handleSaveInfo = async () => {
     if (!validate()) return;
     setSaving(true);
     try {
-      const res = await fetch(`${API}/listings/owner/${id}`, {
+      const res = await fetch(`${api}/listings/owner/${id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${getToken()}`,
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          name: form.name.trim(),
+          address: form.address.trim(),
+          description: form.description.trim(),
+          contactNumber: form.contactNumber.trim(),
+          genderType: form.genderType,
+          rules: form.rules,
+        }),
       });
-
-      const text = await res.text();
-      let json;
-      try { json = JSON.parse(text); } catch { json = { message: text }; }
-      if (!res.ok) throw new Error(json.message || "Gagal update");
-
+      if (!res.ok) throw new Error(await parseApiError(res));
       setStep(2);
     } catch (err) {
       alert(err.message);
@@ -155,7 +224,51 @@ export default function EditListingPage() {
     }
   };
 
-  // ---- Photo helpers ----
+  const handleAddRoomType = async () => {
+    if (!validateNewRoom()) return;
+    setSaving(true);
+    try {
+      const price = Math.floor(Number(newRoom.price));
+      const res = await fetch(`${api}/owner/listings/${id}/room-types`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({
+          name: newRoom.name.trim(),
+          price,
+          size: newRoom.size.trim(),
+          facilities: newRoom.facilities,
+          availableCount: Number(newRoom.availableCount),
+        }),
+      });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      await refreshListing();
+      setNewRoom({ ...EMPTY_NEW_ROOM });
+      setRoomErrors({});
+      alert("Tipe kamar berhasil ditambahkan. Upload foto di langkah berikutnya.");
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteRoomType = async (roomTypeId, roomName) => {
+    if (!window.confirm(`Hapus tipe kamar "${roomName}"? Foto terkait ikut terhapus.`)) return;
+    try {
+      const res = await fetch(`${api}/owner/room-types/${roomTypeId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      await refreshListing();
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
   const markDelete = (roomTypeId, photoId) => {
     setPhotoState((prev) => ({
       ...prev,
@@ -187,53 +300,26 @@ export default function EditListingPage() {
     const s = photoState[roomTypeId];
     setPhotoState((prev) => ({ ...prev, [roomTypeId]: { ...prev[roomTypeId], uploading: true } }));
     try {
-      // DELETE photos — route: DELETE /owner/photos/:photoId
       for (const photoId of s.deletedIds) {
-        const deleteRes = await fetch(`${API}/owner/photos/${photoId}`, {
+        const deleteRes = await fetch(`${api}/owner/photos/${photoId}`, {
           method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${getToken()}`,
-          },
+          headers: { Authorization: `Bearer ${getToken()}` },
         });
-
-        if (!deleteRes.ok) {
-          const text = await deleteRes.text();
-          let json;
-          try { json = JSON.parse(text); } catch { json = { message: text }; }
-          throw new Error(json.message || "Gagal hapus foto");
-        }
+        if (!deleteRes.ok) throw new Error(await parseApiError(deleteRes));
       }
 
-      // UPLOAD photos — route: POST /owner/room-types/:roomTypeId/photos
       if (s.newFiles.length > 0) {
         const fd = new FormData();
         s.newFiles.forEach((f) => fd.append("photos", f));
-        const uploadRes = await fetch(`${API}/owner/room-types/${roomTypeId}/photos`, {
+        const uploadRes = await fetch(`${api}/owner/room-types/${roomTypeId}/photos`, {
           method: "POST",
-          headers: {
-            Authorization: `Bearer ${getToken()}`,
-          },
+          headers: { Authorization: `Bearer ${getToken()}` },
           body: fd,
         });
-
-        if (!uploadRes.ok) {
-          const text = await uploadRes.text();
-          let json;
-          try { json = JSON.parse(text); } catch { json = { message: text }; }
-          throw new Error(json.message || "Gagal upload foto");
-        }
+        if (!uploadRes.ok) throw new Error(await parseApiError(uploadRes));
       }
 
-      // Refresh room types
-      const res = await fetch(`${API}/listings/owner/${id}`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
-      const text = await res.text();
-      let json;
-      try { json = JSON.parse(text); } catch { json = { message: text }; }
-
-      const d = json.data || json;
-      setRoomTypes(d.roomTypes || []);
+      await refreshListing();
       setPhotoState((prev) => ({
         ...prev,
         [roomTypeId]: { newFiles: [], deletedIds: [], uploading: false },
@@ -245,7 +331,15 @@ export default function EditListingPage() {
     }
   };
 
-  const handleFinish = () => navigate(`/owner/properti`);
+  const goToPhotos = () => {
+    if (roomTypes.length === 0) {
+      alert("Tambahkan minimal 1 tipe kamar terlebih dahulu.");
+      return;
+    }
+    setStep(3);
+  };
+
+  const handleFinish = () => navigate("/owner/properti");
 
   return (
     <>
@@ -256,13 +350,11 @@ export default function EditListingPage() {
       >
         <div className="w-full max-w-2xl">
 
-          {/* Breadcrumb */}
           <div className="mb-6">
             <p className="text-xs font-semibold text-blue-500 uppercase tracking-widest mb-1">Atap</p>
             <h1 className="text-2xl font-extrabold text-slate-800" style={{ fontFamily: "Plus Jakarta Sans" }}>Edit Kost</h1>
           </div>
 
-          {/* Step indicator */}
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-4">
             <div className="flex items-center">
               {STEPS.map((s, i) => {
@@ -297,7 +389,6 @@ export default function EditListingPage() {
             </div>
           </div>
 
-          {/* Main card */}
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
             <div className="clp-gradient px-8 py-5">
               <p className="text-blue-200 text-xs font-medium mb-0.5">{STEPS[step - 1].desc}</p>
@@ -306,7 +397,6 @@ export default function EditListingPage() {
 
             <div className="px-8 py-7 clp-step-fade" key={step}>
 
-              {/* ===== STEP 1: Data Kos ===== */}
               {step === 1 && (
                 loading ? (
                   <p style={{ color: "#94a3b8", fontSize: 14, textAlign: "center", padding: "24px 0" }}>Memuat data...</p>
@@ -338,17 +428,166 @@ export default function EditListingPage() {
                         value={form.contactNumber} onChange={(e) => setForm({ ...form, contactNumber: e.target.value })} />
                       {errors.contactNumber && <p className="clp-err">{errors.contactNumber}</p>}
                     </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Tipe Kost</label>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        {GENDER_OPTIONS.map(({ value, label }) => (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => setForm({ ...form, genderType: value })}
+                            style={{
+                              padding: "8px 14px",
+                              borderRadius: 10,
+                              border: `1.5px solid ${form.genderType === value ? "#3b82f6" : "#e2e8f4"}`,
+                              background: form.genderType === value ? "#eff6ff" : "#fff",
+                              color: form.genderType === value ? "#1d4ed8" : "#64748b",
+                              fontWeight: 600,
+                              fontSize: 13,
+                              cursor: "pointer",
+                            }}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                      {errors.genderType && <p className="clp-err">{errors.genderType}</p>}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Peraturan Kost</label>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        {RULE_OPTIONS.map((rule) => {
+                          const checked = form.rules.includes(rule);
+                          return (
+                            <button
+                              key={rule}
+                              type="button"
+                              onClick={() => toggleRule(rule)}
+                              style={{
+                                textAlign: "left",
+                                padding: "10px 14px",
+                                borderRadius: 10,
+                                border: `1.5px solid ${checked ? "#3b82f6" : "#e2e8f4"}`,
+                                background: checked ? "#eff6ff" : "#fff",
+                                color: checked ? "#1d4ed8" : "#475569",
+                                fontSize: 13,
+                                fontWeight: checked ? 600 : 500,
+                                cursor: "pointer",
+                              }}
+                            >
+                              {checked ? "✓ " : ""}{rule}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {errors.rules && <p className="clp-err">{errors.rules}</p>}
+                    </div>
                   </div>
                 )
               )}
 
-              {/* ===== STEP 2: Foto Kamar ===== */}
               {step === 2 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                  <p className="text-sm text-slate-500">
+                    Satu kost bisa punya beberapa tipe kamar (mis. Standard & Deluxe). Data kos cukup diisi sekali.
+                  </p>
+
+                  {roomTypes.length === 0 ? (
+                    <p style={{ color: "#94a3b8", fontSize: 14, textAlign: "center", padding: "12px 0" }}>Belum ada tipe kamar</p>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      {roomTypes.map((room) => (
+                        <div key={room.id} style={{ display: "flex", gap: 12, alignItems: "center", padding: 14, borderRadius: 14, border: "1px solid #e8edf6", background: "#fafbff" }}>
+                          <div style={{ width: 40, height: 40, borderRadius: 10, background: "linear-gradient(135deg,#1d4ed8,#3b82f6)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                            <BedDouble size={18} color="white" />
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>{room.name}</p>
+                            <p style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
+                              Rp {Number(room.price).toLocaleString("id-ID")} · {room.size} · {room.availableCount} tersedia
+                              {(room.photos?.length ?? 0) > 0 && ` · ${room.photos.length} foto`}
+                            </p>
+                          </div>
+                          {roomTypes.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteRoomType(room.id, room.name)}
+                              style={{ border: "none", background: "#fef2f2", color: "#ef4444", borderRadius: 8, padding: 8, cursor: "pointer" }}
+                              title="Hapus tipe"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: 20 }}>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 14, fontFamily: "Plus Jakarta Sans" }}>
+                      <Plus size={16} style={{ display: "inline", verticalAlign: "middle", marginRight: 6 }} />
+                      Tambah tipe kamar baru
+                    </p>
+
+                    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Nama Tipe</label>
+                        <input className={`clp-input${roomErrors.name ? " clp-input-error" : ""}`} placeholder="cth. Kamar Deluxe"
+                          value={newRoom.name} onChange={(e) => setNewRoom({ ...newRoom, name: e.target.value })} />
+                        {roomErrors.name && <p className="clp-err">{roomErrors.name}</p>}
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Ukuran</label>
+                          <input className={`clp-input${roomErrors.size ? " clp-input-error" : ""}`} placeholder="3x4 m"
+                            value={newRoom.size} onChange={(e) => setNewRoom({ ...newRoom, size: e.target.value })} />
+                          {roomErrors.size && <p className="clp-err">{roomErrors.size}</p>}
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Harga / bulan</label>
+                          <input type="number" className={`clp-input${roomErrors.price ? " clp-input-error" : ""}`} placeholder="800000"
+                            value={newRoom.price} onChange={(e) => setNewRoom({ ...newRoom, price: e.target.value })} />
+                          {roomErrors.price && <p className="clp-err">{roomErrors.price}</p>}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Kamar tersedia</label>
+                        <input type="number" min="0" className="clp-input" style={{ maxWidth: 120 }}
+                          value={newRoom.availableCount}
+                          onChange={(e) => setNewRoom({ ...newRoom, availableCount: Math.max(0, Number(e.target.value)) })} />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Fasilitas</label>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                          {FACILITY_OPTIONS.map((f) => (
+                            <button key={f} type="button" className={`clp-fac-chip${newRoom.facilities.includes(f) ? " active" : ""}`}
+                              onClick={() => toggleFacility(f)}>
+                              {f}
+                            </button>
+                          ))}
+                        </div>
+                        {roomErrors.facilities && <p className="clp-err">{roomErrors.facilities}</p>}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleAddRoomType}
+                        disabled={saving}
+                        className="clp-btn-next flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm w-full"
+                        style={{ opacity: saving ? 0.7 : 1 }}
+                      >
+                        {saving ? <><Loader2 size={16} className="animate-spin" /> Menyimpan...</> : <><Plus size={16} /> Simpan tipe kamar</>}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {step === 3 && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                   <p className="text-sm text-slate-500">Kelola foto untuk setiap tipe kamar. Hover foto untuk menghapus, atau tambah foto baru.</p>
 
                   {roomTypes.length === 0 && (
-                    <p style={{ color: "#94a3b8", fontSize: 14, textAlign: "center", padding: "24px 0" }}>Belum ada tipe kamar</p>
+                    <p style={{ color: "#94a3b8", fontSize: 14, textAlign: "center", padding: "24px 0" }}>Belum ada tipe kamar — kembali ke langkah Tipe Kamar</p>
                   )}
 
                   {roomTypes.map((room) => {
@@ -357,43 +596,30 @@ export default function EditListingPage() {
 
                     return (
                       <div key={room.id} className="clp-room-card">
-                        {/* Room header */}
                         <div className="clp-gradient" style={{ padding: "12px 18px" }}>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                              <BedDouble size={15} style={{ color: "#bfdbfe" }} />
-                              <span style={{ color: "white", fontWeight: 700, fontSize: 14, fontFamily: "Plus Jakarta Sans" }}>{room.name}</span>
-                            </div>
-                            {room.facilities?.length > 0 && (
-                              <div style={{ display: "flex", gap: 5, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                                {room.facilities.slice(0, 3).map((f, i) => (
-                                  <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 3, background: "rgba(255,255,255,0.15)", color: "white", borderRadius: 6, padding: "2px 8px", fontSize: 11, fontWeight: 600 }}>
-                                    <Wifi size={9} /> {f}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <BedDouble size={15} style={{ color: "#bfdbfe" }} />
+                            <span style={{ color: "white", fontWeight: 700, fontSize: 14, fontFamily: "Plus Jakarta Sans" }}>{room.name}</span>
+                            <span style={{ marginLeft: "auto", fontSize: 11, color: "rgba(255,255,255,0.75)" }}>
+                              Rp {Number(room.price).toLocaleString("id-ID")}
+                            </span>
                           </div>
                         </div>
 
-                        {/* Photo grid */}
                         <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 12 }}>
                           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-                            {/* Existing photos */}
                             {visiblePhotos.map((p) => (
                               <div key={p.id} className="clp-photo-thumb">
-                                <img src={p.url} alt="foto" />
-                                <button className="clp-photo-del" onClick={() => markDelete(room.id, p.id)}>
+                                <img src={resolveMediaUrl(p.url)} alt="foto" />
+                                <button type="button" className="clp-photo-del" onClick={() => markDelete(room.id, p.id)}>
                                   <X size={12} color="white" />
                                 </button>
                               </div>
                             ))}
-
-                            {/* New file previews */}
                             {ps.newFiles.map((file, idx) => (
                               <div key={`new-${idx}`} className="clp-photo-thumb clp-photo-new">
                                 <img src={URL.createObjectURL(file)} alt={`baru-${idx}`} />
-                                <button className="clp-photo-del" style={{ opacity: 1 }} onClick={() => removeNewFile(room.id, idx)}>
+                                <button type="button" className="clp-photo-del" style={{ opacity: 1 }} onClick={() => removeNewFile(room.id, idx)}>
                                   <X size={12} color="white" />
                                 </button>
                                 <span style={{ position: "absolute", bottom: 5, left: 5, background: "#3b82f6", color: "white", fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4 }}>BARU</span>
@@ -401,23 +627,21 @@ export default function EditListingPage() {
                             ))}
                           </div>
 
-                          {/* Upload zone */}
                           <label className="clp-upload-zone">
                             <Camera size={18} style={{ color: "#94a3b8", marginBottom: 5 }} />
                             <span style={{ fontSize: 13, fontWeight: 600, color: "#475569" }}>Tambah foto</span>
                             <span style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>JPG, PNG — bisa pilih beberapa</span>
                             <input type="file" multiple accept="image/*" style={{ display: "none" }}
                               onChange={(e) => {
-                                if (e.target.files?.length) {
-                                  addFiles(room.id, e.target.files);
-                                }
+                                if (e.target.files?.length) addFiles(room.id, e.target.files);
+                                e.target.value = "";
                               }} />
                           </label>
 
-                          {/* Save button */}
                           {hasPhotoChanges(room.id) && (
                             <div style={{ display: "flex", justifyContent: "flex-end" }}>
                               <button
+                                type="button"
                                 onClick={() => savePhotos(room.id)}
                                 disabled={ps.uploading}
                                 className="clp-btn-next flex items-center gap-2 px-5 py-2 rounded-xl text-sm"
@@ -437,7 +661,6 @@ export default function EditListingPage() {
               )}
             </div>
 
-            {/* Footer navigasi */}
             <div className="flex justify-between items-center px-8 py-5" style={{ borderTop: "1px solid #f1f5f9", background: "#fafbff" }}>
               {step > 1 ? (
                 <button type="button" onClick={() => setStep(step - 1)} className="clp-btn-back flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm">
@@ -449,7 +672,7 @@ export default function EditListingPage() {
                 </button>
               )}
 
-              {step === 1 ? (
+              {step === 1 && (
                 <button type="button" onClick={handleSaveInfo} disabled={saving || loading}
                   className="clp-btn-next flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm"
                   style={{ opacity: saving || loading ? 0.7 : 1 }}>
@@ -457,7 +680,14 @@ export default function EditListingPage() {
                     ? <><Loader2 size={16} className="animate-spin" /> Menyimpan...</>
                     : <><Save size={16} /> Simpan & Lanjut</>}
                 </button>
-              ) : (
+              )}
+              {step === 2 && (
+                <button type="button" onClick={goToPhotos}
+                  className="clp-btn-next flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm">
+                  Lanjut ke Foto <ChevronRight size={16} />
+                </button>
+              )}
+              {step === 3 && (
                 <button type="button" onClick={handleFinish}
                   className="clp-btn-next flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm">
                   <Check size={16} /> Selesai

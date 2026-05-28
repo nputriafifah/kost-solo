@@ -4,8 +4,15 @@ import {
   Home, Map, Heart, User, Settings, LogOut,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { getApiBase } from "../../config/apiBase";
 
-const API = "http://localhost:8080";
+const API = getApiBase();
+
+function authHeaders(token) {
+  const h = { "Content-Type": "application/json" };
+  if (token) h.Authorization = `Bearer ${token}`;
+  return h;
+}
 const FILTERS = ["Semua", "Belum dibaca", "Sudah dibaca"];
 
 const NAV_ITEMS = [
@@ -265,19 +272,18 @@ export default function ChatPage() {
   useEffect(() => {
     const fetchChats = async () => {
       try {
-        if (!token) { navigate("/login"); return; }
-        const res = await fetch(`${API}/chats`, {
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        });
-        if (res.status === 401) { localStorage.removeItem("token"); navigate("/login"); return; }
+        if (!token) { navigate("/auth"); return; }
+        const res = await fetch(`${API}/chats`, { headers: authHeaders(token) });
+        if (res.status === 401) { localStorage.removeItem("token"); navigate("/auth"); return; }
+        if (!res.ok) throw new Error("Gagal memuat chat");
         const json = await res.json();
         const raw  = Array.isArray(json.data) ? json.data : [];
         const chats = raw.map((thread) => {
           const lm = thread.lastMessage;
           return {
             id:          thread.id,
-            name:        thread.displayName || thread.owner?.name || "Pemilik Kost",
-            kost:        thread.listing?.name || "-",
+            name:        thread.owner?.name || "Pemilik Kost",
+            kost:        thread.listing?.name || thread.owner?.kostName || "-",
             lastMessage: lm?.message || "Belum ada pesan",
             time:        lm?.sentAt ? formatTime(new Date(lm.sentAt)) : "",
             unread:      lm && !lm.readAt && lm.senderId !== user?.id ? 1 : 0,
@@ -294,7 +300,7 @@ export default function ChatPage() {
       }
     };
     fetchChats();
-  }, [navigate, token]);
+  }, [navigate, token, user?.id]);
 
   function formatTime(date) {
     const now = new Date();

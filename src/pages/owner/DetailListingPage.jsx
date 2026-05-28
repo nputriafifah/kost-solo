@@ -6,6 +6,7 @@ import {
   ImageOff, Shield, Ruler, Building2, Sparkles,
 } from "lucide-react";
 import { getApiBase, resolveMediaUrl } from "../../config/apiBase";
+import { GENDER_LABELS } from "../../constants/listing";
 
 const STATUS = {
   PENDING:  { label: "Menunggu Review", pill: "bg-amber-100 text-amber-700 border-amber-200", dot: "bg-amber-400" },
@@ -15,9 +16,9 @@ const STATUS = {
 };
 
 const GENDER = {
-  PUTRA:  { label: "Putra",  cls: "bg-blue-100 text-blue-700 border-blue-200" },
-  PUTRI:  { label: "Putri",  cls: "bg-pink-100 text-pink-700 border-pink-200" },
-  CAMPUR: { label: "Campur", cls: "bg-violet-100 text-violet-700 border-violet-200" },
+  PUTRA:  { label: GENDER_LABELS.PUTRA,  cls: "bg-blue-100 text-blue-700 border-blue-200" },
+  PUTRI:  { label: GENDER_LABELS.PUTRI,  cls: "bg-pink-100 text-pink-700 border-pink-200" },
+  CAMPUR: { label: GENDER_LABELS.CAMPUR, cls: "bg-violet-100 text-violet-700 border-violet-200" },
 };
 
 const facIcon = (f) => {

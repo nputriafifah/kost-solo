@@ -3,19 +3,20 @@ import { useNavigate } from "react-router-dom";
 import {
   ChevronLeft, ChevronRight, Check, MapPin, Loader2,
   Upload, ImageIcon, Trash2, Home, MapPinIcon, Lightbulb,
-  LayoutGrid, Layers, Camera, ArrowLeft,
+  LayoutGrid, Layers, Camera, ArrowLeft, Plus,
 } from "lucide-react";
 import MapPicker from "../../components/owner/MapPicker";
 import { getApiBase } from "../../config/apiBase";
+import { FACILITY_OPTIONS, GENDER_OPTIONS, RULE_OPTIONS } from "../../constants/listing";
 
-const RULE_OPTIONS = [
-  "Tidak boleh bawa pasangan",
-  "Jam malam pukul 22.00",
-  "Tidak boleh merokok",
-  "Tidak boleh bawa hewan peliharaan",
-];
-
-const FACILITY_OPTIONS = ["Wifi", "AC", "Kamar Mandi Dalam", "Parkir", "Laundry"];
+const EMPTY_ROOM = {
+  name: "",
+  price: "",
+  size: "",
+  facilities: [],
+  availableCount: 1,
+  newFacility: "",
+};
 
 const PHOTO_MAX = 8;
 const PHOTO_MIME = ["image/jpeg", "image/png", "image/webp"];
@@ -77,6 +78,8 @@ export default function CreateListingPage() {
 
   // Room photos dengan sortOrder
   const [roomPhotos, setRoomPhotos] = useState([]); // Array of File objects
+  // Tipe kamar yang sudah diisi (sebelum submit akhir)
+  const [savedRoomDrafts, setSavedRoomDrafts] = useState([]);
 
   const toggleItem = (list, item) =>
     list.includes(item) ? list.filter((x) => x !== item) : [...list, item];
@@ -135,18 +138,81 @@ export default function CreateListingPage() {
     setRoomPhotos(next);
   };
 
+  const validateRoomDraft = () => {
+    const e = {};
+    if (room.facilities.length === 0) e.facilities = "Pilih minimal 1 fasilitas";
+    if (room.availableCount < 1) e.availableCount = "Minimal 1 kamar harus tersedia";
+    if (room.name.trim().length < 2) e.roomName = "Nama tipe kamar minimal 2 karakter";
+    if (!room.size.trim()) e.roomSize = "Ukuran kamar wajib diisi";
+    const price = Math.floor(Number(room.price));
+    if (!price || price <= 0) e.roomPrice = "Harga wajib diisi (angka bulat, lebih dari 0)";
+    if (roomPhotos.length === 0) e.photos = "Upload minimal 1 foto kamar";
+    if (roomPhotos.length > PHOTO_MAX) e.photos = `Maksimal ${PHOTO_MAX} foto`;
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const buildCurrentRoomDraft = () => ({
+    room: {
+      name: room.name.trim(),
+      price: Math.floor(Number(room.price)),
+      size: room.size.trim(),
+      facilities: room.facilities,
+      availableCount: Number(room.availableCount),
+    },
+    photos: [...roomPhotos],
+  });
+
+  const handleAddAnotherRoomType = () => {
+    if (!validateRoomDraft()) return;
+    setSavedRoomDrafts((prev) => [...prev, buildCurrentRoomDraft()]);
+    setRoom({ ...EMPTY_ROOM });
+    setRoomPhotos([]);
+    setErrors({});
+    setSubmitError("");
+    setStep(3);
+  };
+
+  const removeSavedDraft = (index) => {
+    setSavedRoomDrafts((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const createRoomTypeWithPhotos = async (api, listingId, draft) => {
+    const resRoom = await fetch(`${api}/owner/listings/${listingId}/room-types`, {
+      method: "POST",
+      headers: authHeaders(true),
+      body: JSON.stringify(draft.room),
+    });
+    if (!resRoom.ok) throw new Error(await parseApiError(resRoom));
+    const roomJson = await resRoom.json();
+    const roomId = roomJson.data?.id;
+    if (!roomId) throw new Error("Room Type ID tidak diterima dari server");
+
+    if (draft.photos.length > 0) {
+      const formData = new FormData();
+      draft.photos.forEach((file) => formData.append("photos", file));
+      const resPhotos = await fetch(`${api}/owner/room-types/${roomId}/photos`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: formData,
+      });
+      if (!resPhotos.ok) throw new Error(await parseApiError(resPhotos));
+    }
+  };
+
   const handleSubmit = async () => {
-    if (!validateStep()) return;
+    if (!validateRoomDraft()) return;
     if (!getToken()) {
       setSubmitError("Sesi habis. Silakan login ulang sebagai pemilik.");
       return;
     }
 
+    const allRoomDrafts = [...savedRoomDrafts, buildCurrentRoomDraft()];
+
     setLoading(true);
     setSubmitError("");
 
     const api = getApiBase();
-    const price = Math.floor(Number(room.price));
 
     try {
       const resListing = await fetch(`${api}/listings/owner`, {
@@ -169,33 +235,9 @@ export default function CreateListingPage() {
       const listingId = listingJson.data?.id;
       if (!listingId) throw new Error("Listing ID tidak diterima dari server");
 
-      const resRoom = await fetch(`${api}/owner/listings/${listingId}/room-types`, {
-        method: "POST",
-        headers: authHeaders(true),
-        body: JSON.stringify({
-          name: room.name.trim(),
-          price,
-          size: room.size.trim(),
-          facilities: room.facilities,
-          availableCount: Number(room.availableCount),
-        }),
-      });
-
-      if (!resRoom.ok) throw new Error(await parseApiError(resRoom));
-      const roomJson = await resRoom.json();
-      const roomId = roomJson.data?.id;
-      if (!roomId) throw new Error("Room Type ID tidak diterima dari server");
-
-      const formData = new FormData();
-      roomPhotos.forEach((file) => formData.append("photos", file));
-
-      const resPhotos = await fetch(`${api}/owner/room-types/${roomId}/photos`, {
-        method: "POST",
-        headers: authHeaders(),
-        body: formData,
-      });
-
-      if (!resPhotos.ok) throw new Error(await parseApiError(resPhotos));
+      for (const draft of allRoomDrafts) {
+        await createRoomTypeWithPhotos(api, listingId, draft);
+      }
 
       navigate("/owner/properti");
     } catch (err) {
@@ -205,6 +247,64 @@ export default function CreateListingPage() {
       setLoading(false);
     }
   };
+
+  const SavedDraftsList = () =>
+    savedRoomDrafts.length === 0 ? null : (
+      <div
+        style={{
+          marginBottom: 20,
+          padding: 14,
+          borderRadius: 12,
+          background: "#eff6ff",
+          border: "1px solid #bfdbfe",
+        }}
+      >
+        <p style={{ fontSize: 12, fontWeight: 700, color: "#1d4ed8", marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.4 }}>
+          Tipe kamar tersimpan ({savedRoomDrafts.length})
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {savedRoomDrafts.map((d, i) => (
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 10,
+                padding: "10px 12px",
+                background: "white",
+                borderRadius: 10,
+                border: "1px solid #dbeafe",
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{d.room.name}</p>
+                <p style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
+                  Rp {d.room.price.toLocaleString("id-ID")} · {d.room.size} · {d.photos.length} foto
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => removeSavedDraft(i)}
+                style={{
+                  flexShrink: 0,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: "#ef4444",
+                  background: "#fef2f2",
+                  border: "1px solid #fecaca",
+                  borderRadius: 8,
+                  padding: "6px 10px",
+                  cursor: "pointer",
+                }}
+              >
+                Hapus
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
 
   const currentStepData = STEPS[step - 1];
   const CurrentIcon = currentStepData.icon;
@@ -1043,18 +1143,14 @@ export default function CreateListingPage() {
                   <div className="clp-field">
                     <label className="clp-label">Tipe Kost</label>
                     <div className="clp-gender-group">
-                      {[
-                        { val: "PUTRA", label: "🧑 Putra" },
-                        { val: "PUTRI", label: "👩 Putri" },
-                        { val: "CAMPUR", label: "👥 Campur" },
-                      ].map(({ val, label }) => (
+                      {GENDER_OPTIONS.map(({ value, label }) => (
                         <button
-                          key={val}
+                          key={value}
                           type="button"
-                          className={`clp-gender-btn${form.genderType === val ? " active" : ""}`}
-                          onClick={() => setForm({ ...form, genderType: val })}
+                          className={`clp-gender-btn${form.genderType === value ? " active" : ""}`}
+                          onClick={() => setForm({ ...form, genderType: value })}
                         >
-                          {label}
+                          {value === "PUTRA" ? "🧑" : value === "PUTRI" ? "👩" : "👥"} {label}
                         </button>
                       ))}
                     </div>
@@ -1173,6 +1269,7 @@ export default function CreateListingPage() {
               {/* STEP 3: Fasilitas & Ketersediaan */}
               {step === 3 && (
                 <>
+                  <SavedDraftsList />
                   <div className="clp-field">
                     <label className="clp-label">Fasilitas Kamar</label>
                     <p className="clp-info-note">Pilih fasilitas yang tersedia atau tambahkan fasilitas custom.</p>
@@ -1428,6 +1525,7 @@ export default function CreateListingPage() {
               {/* STEP 5: Foto Kamar */}
               {step === 5 && (
                 <>
+                  <SavedDraftsList />
                   <p className="clp-info-note">
                     Upload minimal 1 foto (maks. {PHOTO_MAX}). Format JPG, PNG, atau WEBP — maks. 5MB
                     per file.
@@ -1541,33 +1639,51 @@ export default function CreateListingPage() {
                 )}
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600 }}>
-                  {step} / {STEPS.length}
-                </span>
-                {step < STEPS.length ? (
-                  <button type="button" onClick={handleNext} className="clp-btn clp-btn-primary">
-                    Lanjut <ChevronRight size={16} />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleSubmit}
-                    disabled={loading}
-                    className="clp-btn clp-btn-primary"
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} />
-                        Menyimpan...
-                      </>
-                    ) : (
-                      <>
-                        <Check size={16} /> Simpan Kost
-                      </>
-                    )}
-                  </button>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
+                {submitError && step === STEPS.length && (
+                  <p style={{ fontSize: 12, color: "#ef4444", fontWeight: 600, textAlign: "right", maxWidth: 280 }}>
+                    {submitError}
+                  </p>
                 )}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                  <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600 }}>
+                    {step} / {STEPS.length}
+                  </span>
+                  {step < STEPS.length ? (
+                    <button type="button" onClick={handleNext} className="clp-btn clp-btn-primary">
+                      Lanjut <ChevronRight size={16} />
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleAddAnotherRoomType}
+                        disabled={loading}
+                        className="clp-btn clp-btn-outline"
+                      >
+                        <Plus size={16} /> Tipe kamar lain
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSubmit}
+                        disabled={loading}
+                        className="clp-btn clp-btn-primary"
+                      >
+                        {loading ? (
+                          <>
+                            <Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} />
+                            Menyimpan...
+                          </>
+                        ) : (
+                          <>
+                            <Check size={16} /> Simpan Kost
+                            {savedRoomDrafts.length > 0 && ` (${savedRoomDrafts.length + 1} tipe)`}
+                          </>
+                        )}
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </main>

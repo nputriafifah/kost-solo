@@ -6,6 +6,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import Sidebar, { NAV_ITEMS } from "../../components/owner/Sidebar";
 import { getApiBase, resolveMediaUrl } from "../../config/apiBase";
+import { GENDER_LABELS } from "../../constants/listing";
 
 const listingId = (item) => item?.id ?? item?._id;
 
@@ -19,9 +20,9 @@ const STATUS_CONFIG = {
 };
 
 const GENDER_STYLE = {
-  PUTRA:  { label: "Putra",  style: "bg-blue-50 text-blue-600"     },
-  PUTRI:  { label: "Putri",  style: "bg-pink-50 text-pink-600"     },
-  CAMPUR: { label: "Campur", style: "bg-violet-50 text-violet-600" },
+  PUTRA:  { label: GENDER_LABELS.PUTRA,  style: "bg-blue-50 text-blue-600"     },
+  PUTRI:  { label: GENDER_LABELS.PUTRI,  style: "bg-pink-50 text-pink-600"     },
+  CAMPUR: { label: GENDER_LABELS.CAMPUR, style: "bg-violet-50 text-violet-600" },
 };
 
 // ─── OWNER CARD ───────────────────────────────────────────────────────────────

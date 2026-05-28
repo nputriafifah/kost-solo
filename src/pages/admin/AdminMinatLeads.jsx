@@ -4,7 +4,7 @@ import {
   Star, RefreshCw, AlertTriangle, Search,
   Phone, Mail, ExternalLink,
 } from "lucide-react";
-import { adminApiFetch } from "./adminApi";
+import { adminApiFetch, handleAdminAuthError } from "./adminApi";
 
 const STATUS_CFG = {
   ACTIVE:   { label: "Aktif",    bg: "#ecfdf5", color: "#059669" },
@@ -170,12 +170,8 @@ export default function AdminMinatLeads() {
       const leadsRes = await adminApiFetch("/leads?limit=100");
       setRows(Array.isArray(leadsRes.data) ? leadsRes.data : []);
     } catch (err) {
-      if (err.message === "UNAUTHORIZED") {
-        localStorage.removeItem("token");
-        navigate("/auth");
-      } else {
-        setError(err.message);
-      }
+      if (handleAdminAuthError(err, navigate)) return;
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -236,7 +232,7 @@ export default function AdminMinatLeads() {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 14, marginBottom: 20 }}>
-        <StatCard label="Total Leads" value={rows.length.toLocaleString("id-ID")} sub="semua data" accent="#6366f1" />
+        <StatCard label="Total Leads" value={rows.length.toLocaleString("id-ID")} sub="maks. 100 data terbaru dari API" accent="#6366f1" />
         <StatCard label="Hasil Filter" value={filteredRows.length} sub="pencarian aktif" accent="#f59e0b" />
       </div>
 
@@ -256,7 +252,7 @@ export default function AdminMinatLeads() {
             <Search size={14} color="#94a3b8" style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)" }} />
             <input
               type="search"
-              placeholder="Cari nama, kost, pemilik..."
+              placeholder="Cari nama penyewa, kontak, atau nama kost..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               style={{

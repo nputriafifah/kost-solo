@@ -5,9 +5,15 @@ import {
   Home, Map, MessageCircle, User, Settings, LogOut, Search, Moon, Sun,
 } from "lucide-react";
 import KostCard from "../../components/kost/KostCard";
-import { getApiBase } from "../../config/apiBase";
+import { getApiBase, resolveMediaUrl } from "../../config/apiBase";
 
 const API = getApiBase();
+
+function authHeaders(token) {
+  const h = { "Content-Type": "application/json" };
+  if (token) h.Authorization = `Bearer ${token}`;
+  return h;
+}
 
 const NAV_ITEMS = [
   { label: "Home",    path: "/",       icon: Home,          desktop: true,  mobile: true,  guestMobile: true  },
@@ -170,8 +176,8 @@ export default function LikePage() {
     if (!isLoggedIn || !token) return;
     const fetchUnreadChat = async () => {
       try {
-        const res = await fetch("http://localhost:8080/chats", {
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        const res = await fetch(`${API}/chats`, {
+          headers: authHeaders(token),
         });
         if (!res.ok) return;
         const json = await res.json();
@@ -196,7 +202,7 @@ export default function LikePage() {
   const fetchFavorites = async () => {
     setLoading(true); setError(null);
     try {
-      const res = await fetch(`${API}/favorites`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${API}/favorites`, { headers: authHeaders(token) });
       if (!res.ok) throw new Error("Gagal fetch favorites");
       const json = await res.json();
       setData((json.data || []).map((item) => ({
@@ -206,7 +212,7 @@ export default function LikePage() {
         location: item.address ?? "",
         gender: (item.genderType || "").toLowerCase(),
         isPremium: Boolean(item.isPremium),
-        image: item.thumbnailUrl || null,
+        image: resolveMediaUrl(item.thumbnailUrl),
       })));
     } catch (err) { console.error(err); setError("Gagal memuat favorit"); }
     finally { setLoading(false); }
@@ -217,7 +223,7 @@ export default function LikePage() {
   const handleRemove = async (id, e) => {
     e.stopPropagation();
     try {
-      await fetch(`${API}/favorites/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+      await fetch(`${API}/favorites/${id}`, { method: "DELETE", headers: authHeaders(token) });
       setData((prev) => prev.filter((item) => item.id !== String(id)));
     } catch (err) { console.error(err); }
   };

@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getApiBase, postPublicJson, resolveMediaUrl } from "../../config/apiBase";
+import UserNavbar, { USER_NAVBAR_CSS } from "../../components/user/UserNavbar";
+import { useUserNavBadges } from "../../hooks/useUserNavBadges";
 import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { GENDER_LABELS_LOWER } from "../../constants/listing";
 import {
   ArrowLeft, MapPin, Heart, Home,
   ShieldCheck, ChevronLeft, ChevronRight, X,
@@ -13,7 +16,7 @@ import {
   Tv, Utensils, Dumbbell, WashingMachine,
   Package, Droplets, Coffee, Zap, TreePine, BookOpen, Lock,
   CheckCircle2, AlertCircle, Navigation, Info,
-  Flag, Copy, Check, Mail,
+  Flag, Copy, Check, Mail, Phone,
 } from "lucide-react";
 
 /* ─────────────────────────────────────────────
@@ -90,6 +93,20 @@ const GLOBAL_CSS = `
     transition:background .15s;
   }
   .lb-close-btn:hover { background:rgba(255,255,255,.24) }
+
+  .detail-page { min-height:100vh; background:var(--surface); }
+  .detail-shell { max-width:1120px; margin:0 auto; width:100%; }
+  .detail-content { padding:20px 48px 0; }
+  .detail-bottom-inner { max-width:480px; margin:0 auto; }
+
+  @media (min-width:900px) {
+    .detail-gallery-grid { height:380px !important; border-radius:0 0 var(--radius-xl) var(--radius-xl); overflow:hidden; }
+    .detail-gallery-overlay { padding:16px 48px 12px !important; }
+  }
+  @media (max-width:899px) {
+    .detail-content { padding:20px 20px 0; }
+    .detail-gallery-overlay { padding:44px 16px 12px !important; }
+  }
 `;
 
 function InjectStyles({ css }) {
@@ -123,9 +140,9 @@ const REPORT_REASONS = [
 ];
 
 const genderConfig = {
-  putra:  { label:"Putra",  bg:"#EFF6FF", text:"#1D4ED8", border:"#BFDBFE" },
-  putri:  { label:"Putri",  bg:"#FDF2F8", text:"#9D174D", border:"#FBCFE8" },
-  campur: { label:"Campur", bg:"#F0FDF4", text:"#166534", border:"#BBF7D0" },
+  putra:  { label: GENDER_LABELS_LOWER.putra,  bg:"#EFF6FF", text:"#1D4ED8", border:"#BFDBFE" },
+  putri:  { label: GENDER_LABELS_LOWER.putri,  bg:"#FDF2F8", text:"#9D174D", border:"#FBCFE8" },
+  campur: { label: GENDER_LABELS_LOWER.campur, bg:"#F0FDF4", text:"#166534", border:"#BBF7D0" },
 };
 
 /* ─────────────────────────────────────────────
@@ -207,7 +224,9 @@ function mapListingDetail(data) {
     contactNumber:  data.contactNumber || "",
     ownerId:        data.owner?.id || "",
     ownerName:      data.owner?.name || "Pemilik",
-    price:          data.cheapestPrice ?? primaryRoom?.price ?? 0,
+    ownerKostName:  data.owner?.kostName || "",
+    ownerContact:   data.owner?.contact || data.contactNumber || "",
+    price:          Number(data.cheapestPrice ?? primaryRoom?.price ?? 0) || 0,
     size:           primaryRoom?.size || "-",
     facilities,
     images,
@@ -218,11 +237,14 @@ function mapListingDetail(data) {
     roomTypes: (data.roomTypes ?? []).map((room) => ({
       id:             room.id,
       name:           room.name || "Tipe kamar",
-      price:          room.price ?? 0,
+      price:          Number(room.price) || 0,
       size:           room.size || "-",
       availableCount: room.availableCount ?? 0,
       facilities:     Array.isArray(room.facilities) ? room.facilities : [],
       image:          resolveMediaUrl(room.photos?.[0]?.url),
+      images: (room.photos ?? [])
+        .map((p) => resolveMediaUrl(p.url))
+        .filter(Boolean),
     })),
     status: data.status,
   };
@@ -258,7 +280,8 @@ const getFacilityStyle = (name = "") => {
 const getRuleIcon = (r = "") => {
   const rl = r.toLowerCase();
   if (rl.includes("jam") || rl.includes("malam"))              return <Clock size={14} />;
-  if (rl.includes("tamu") || rl.includes("lawan jenis"))       return <UserX size={14} />;
+  if (rl.includes("tamu") || rl.includes("lawan jenis") || rl.includes("pasangan")) return <UserX size={14} />;
+  if (rl.includes("hewan") || rl.includes("peliharaan"))       return <Home size={14} />;
   if (rl.includes("rokok") || rl.includes("merokok"))          return <CigaretteOff size={14} />;
   if (rl.includes("bising") || rl.includes("musik"))           return <VolumeX size={14} />;
   return <ShieldCheck size={14} />;
@@ -846,7 +869,9 @@ function ChatModal({ item, onClose, listingId }) {
       });
       if (!res.ok) throw new Error("Gagal kirim");
       const json = await res.json();
-      setMessages((prev) => [...prev, json.data || json]);
+      const thread = json.data;
+      if (Array.isArray(thread?.messages)) setMessages(thread.messages);
+      else await fetchMessages(threadId);
     } catch (e) { console.error(e); }
     finally     { setSendLoading(false); }
   };
@@ -993,65 +1018,128 @@ export default function DetailPage() {
   const { id }    = useParams();
   const navigate  = useNavigate();
   const API       = getApiUrl();
+  const navBadges = useUserNavBadges();
 
   const [item,        setItem]        = useState(null);
   const [loading,     setLoading]     = useState(true);
+  const [fetchError,  setFetchError]  = useState(null);
   const [isLiked,     setIsLiked]     = useState(false);
+  const [likeLoading, setLikeLoading] = useState(false);
   const [lightbox,    setLightbox]    = useState(null);   // null | index
   const [showMinat,   setShowMinat]   = useState(false);
   const [showReport,  setShowReport]  = useState(false);
   const [showShare,   setShowShare]   = useState(false);
   const [showChat,    setShowChat]    = useState(false);
 
-  // Load favourite state
   useEffect(() => {
-    const favs = JSON.parse(localStorage.getItem("atap_favorites") || "[]");
-    setIsLiked(favs.includes(id));
-  }, [id]);
+    const token = getToken();
+    if (!token) {
+      const favs = JSON.parse(localStorage.getItem("atap_favorites") || "[]");
+      setIsLiked(favs.includes(id));
+      return;
+    }
+    (async () => {
+      try {
+        const res = await authFetch(`${API}/favorites`);
+        if (!res.ok) return;
+        const json = await res.json();
+        const list = Array.isArray(json.data) ? json.data : [];
+        setIsLiked(list.some((f) => String(f.id) === String(id)));
+      } catch { /* ignore */ }
+    })();
+  }, [id, API]);
 
-  const toggleLike = () => {
-    const favs = JSON.parse(localStorage.getItem("atap_favorites") || "[]");
-    const next = isLiked ? favs.filter((f) => f !== id) : [...favs, id];
-    localStorage.setItem("atap_favorites", JSON.stringify(next));
-    setIsLiked(!isLiked);
+  const toggleLike = async () => {
+    const token = getToken();
+    if (!token) {
+      navigate("/auth");
+      return;
+    }
+    setLikeLoading(true);
+    try {
+      if (isLiked) {
+        await authFetch(`${API}/favorites/${id}`, { method: "DELETE" });
+      } else {
+        await authFetch(`${API}/favorites/${id}`, { method: "POST" });
+      }
+      setIsLiked((v) => !v);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLikeLoading(false);
+    }
+  };
+
+  const openChat = () => {
+    if (!getToken()) {
+      navigate("/auth");
+      return;
+    }
+    setShowChat(true);
   };
 
   // Fetch listing detail
   useEffect(() => {
     window.scrollTo(0, 0);
+    setLoading(true);
+    setFetchError(null);
     (async () => {
       try {
         const res = await fetch(`${API}/listings/${id}`);
-        if (!res.ok) throw new Error("Gagal fetch");
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.message || "Kost tidak ditemukan");
+        }
         const { data } = await res.json();
-        if (!data) return;
+        if (!data) throw new Error("Data kost tidak tersedia");
         setItem(mapListingDetail(data));
-        fetch(`${API}/listings/${id}/view`, { method:"POST" }).catch(() => {});
+        fetch(`${API}/listings/${id}/view`, { method: "POST" }).catch(() => {});
       } catch (err) {
         console.error(err);
+        setFetchError(err.message || "Gagal memuat detail kost");
+        setItem(null);
       } finally {
         setLoading(false);
       }
     })();
-  }, [id]);
+  }, [id, API]);
 
   /* ── Render states ── */
-  if (loading) return <><InjectStyles css={GLOBAL_CSS} /><LoadingSkeleton /></>;
-
-  if (!item) return (
-    <>
-      <InjectStyles css={GLOBAL_CSS} />
-      <div style={{ fontFamily:"var(--ff)", minHeight:"100vh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:16, padding:24 }}>
-        <div style={{ width:64, height:64, borderRadius:"var(--radius-lg)", background:"var(--surface-2)", border:"1px solid var(--border)", display:"flex", alignItems:"center", justifyContent:"center" }}>
-          <Home size={28} color="var(--text-muted)" />
+  if (loading) {
+    return (
+      <>
+        <InjectStyles css={GLOBAL_CSS} />
+        <style>{USER_NAVBAR_CSS}</style>
+        <div className="detail-page">
+          <UserNavbar badges={navBadges} />
+          <LoadingSkeleton />
         </div>
-        <p style={{ fontSize:14, color:"var(--text-muted)", fontWeight:500 }}>Data tidak ditemukan</p>
-        <button onClick={() => navigate(-1)} style={{ fontSize:13, fontWeight:700, color:"var(--brand)", background:"var(--brand-light)", border:"none", padding:"10px 24px", borderRadius:99, cursor:"pointer", fontFamily:"var(--ff)" }}>
-          Kembali
-        </button>
-      </div>
-    </>
-  );
+      </>
+    );
+  }
+
+  if (!item) {
+    return (
+      <>
+        <InjectStyles css={GLOBAL_CSS} />
+        <style>{USER_NAVBAR_CSS}</style>
+        <div className="detail-page">
+          <UserNavbar badges={navBadges} />
+          <div style={{ fontFamily:"var(--ff)", minHeight:"60vh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:16, padding:24 }}>
+            <div style={{ width:64, height:64, borderRadius:"var(--radius-lg)", background:"var(--surface-2)", border:"1px solid var(--border)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+              <Home size={28} color="var(--text-muted)" />
+            </div>
+            <p style={{ fontSize:14, color:"var(--text-muted)", fontWeight:500, textAlign:"center" }}>
+              {fetchError || "Data tidak ditemukan"}
+            </p>
+            <button onClick={() => navigate("/search")} style={{ fontSize:13, fontWeight:700, color:"var(--brand)", background:"var(--brand-light)", border:"none", padding:"10px 24px", borderRadius:99, cursor:"pointer", fontFamily:"var(--ff)" }}>
+              Cari kost lain
+            </button>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   const images    = item.images;
   const hasPhotos = images.length > 0;
@@ -1060,11 +1148,15 @@ export default function DetailPage() {
   return (
     <>
       <InjectStyles css={GLOBAL_CSS} />
-      <div style={{ fontFamily:"var(--ff)", minHeight:"100vh", background:"var(--surface)", color:"var(--text-primary)", paddingBottom:96 }}>
+      <style>{USER_NAVBAR_CSS}</style>
+      <div className="detail-page" style={{ fontFamily:"var(--ff)", color:"var(--text-primary)", paddingBottom:96 }}>
 
+        <UserNavbar badges={navBadges} />
+
+        <div className="detail-shell">
         {/* ══ IMAGE GALLERY ══ */}
         <div style={{ position:"relative", background:"#0D1117" }}>
-          <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr", gridTemplateRows:"1fr 1fr", gap:2, height:300 }}>
+          <div className="detail-gallery-grid" style={{ display:"grid", gridTemplateColumns:"2fr 1fr", gridTemplateRows:"1fr 1fr", gap:2, height:300 }}>
 
             {/* Main image */}
             <div
@@ -1114,7 +1206,7 @@ export default function DetailPage() {
           </div>
 
           {/* Overlay nav */}
-          <div style={{ position:"absolute", top:0, left:0, right:0, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"44px 16px 12px", pointerEvents:"none" }}>
+          <div className="detail-gallery-overlay" style={{ position:"absolute", top:0, left:0, right:0, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"16px 48px 12px", pointerEvents:"none" }}>
             <button
               onClick={() => navigate(-1)}
               style={{ width:38, height:38, borderRadius:"50%", background:"rgba(255,255,255,.9)", backdropFilter:"blur(8px)", border:"none", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", pointerEvents:"all" }}
@@ -1139,7 +1231,7 @@ export default function DetailPage() {
         </div>
 
         {/* ══ CONTENT ══ */}
-        <div style={{ padding:"20px 20px 0" }}>
+        <div className="detail-content">
 
           {/* Badges */}
           <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10, flexWrap:"wrap" }}>
@@ -1162,9 +1254,38 @@ export default function DetailPage() {
 
           {/* Title & location */}
           <h1 style={{ fontFamily:"var(--ff-display)", fontSize:22, color:"var(--text-primary)", lineHeight:1.25, marginBottom:6 }}>{item.name}</h1>
-          <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:20 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:item.contactNumber ? 8 : 20 }}>
             <MapPin size={13} color="var(--text-muted)" style={{ flexShrink:0 }} />
             <span style={{ fontSize:13, color:"var(--text-muted)" }}>{item.location}</span>
+          </div>
+          {item.contactNumber && (
+            <div style={{ display:"flex", alignItems:"center", gap:6, marginBottom:20 }}>
+              <Phone size={13} color="var(--text-muted)" style={{ flexShrink:0 }} />
+              <span style={{ fontSize:13, color:"var(--text-muted)" }}>
+                Kontak kost: <span style={{ fontWeight:600, color:"var(--text-secondary)" }}>{item.contactNumber}</span>
+              </span>
+            </div>
+          )}
+
+          {/* Owner */}
+          <div style={{ marginBottom:20, borderRadius:"var(--radius-lg)", border:"1px solid var(--border)", background:"var(--surface-2)", padding:"16px 18px", display:"flex", alignItems:"center", gap:14, flexWrap:"wrap" }}>
+            <div style={{ width:48, height:48, borderRadius:14, background:"linear-gradient(135deg,#3B82F6,#06B6D4)", display:"flex", alignItems:"center", justifyContent:"center", color:"white", fontWeight:800, fontSize:18, flexShrink:0 }}>
+              {item.ownerName?.[0]?.toUpperCase() || "P"}
+            </div>
+            <div style={{ flex:1, minWidth:160 }}>
+              <p style={{ fontSize:11, fontWeight:700, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:.5, marginBottom:4 }}>Pemilik Kost</p>
+              <p style={{ fontSize:15, fontWeight:700, color:"var(--text-primary)", marginBottom:2 }}>{item.ownerName}</p>
+              {item.ownerKostName && (
+                <p style={{ fontSize:12, color:"var(--text-muted)", margin:0 }}>{item.ownerKostName}</p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={openChat}
+              style={{ height:44, padding:"0 18px", borderRadius:"var(--radius)", border:"none", cursor:"pointer", background:"var(--brand)", color:"#fff", fontWeight:700, fontSize:13, fontFamily:"var(--ff)", display:"inline-flex", alignItems:"center", gap:8, boxShadow:"var(--shadow-brand)" }}
+            >
+              <Send size={15} /> Chat Pemilik
+            </button>
           </div>
 
           {/* Price banner */}
@@ -1182,37 +1303,55 @@ export default function DetailPage() {
             </div>
           </div>
 
-          {/* Room types */}
-          {item.roomTypes?.length > 1 && (
+          {/* Room types — create listing always adds at least one */}
+          {item.roomTypes?.length > 0 && (
             <div style={{ marginBottom:24 }}>
               <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
-                <h2 style={{ fontSize:15, fontWeight:700, color:"var(--text-primary)" }}>Pilihan Kamar</h2>
-                <span style={{ fontSize:11, color:"var(--text-muted)" }}>{item.roomTypes.length} tipe</span>
+                <h2 style={{ fontSize:15, fontWeight:700, color:"var(--text-primary)" }}>
+                  {item.roomTypes.length > 1 ? "Pilihan Kamar" : "Detail Kamar"}
+                </h2>
+                {item.roomTypes.length > 1 && (
+                  <span style={{ fontSize:11, color:"var(--text-muted)" }}>{item.roomTypes.length} tipe</span>
+                )}
               </div>
 
               {item.roomTypes.length === 1 ? (
-                <div style={{ borderRadius:"var(--radius-lg)", border:"1px solid var(--border)", overflow:"hidden", background:"var(--surface-2)" }}>
-                  {item.roomTypes[0].image && (
-                    <img src={item.roomTypes[0].image} alt={item.roomTypes[0].name} style={{ width:"100%", height:140, objectFit:"cover", display:"block" }} />
-                  )}
-                  <div style={{ padding:16 }}>
-                    <p style={{ fontWeight:700, fontSize:15, color:"var(--text-primary)", marginBottom:4 }}>{item.roomTypes[0].name}</p>
-                    <p style={{ fontSize:18, fontWeight:800, color:"var(--brand)", marginBottom:6 }}>
-                      Rp {Number(item.roomTypes[0].price).toLocaleString("id-ID")}
-                      <span style={{ fontSize:12, color:"var(--text-muted)", fontWeight:400 }}>/bulan</span>
-                    </p>
-                    <p style={{ fontSize:12, color:"var(--text-muted)" }}>
-                      {item.roomTypes[0].size} · {item.roomTypes[0].availableCount} kamar tersedia
-                    </p>
-                  </div>
-                </div>
+                (() => {
+                  const room = item.roomTypes[0];
+                  return (
+                    <div style={{ borderRadius:"var(--radius-lg)", border:"1px solid var(--border)", overflow:"hidden", background:"var(--surface-2)" }}>
+                      {room.image && (
+                        <img src={room.image} alt={room.name} style={{ width:"100%", height:180, objectFit:"cover", display:"block" }} />
+                      )}
+                      <div style={{ padding:16 }}>
+                        <p style={{ fontWeight:700, fontSize:15, color:"var(--text-primary)", marginBottom:4 }}>{room.name}</p>
+                        <p style={{ fontSize:18, fontWeight:800, color:"var(--brand)", marginBottom:6 }}>
+                          Rp {Number(room.price).toLocaleString("id-ID")}
+                          <span style={{ fontSize:12, color:"var(--text-muted)", fontWeight:400 }}>/bulan</span>
+                        </p>
+                        <p style={{ fontSize:12, color:"var(--text-muted)", marginBottom:room.facilities?.length ? 12 : 0 }}>
+                          Ukuran {room.size} · {room.availableCount} kamar tersedia
+                        </p>
+                        {room.facilities?.length > 0 && (
+                          <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                            {room.facilities.map((f, i) => (
+                              <span key={i} style={{ fontSize:11, fontWeight:600, padding:"4px 10px", borderRadius:99, background:"var(--surface)", border:"1px solid var(--border)", color:"var(--text-secondary)" }}>
+                                {f}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()
               ) : (
                 <div
                   className="scrollbar-hide"
-                  style={{ display:"flex", gap:12, overflowX:"auto", paddingBottom:4, margin:"0 -20px", padding:"0 20px" }}
+                  style={{ display:"flex", gap:12, overflowX:"auto", paddingBottom:4 }}
                 >
                   {item.roomTypes.map((room) => (
-                    <div key={room.id} style={{ minWidth:160, maxWidth:160, flexShrink:0, borderRadius:"var(--radius-lg)", border:"1px solid var(--border)", overflow:"hidden", background:"var(--surface)" }}>
+                    <div key={room.id} style={{ minWidth:168, maxWidth:168, flexShrink:0, borderRadius:"var(--radius-lg)", border:"1px solid var(--border)", overflow:"hidden", background:"var(--surface)" }}>
                       <div style={{ height:96, background:"var(--surface-3)" }}>
                         {room.image
                           ? <img src={room.image} alt={room.name} style={{ width:"100%", height:"100%", objectFit:"cover", display:"block" }} />
@@ -1222,7 +1361,7 @@ export default function DetailPage() {
                       <div style={{ padding:"10px 12px" }}>
                         <p style={{ fontWeight:700, fontSize:13, color:"var(--text-primary)", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", marginBottom:4 }}>{room.name}</p>
                         <p style={{ fontSize:14, fontWeight:800, color:"var(--brand)", marginBottom:6 }}>
-                          Rp {(room.price / 1000).toFixed(0)}k
+                          Rp {Number(room.price).toLocaleString("id-ID")}
                           <span style={{ fontSize:10, color:"var(--text-muted)", fontWeight:400 }}>/bln</span>
                         </p>
                         <p style={{ fontSize:10, color:"var(--text-muted)", lineHeight:1.5 }}>{room.size}<br />{room.availableCount} kamar</p>
@@ -1335,21 +1474,35 @@ export default function DetailPage() {
             </button>
           </div>
         </div>
+        </div>
       </div>
 
       {/* ══ BOTTOM BAR ══ */}
       <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--surface)", borderTop:"1px solid var(--border)", padding:"12px 16px", paddingBottom:"calc(12px + env(safe-area-inset-bottom))", zIndex:50, backdropFilter:"blur(12px)" }}>
-        <div style={{ display:"flex", alignItems:"center", gap:10, maxWidth:480, margin:"0 auto" }}>
+        <div className="detail-bottom-inner" style={{ display:"flex", alignItems:"center", gap:10 }}>
           {/* Like */}
           <button
+            type="button"
             onClick={toggleLike}
-            style={{ width:48, height:48, borderRadius:"var(--radius)", border:`1.5px solid ${isLiked ? "#FECACA" : "var(--border)"}`, background:isLiked ? "#FEF2F2" : "var(--surface-2)", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", flexShrink:0, transition:"all .2s" }}
+            disabled={likeLoading}
+            style={{ width:48, height:48, borderRadius:"var(--radius)", border:`1.5px solid ${isLiked ? "#FECACA" : "var(--border)"}`, background:isLiked ? "#FEF2F2" : "var(--surface-2)", display:"flex", alignItems:"center", justifyContent:"center", cursor:likeLoading ? "wait" : "pointer", flexShrink:0, transition:"all .2s", opacity:likeLoading ? 0.7 : 1 }}
           >
             <Heart size={18} fill={isLiked ? "var(--danger)" : "none"} color={isLiked ? "var(--danger)" : "var(--text-muted)"} />
           </button>
 
+          {/* Chat */}
+          <button
+            type="button"
+            onClick={openChat}
+            style={{ width:48, height:48, borderRadius:"var(--radius)", border:"1.5px solid #BFDBFE", background:"var(--brand-light)", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", flexShrink:0 }}
+            title="Chat pemilik"
+          >
+            <Send size={17} color="var(--brand)" />
+          </button>
+
           {/* Minat (WhatsApp) */}
           <button
+            type="button"
             onClick={() => setShowMinat(true)}
             style={{ flex:1, height:48, borderRadius:"var(--radius)", color:"white", fontWeight:700, fontSize:13, fontFamily:"var(--ff)", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8, background:"linear-gradient(135deg,#25D366,#128C7E)", boxShadow:"0 4px 16px rgba(37,211,102,.3)" }}
           >
@@ -1362,6 +1515,7 @@ export default function DetailPage() {
 
           {/* Report */}
           <button
+            type="button"
             onClick={() => setShowReport(true)}
             style={{ width:48, height:48, borderRadius:"var(--radius)", background:"#FEF2F2", border:"1px solid #FECACA", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", flexShrink:0 }}
           >

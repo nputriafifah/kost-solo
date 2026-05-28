@@ -5,6 +5,7 @@ import {
   CheckCircle, XCircle, User, Building2,
 } from "lucide-react";
 
+import { REPORT_REVIEW_ACTIONS, reportReasonLabel } from "../../constants/admin";
 import { adminApiFetch, handleAdminAuthError } from "./adminApi";
 import { REPORT_STATUS, StatusBadge } from "./adminUi";
 
@@ -33,12 +34,12 @@ function ActionModal({ report, onConfirm, onClose, loading }) {
         <div style={{ background: "#f8fafc", borderRadius: 10, padding: "12px 14px", marginBottom: 20, fontSize: 13 }}>
           <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
             <span style={{ color: "#94a3b8", fontWeight: 500, width: 80 }}>Alasan</span>
-            <span style={{ color: "#0f172a", fontWeight: 600 }}>{report.reason ?? "-"}</span>
+            <span style={{ color: "#0f172a", fontWeight: 600 }}>{reportReasonLabel(report.reason)}</span>
           </div>
-          {report.description && (
+          {report.note && (
             <div style={{ display: "flex", gap: 8 }}>
-              <span style={{ color: "#94a3b8", fontWeight: 500, width: 80 }}>Detail</span>
-              <span style={{ color: "#475569" }}>{report.description}</span>
+              <span style={{ color: "#94a3b8", fontWeight: 500, width: 80 }}>Catatan</span>
+              <span style={{ color: "#475569" }}>{report.note}</span>
             </div>
           )}
         </div>
@@ -118,6 +119,7 @@ export default function AdminReports() {
   // PATCH /admin/reports/:id → { action: "DISMISS" | "DEACTIVATE_LISTING" }
   const handleReview = async (action) => {
     if (!reviewTarget) return;
+    if (!REPORT_REVIEW_ACTIONS.includes(action)) return;
     setActionLoading(`review-${reviewTarget.id}`);
     try {
       await adminApiFetch(`/admin/reports/${reviewTarget.id}`, {
@@ -132,17 +134,20 @@ export default function AdminReports() {
 
   const filtered = reports.filter(r => {
     const q = search.toLowerCase();
+    const reasonLabel = reportReasonLabel(r.reason).toLowerCase();
     return (
       (r.listing?.name ?? "").toLowerCase().includes(q) ||
       (r.user?.name ?? "").toLowerCase().includes(q) ||
-      (r.reason ?? "").toLowerCase().includes(q)
+      (r.reason ?? "").toLowerCase().includes(q) ||
+      reasonLabel.includes(q) ||
+      (r.note ?? "").toLowerCase().includes(q)
     );
   });
 
   // Summary
-  const pending   = reports.filter(r => r.status === "PENDING").length;
-  const resolved  = reports.filter(r => r.status === "RESOLVED").length;
-  const dismissed = reports.filter(r => r.status === "DISMISSED").length;
+  const pending   = reports.filter(r => (r.status ?? "").toUpperCase() === "PENDING").length;
+  const resolved  = reports.filter(r => (r.status ?? "").toUpperCase() === "RESOLVED").length;
+  const dismissed = reports.filter(r => (r.status ?? "").toUpperCase() === "DISMISSED").length;
 
   if (loading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "60vh", flexDirection: "column", gap: 12 }}>
@@ -274,7 +279,7 @@ export default function AdminReports() {
             </thead>
             <tbody>
               {filtered.map((r) => {
-                const isPending = r.status === "PENDING";
+                const isPending = (r.status ?? "").toUpperCase() === "PENDING";
                 const isLoading = actionLoading === `review-${r.id}`;
                 return (
                   <tr key={r.id}
@@ -303,10 +308,10 @@ export default function AdminReports() {
                       </div>
                     </td>
                     <td style={tdStyle}>
-                      <span style={{ fontWeight: 500, color: "#0f172a" }}>{r.reason ?? "-"}</span>
-                      {r.description && (
+                      <span style={{ fontWeight: 500, color: "#0f172a" }}>{reportReasonLabel(r.reason)}</span>
+                      {r.note && (
                         <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {r.description}
+                          {r.note}
                         </div>
                       )}
                     </td>

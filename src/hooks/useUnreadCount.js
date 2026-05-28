@@ -3,8 +3,9 @@
 // returns { unreadCount } dan memunculkan toast saat ada pesan baru.
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { getApiBase } from "../config/apiBase";
 
-const API       = "http://localhost:8080";
+const API       = getApiBase();
 const POLL_MS   = 8_000;   // polling interval (8 detik)
 
 /**

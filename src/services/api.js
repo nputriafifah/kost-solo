@@ -1,4 +1,6 @@
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+import { getApiBase } from "../config/apiBase";
+
+const BASE_URL = getApiBase();
 
 export const request = async (url, options = {}) => {
   const token = localStorage.getItem("token");

@@ -76,7 +76,7 @@ function TopListingBars({ listings }) {
             />
           </div>
           <div style={{ display: "flex", gap: 12, marginTop: 4, fontSize: 11, color: "#94a3b8" }}>
-            <span>Chat: {l.totalLeads ?? 0}</span>
+            <span>Thread chat: {l.totalLeads ?? 0}</span>
             <span>Favorit: {l.totalFavorites ?? 0}</span>
             <span>{l.owner?.name ? `Pemilik: ${l.owner.name}` : ""}</span>
           </div>
@@ -230,7 +230,7 @@ export default function AdminAnalytics() {
           </div>
           <p style={{ margin: 0, fontSize: 28, fontWeight: 700 }}>{engagementTotal.toLocaleString("id-ID")}</p>
           <p style={{ margin: "6px 0 0", fontSize: 12, color: "#94a3b8" }}>
-            Jumlah views + chat + favorit (top {topListings.length} listing)
+            Views + thread chat + favorit (hanya top {topListings.length} listing, bukan seluruh platform)
           </p>
         </div>
 
@@ -270,6 +270,9 @@ export default function AdminAnalytics() {
             <span style={{ fontWeight: 700, fontSize: 14 }}>Total Leads (Saya Minat)</span>
           </div>
           <p style={{ margin: 0, fontSize: 28, fontWeight: 700 }}>{leads.length.toLocaleString("id-ID")}</p>
+          <p style={{ margin: "6px 0 0", fontSize: 11, color: "#94a3b8" }}>
+            Maks. 200 lead terbaru dari API (bukan total semua di database)
+          </p>
           <Link
             to="/admin/minat-leads"
             style={{ marginTop: 8, display: "inline-block", fontSize: 12, color: "#6366f1", fontWeight: 600, textDecoration: "none" }}
@@ -340,7 +343,7 @@ export default function AdminAnalytics() {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
             <thead>
               <tr style={{ background: "#f8fafc" }}>
-                {["Kost", "Pemilik", "Status", "Views", "Chat", "Favorit"].map((h, i) => (
+                {["Kost", "Pemilik", "Status", "Views", "Thread chat", "Favorit"].map((h, i) => (
                   <th
                     key={h}
                     style={{

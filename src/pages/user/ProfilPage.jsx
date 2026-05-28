@@ -1,11 +1,39 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
-  User, Mail, ChevronRight, LogOut, Settings,
+  User, Mail, Phone, ChevronRight, Settings,
   Bell, Shield, HelpCircle, X, Check, Camera,
   MapPin, Map as MapIcon, Globe, Navigation,
-  ChevronLeft, Home, Map, Heart, MessageCircle, Search, Moon, Sun,
+  Home, Map, Heart, MessageCircle, Search,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { getApiBase } from "../../config/apiBase";
+import UserNavbar, { USER_NAVBAR_CSS } from "../../components/user/UserNavbar";
+import { useUserNavBadges } from "../../hooks/useUserNavBadges";
+
+const API = getApiBase();
+
+function authHeaders(token) {
+  const h = { "Content-Type": "application/json" };
+  if (token) h.Authorization = `Bearer ${token}`;
+  return h;
+}
+
+function normalizeProfile(parsed) {
+  if (!parsed || typeof parsed !== "object") {
+    return { name: "", email: "", phone: "", province: "", city: "", district: "", address: "" };
+  }
+  return {
+    id: parsed.id,
+    role: parsed.role,
+    name: parsed.name || "",
+    email: parsed.email || "",
+    phone: parsed.phone || "",
+    province: parsed.province || "",
+    city: parsed.city || "",
+    district: parsed.district || "",
+    address: parsed.address || "",
+  };
+}
 
 // ─── INDONESIA REGION DATA ────────────────────────────────────────────────────
 const PROVINCES = [
@@ -43,13 +71,6 @@ const CITIES = {
   "Kalimantan Selatan": ["Kab. Balangan", "Kab. Banjar", "Kab. Barito Kuala", "Kab. Hulu Sungai Selatan", "Kab. Hulu Sungai Tengah", "Kab. Hulu Sungai Utara", "Kab. Kotabaru", "Kab. Tabalong", "Kab. Tanah Bumbu", "Kab. Tanah Laut", "Kab. Tapin", "Kota Banjarbaru", "Kota Banjarmasin"],
   "Sumatera Barat": ["Kab. Agam", "Kab. Dharmasraya", "Kab. Kepulauan Mentawai", "Kab. Lima Puluh Kota", "Kab. Padang Pariaman", "Kab. Pasaman", "Kab. Pasaman Barat", "Kab. Pesisir Selatan", "Kab. Sijunjung", "Kab. Solok", "Kab. Solok Selatan", "Kab. Tanah Datar", "Kota Bukittinggi", "Kota Padang", "Kota Padang Panjang", "Kota Pariaman", "Kota Payakumbuh", "Kota Sawahlunto", "Kota Solok"],
 };
-
-const NOTIFICATIONS_DEFAULT = [
-  { id: 1, unread: true },
-  { id: 2, unread: true },
-  { id: 3, unread: false },
-  { id: 4, unread: false },
-];
 
 const menuItems = [
   { icon: Settings,   label: "Pengaturan Akun",    sub: "Kelola informasi & keamanan",  color: "#2563EB", bg: "#EFF6FF",  darkBg: "#1e3a8a22", path: "/settings/account" },
@@ -117,77 +138,82 @@ export default function ProfilPage() {
   const currentPath  = location.pathname;
 
   const [userData,          setUserData]         = useState({ name:"", email:"", province:"", city:"", district:"", address:"" });
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isEditing,         setIsEditing]         = useState(false);
   const [editForm,          setEditForm]          = useState({ name:"", email:"", province:"", city:"", district:"", address:"" });
   const [photoUrl,          setPhotoUrl]          = useState(null);
   const [isSaving,          setIsSaving]          = useState(false);
   const [saveSuccess,       setSaveSuccess]       = useState(false);
-  const [unreadCount,       setUnreadCount]       = useState(0);
-  const [unreadChat,        setUnreadChat]        = useState(0);
-  const [darkMode,          setDarkMode]          = useState(() => {
-    try { return localStorage.getItem("atap_dark_mode") === "true"; } catch { return false; }
-  });
+  const [stats,             setStats]             = useState({ favorites: 0, chats: 0 });
+
+  const navBadges  = useUserNavBadges();
+  const { unreadCount, unreadChat, darkMode } = navBadges;
 
   const user       = JSON.parse(localStorage.getItem("user") || "null");
   const isLoggedIn = !!user;
   const token      = localStorage.getItem("token");
 
-  // Persist dark mode preference
-  useEffect(() => {
-    localStorage.setItem("atap_dark_mode", darkMode);
-  }, [darkMode]);
-
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     if (savedUser) {
-      const parsed = JSON.parse(savedUser);
-      setUserData(parsed);
-      setEditForm(parsed);
+      try {
+        const profile = normalizeProfile(JSON.parse(savedUser));
+        setUserData(profile);
+        setEditForm(profile);
+      } catch { /* ignore */ }
     }
     const savedPhoto = localStorage.getItem("atap_profile_photo");
     if (savedPhoto) setPhotoUrl(savedPhoto);
 
-    const savedNotifs = localStorage.getItem("atap_notifications");
-    if (savedNotifs) {
-      try { setUnreadCount(JSON.parse(savedNotifs).filter(n => n.unread).length); }
-      catch { setUnreadCount(0); }
-    } else {
-      setUnreadCount(NOTIFICATIONS_DEFAULT.filter(n => n.unread).length);
-    }
   }, []);
 
   useEffect(() => {
     if (!isLoggedIn || !token) return;
-    const fetchUnreadChat = async () => {
+
+    const fetchActivity = async () => {
       try {
-        const res = await fetch("http://localhost:8080/chats", {
-          headers: { "Content-Type":"application/json", Authorization:`Bearer ${token}` },
-        });
-        if (!res.ok) return;
-        const json = await res.json();
-        const raw  = Array.isArray(json.data) ? json.data : [];
-        setUnreadChat(raw.reduce((acc, thread) => {
-          const lm = thread.lastMessage;
-          return (lm && !lm.readAt && lm.senderId !== user?.id) ? acc + 1 : acc;
-        }, 0));
-      } catch { }
+        const [favRes, chatRes] = await Promise.all([
+          fetch(`${API}/favorites`, { headers: authHeaders(token) }),
+          fetch(`${API}/chats`, { headers: authHeaders(token) }),
+        ]);
+
+        if (favRes.ok) {
+          const favJson = await favRes.json();
+          const favList = Array.isArray(favJson.data) ? favJson.data : [];
+          setStats((s) => ({ ...s, favorites: favList.length }));
+        }
+
+        if (chatRes.ok) {
+          const chatJson = await chatRes.json();
+          const raw = Array.isArray(chatJson.data) ? chatJson.data : [];
+          setStats((s) => ({ ...s, chats: raw.length }));
+        }
+      } catch { /* ignore */ }
     };
-    fetchUnreadChat();
-    const interval = setInterval(fetchUnreadChat, 30_000);
+
+    fetchActivity();
+    const interval = setInterval(fetchActivity, 30_000);
     return () => clearInterval(interval);
   }, [isLoggedIn, token, user?.id]);
 
   const handleSaveProfile = () => {
     setIsSaving(true);
-    setTimeout(() => {
-      const updated = { ...userData, ...editForm };
-      localStorage.setItem("user", JSON.stringify(updated));
-      setUserData(updated);
-      setIsSaving(false);
-      setSaveSuccess(true);
-      setTimeout(() => { setSaveSuccess(false); setIsEditing(false); }, 1000);
-    }, 800);
+    const updated = normalizeProfile({
+      ...user,
+      ...userData,
+      name: editForm.name.trim(),
+      email: editForm.email.trim(),
+      phone: editForm.phone?.trim() || userData.phone || "",
+      province: editForm.province,
+      city: editForm.city,
+      district: editForm.district.trim(),
+      address: editForm.address.trim(),
+    });
+    localStorage.setItem("user", JSON.stringify(updated));
+    setUserData(updated);
+    setEditForm(updated);
+    setIsSaving(false);
+    setSaveSuccess(true);
+    setTimeout(() => { setSaveSuccess(false); setIsEditing(false); }, 1000);
   };
 
   const handlePhotoChange = (e) => {
@@ -201,7 +227,7 @@ export default function ProfilPage() {
     reader.readAsDataURL(file);
   };
 
-  const initials   = userData.name?.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "U";
+  const initials   = navBadges.initials || userData.name?.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) || "U";
   const cityOptions = CITIES[editForm.province] || [];
 
   // ── Dark mode color tokens ──
@@ -227,9 +253,6 @@ export default function ProfilPage() {
     .profil-bn-notif-dot { position:absolute; top:-2px; right:-2px; width:7px; height:7px; background:#EF4444; border-radius:50%; border:1.5px solid ${cardBg}; }
     .profil-bn-icon-wrap { position:relative; display:inline-flex; }
     .profil-bn-chat-badge { position:absolute; top:-4px; right:-6px; min-width:14px; height:14px; background:#EF4444; border-radius:999px; border:1.5px solid ${cardBg}; display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:800; color:white; padding:0 3px; line-height:1; pointer-events:none; }
-
-    .profil-theme-toggle { width:40px; height:40px; border-radius:50%; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; cursor:pointer; color:#fff; transition:.2s; flex-shrink:0; }
-    .profil-theme-toggle:hover { background:rgba(255,255,255,0.25); }
 
     .profil-menu-btn { display:flex; align-items:center; gap:14px; padding:16px 18px; background:${cardBg2}; border:1.5px solid ${border}; border-radius:20px; cursor:pointer; text-align:left; transition:border-color 0.2s, box-shadow 0.2s, background 0.2s; box-shadow: ${D ? "0 2px 8px rgba(0,0,0,0.2)" : "0 2px 8px rgba(15,23,42,0.04)"}; width:100%; }
 
@@ -260,51 +283,31 @@ export default function ProfilPage() {
 
   return (
     <>
+      <style>{USER_NAVBAR_CSS}</style>
       <style>{css}</style>
       <div style={{ minHeight:"100vh", background: bg, paddingBottom:80, fontFamily:"'DM Sans', sans-serif", transition:"background 0.3s" }}>
+
+        <UserNavbar badges={navBadges} activePath={currentPath} />
 
         {/* ── HERO HEADER ── */}
         <div style={{
           background:"linear-gradient(135deg, #1D4ED8 0%, #1E40AF 50%, #312E81 100%)",
-          padding:"56px 24px 80px", position:"relative", overflow:"hidden",
+          padding:"40px 0 80px", position:"relative", overflow:"hidden",
         }}>
           <div style={{ position:"absolute", top:-40, right:-40, width:200, height:200, borderRadius:"50%", background:"rgba(255,255,255,0.05)" }} />
           <div style={{ position:"absolute", bottom:-20, left:-20, width:120, height:120, borderRadius:"50%", background:"rgba(255,255,255,0.05)" }} />
 
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", position:"relative", gap:12 }}>
-            <button onClick={() => navigate(-1)} style={{ display:"flex", alignItems:"center", gap:6, background:"rgba(255,255,255,0.12)", border:"1px solid rgba(255,255,255,0.2)", borderRadius:14, padding:"8px 14px 8px 10px", cursor:"pointer", color:"#fff", fontSize:14, fontWeight:600, flexShrink:0 }}
-              onMouseEnter={e => e.currentTarget.style.background = "rgba(255,255,255,0.22)"}
-              onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.12)"}>
-              <ChevronLeft size={18} /> Kembali
-            </button>
-
-            <div style={{ textAlign:"right" }}>
-              <div style={{ fontSize:12, fontWeight:600, color:"rgba(255,255,255,0.6)", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:4 }}>Akun Saya</div>
-              <h1 style={{ fontSize:26, fontWeight:800, color:"#fff", margin:0, letterSpacing:"-0.5px", fontFamily:"'Plus Jakarta Sans', sans-serif" }}>Profil</h1>
-            </div>
-
-            <div style={{ display:"flex", gap:8, flexShrink:0 }}>
-              {/* ── Dark mode toggle ── */}
-              <button
-                className="profil-theme-toggle"
-                onClick={() => setDarkMode(d => !d)}
-                title={darkMode ? "Mode Terang" : "Mode Gelap"}
-              >
-                {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-              </button>
-
-              {/* ── Logout ── */}
-              <button onClick={() => setShowLogoutConfirm(true)} style={{ width:42, height:42, background:"rgba(255,255,255,0.12)", border:"1px solid rgba(255,255,255,0.2)", borderRadius:14, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:"#fff", transition:".2s", flexShrink:0 }}
-                onMouseEnter={e => e.currentTarget.style.background = "rgba(239,68,68,0.7)"}
-                onMouseLeave={e => e.currentTarget.style.background = "rgba(255,255,255,0.12)"}>
-                <LogOut size={18} />
-              </button>
-            </div>
+          <div style={{ position:"relative", maxWidth:1120, margin:"0 auto", padding:"0 48px" }}>
+            <div style={{ fontSize:12, fontWeight:600, color:"rgba(255,255,255,0.6)", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:4 }}>Akun Saya</div>
+            <h1 style={{ fontSize:32, fontWeight:800, color:"#fff", margin:0, letterSpacing:"-0.5px", fontFamily:"'Plus Jakarta Sans', sans-serif" }}>Profil</h1>
+            <p style={{ margin:"8px 0 0", fontSize:15, color:"rgba(255,255,255,0.75)", maxWidth:480, lineHeight:1.55 }}>
+              Kelola informasi akun, favorit, dan pengaturan keamananmu.
+            </p>
           </div>
         </div>
 
         {/* ── PROFILE CARD ── */}
-        <div style={{ margin:"0 20px", marginTop:-52, position:"relative", zIndex:10 }}>
+        <div style={{ margin:"0 auto", marginTop:-52, position:"relative", zIndex:10, maxWidth:1120, padding:"0 48px", width:"100%" }}>
           <div style={{ background: cardBg, borderRadius:28, padding:"28px 24px 24px", boxShadow: D ? "0 8px 40px rgba(0,0,0,0.4)" : "0 8px 40px rgba(15,23,42,0.12)", transition:"background 0.3s" }}>
             <div style={{ display:"flex", alignItems:"center", gap:18 }}>
               <div style={{ position:"relative", flexShrink:0 }}>
@@ -350,17 +353,26 @@ export default function ProfilPage() {
         </div>
 
         {/* ── STATS ROW ── */}
-        <div style={{ margin:"20px 20px 0", display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12 }}>
-          {[{ label:"Pesanan", value:"12" }, { label:"Tersimpan", value:"5" }, { label:"Ulasan", value:"8" }].map(({ label, value }) => (
-            <div key={label} style={{ background: cardBg, borderRadius:18, padding:"16px 12px", textAlign:"center", boxShadow: D ? "0 2px 12px rgba(0,0,0,0.3)" : "0 2px 12px rgba(15,23,42,0.06)", transition:"background 0.3s" }}>
+        <div style={{ margin:"20px auto 0", maxWidth:1120, padding:"0 48px", width:"100%", display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12 }}>
+          {[
+            { label: "Favorit", value: stats.favorites, path: "/like" },
+            { label: "Chat", value: stats.chats, path: "/chat" },
+            { label: "Belum dibaca", value: unreadChat, path: "/chat" },
+          ].map(({ label, value, path }) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => navigate(path)}
+              style={{ background: cardBg, borderRadius:18, padding:"16px 12px", textAlign:"center", boxShadow: D ? "0 2px 12px rgba(0,0,0,0.3)" : "0 2px 12px rgba(15,23,42,0.06)", transition:"background 0.3s", border:"none", cursor:"pointer", fontFamily:"inherit" }}
+            >
               <div style={{ fontSize:22, fontWeight:800, color: textPri, fontFamily:"'Plus Jakarta Sans', sans-serif" }}>{value}</div>
               <div style={{ fontSize:11, color: textMuted, fontWeight:600, marginTop:2 }}>{label}</div>
-            </div>
+            </button>
           ))}
         </div>
 
         {/* ── SETTINGS MENU ── */}
-        <div style={{ margin:"28px 20px 0" }}>
+        <div style={{ margin:"28px auto 0", maxWidth:1120, padding:"0 48px", width:"100%" }}>
           <div style={{ fontSize:11, fontWeight:800, color: textMuted, letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:12, paddingLeft:4 }}>Pengaturan Umum</div>
           <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
             {menuItems.map(({ icon:Icon, label, sub, color, bg: iconBg, darkBg, path, showBadge }) => (
@@ -411,6 +423,10 @@ export default function ProfilPage() {
               <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
                 <InputGroup dark={D} label="Nama Lengkap" icon={<User size={16} />} value={editForm.name} onChange={e => setEditForm({ ...editForm, name:e.target.value })} placeholder="Masukkan nama lengkap" />
                 <InputGroup dark={D} label="Email" icon={<Mail size={16} />} value={editForm.email} onChange={e => setEditForm({ ...editForm, email:e.target.value })} placeholder="email@contoh.com" />
+                <InputGroup dark={D} label="WhatsApp" icon={<Phone size={16} />} value={editForm.phone || ""} onChange={e => setEditForm({ ...editForm, phone:e.target.value })} placeholder="08xxxxxxxxxx" />
+                <p style={{ fontSize:11, color: textMuted, margin:"-4px 0 0", lineHeight:1.5 }}>
+                  Nama dan alamat disimpan di perangkat ini. Perubahan email di server belum tersedia.
+                </p>
                 <div style={{ height:1, background: D ? "#334155" : "#F1F5F9" }} />
                 <div style={{ fontSize:11, fontWeight:800, color:"#2563EB", letterSpacing:"0.1em", textTransform:"uppercase" }}>Alamat Lengkap</div>
                 <SelectGroup dark={D} label="Provinsi" icon={<Globe size={16} />} options={PROVINCES} value={editForm.province} placeholder="Pilih Provinsi" onChange={e => setEditForm({ ...editForm, province:e.target.value, city:"", district:"" })} />
@@ -436,28 +452,6 @@ export default function ProfilPage() {
                   ) : (
                     <><Check size={18} /> Simpan Perubahan</>
                   )}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── LOGOUT CONFIRM ── */}
-        {showLogoutConfirm && (
-          <div style={{ position:"fixed", inset:0, zIndex:110, display:"flex", alignItems:"center", justifyContent:"center", padding:24 }}>
-            <div style={{ position:"absolute", inset:0, background:"rgba(15,23,42,0.6)", backdropFilter:"blur(4px)" }} />
-            <div style={{ position:"relative", background: cardBg, width:"100%", maxWidth:340, borderRadius:28, padding:"36px 28px 28px", boxShadow: D ? "0 20px 60px rgba(0,0,0,0.5)" : "0 20px 60px rgba(15,23,42,0.2)", textAlign:"center", transition:"background 0.3s" }}>
-              <div style={{ width:72, height:72, background: D ? "#450a0a55" : "#FEF2F2", borderRadius:22, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 20px" }}>
-                <LogOut size={32} color="#EF4444" />
-              </div>
-              <h3 style={{ fontSize:18, fontWeight:800, color: textPri, margin:"0 0 8px", fontFamily:"'Plus Jakarta Sans', sans-serif" }}>Yakin ingin keluar?</h3>
-              <p style={{ fontSize:14, color: textSec, margin:"0 0 28px", lineHeight:1.6 }}>Kamu perlu login kembali untuk mengakses fitur Atap.</p>
-              <div style={{ display:"flex", gap:10 }}>
-                <button onClick={() => setShowLogoutConfirm(false)} style={{ flex:1, padding:"13px 0", border:`1.5px solid ${D ? "#334155" : "#E2E8F0"}`, borderRadius:14, fontWeight:700, fontSize:14, color: textSec, background: D ? "#1E293B" : "#fff", cursor:"pointer", fontFamily:"'DM Sans', sans-serif" }}>
-                  Batal
-                </button>
-                <button onClick={() => { localStorage.clear(); navigate("/auth"); }} style={{ flex:1, padding:"13px 0", border:"none", borderRadius:14, fontWeight:700, fontSize:14, color:"#fff", background:"#EF4444", cursor:"pointer", boxShadow:"0 4px 16px rgba(239,68,68,0.3)", fontFamily:"'DM Sans', sans-serif" }}>
-                  Keluar
                 </button>
               </div>
             </div>

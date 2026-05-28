@@ -18,6 +18,13 @@ export default function ProtectedRoute({ children, role }) {
     return <Navigate to="/auth" replace />;
   }
 
+  const userRole = user.role?.toUpperCase();
+  const roleHome = {
+    USER: "/dashboard",
+    OWNER: "/owner/dashboard",
+    ADMIN: "/admin/dashboard",
+  };
+
   // mapping role UI → backend
   const roleMap = {
     pencari: "USER",
@@ -26,11 +33,8 @@ export default function ProtectedRoute({ children, role }) {
 
   if (role) {
     const expectedRole = roleMap[role] || role;
-
-    const userRole = user.role?.toUpperCase();
-
     if (userRole !== expectedRole) {
-      return <Navigate to="/auth" replace />;
+      return <Navigate to={roleHome[userRole] || "/"} replace />;
     }
   }
 

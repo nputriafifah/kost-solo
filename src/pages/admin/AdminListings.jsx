@@ -8,6 +8,25 @@ import {
 } from "lucide-react";
 
 import { adminApiFetch, handleAdminAuthError } from "./adminApi";
+import { resolveMediaUrl } from "../../config/apiBase";
+
+/** Tanpa endpoint admin “semua status” — aktif dari GET /listings (publik) */
+const STATUS_TABS = [
+  { key: "ACTIVE", label: "Disetujui (Aktif)" },
+  { key: "PENDING", label: "Menunggu" },
+  { key: "ALL", label: "Semua (aktif + pending)" },
+];
+
+async function fetchPendingListings() {
+  const res = await apiFetch("/admin/listings/pending");
+  return Array.isArray(res.data) ? res.data : [];
+}
+
+async function fetchActiveListings() {
+  const res = await apiFetch("/listings");
+  const rows = Array.isArray(res.data) ? res.data : Array.isArray(res) ? res : [];
+  return rows.map((l) => ({ ...l, status: l.status || "ACTIVE" }));
+}
 
 async function apiFetch(path, options = {}) {
   return adminApiFetch(path, options);
@@ -101,7 +120,7 @@ function PhotoCarousel({ photos }) {
   return (
     <div style={{ position: "relative", borderRadius: 12, overflow: "hidden", background: "#0f172a" }}>
       <img
-        src={photos[idx]?.url ?? photos[idx]}
+        src={resolveMediaUrl(photos[idx]?.url ?? photos[idx])}
         alt={`foto-${idx}`}
         style={{ width: "100%", height: 220, objectFit: "cover", display: "block", opacity: 0.95 }}
         onError={e => { e.target.style.display = "none"; }}
@@ -234,17 +253,14 @@ function DetailModal({ listing, onClose, onApprove, onReject, onPremium, actionL
                       </div>
                       <div style={{ fontSize: 13, fontWeight: 700, color: "#6366f1" }}>
                         {rt.price ? `Rp ${Number(rt.price).toLocaleString("id-ID")}` : "-"}
-                        {rt.priceUnit && <span style={{ fontSize: 11, fontWeight: 400, color: "#94a3b8" }}>/{rt.priceUnit}</span>}
+                        <span style={{ fontSize: 11, fontWeight: 400, color: "#94a3b8" }}>/bulan</span>
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: 12, marginTop: 6, fontSize: 12, color: "#64748b" }}>
-                      {rt.size && <span><Home size={11} style={{ marginRight: 3 }} />{rt.size} m²</span>}
-                      {rt.stock !== undefined && <span><Layers size={11} style={{ marginRight: 3 }} />{rt.stock} kamar</span>}
+                      {rt.size && <span><Home size={11} style={{ marginRight: 3 }} />{rt.size}</span>}
+                      {rt.availableCount !== undefined && <span><Layers size={11} style={{ marginRight: 3 }} />{rt.availableCount} kamar</span>}
                       <span><ImageIcon size={11} style={{ marginRight: 3 }} />{rt.photos?.length ?? 0} foto</span>
                     </div>
-                    {rt.description && (
-                      <p style={{ margin: "6px 0 0", fontSize: 12, color: "#64748b", lineHeight: 1.5 }}>{rt.description}</p>
-                    )}
                   </div>
                 ))}
               </div>
@@ -269,35 +285,39 @@ function DetailModal({ listing, onClose, onApprove, onReject, onPremium, actionL
               {listing.isPremium ? "Hapus Premium" : "Set Premium"}
             </button>
 
-            <button
-              onClick={() => onApprove(listing.id)}
-              disabled={isAppLoading}
-              style={{
-                flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                padding: "9px 16px", fontSize: 13, fontWeight: 600,
-                border: "1.5px solid #bbf7d0", background: "#f0fdf4",
-                color: "#16a34a", borderRadius: 9, cursor: "pointer",
-                opacity: isAppLoading ? 0.6 : 1,
-              }}
-            >
-              <CheckCircle size={14} />
-              {isAppLoading ? "Memproses..." : "Approve"}
-            </button>
+            {(listing.status ?? "").toUpperCase() === "PENDING" && (
+              <>
+                <button
+                  onClick={() => onApprove(listing.id)}
+                  disabled={isAppLoading}
+                  style={{
+                    flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                    padding: "9px 16px", fontSize: 13, fontWeight: 600,
+                    border: "1.5px solid #bbf7d0", background: "#f0fdf4",
+                    color: "#16a34a", borderRadius: 9, cursor: "pointer",
+                    opacity: isAppLoading ? 0.6 : 1,
+                  }}
+                >
+                  <CheckCircle size={14} />
+                  {isAppLoading ? "Memproses..." : "Approve"}
+                </button>
 
-            <button
-              onClick={() => { onClose(); onReject(listing); }}
-              disabled={isRejLoading}
-              style={{
-                flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                padding: "9px 16px", fontSize: 13, fontWeight: 600,
-                border: "1.5px solid #fecaca", background: "#fef2f2",
-                color: "#dc2626", borderRadius: 9, cursor: "pointer",
-                opacity: isRejLoading ? 0.6 : 1,
-              }}
-            >
-              <XCircle size={14} />
-              Tolak
-            </button>
+                <button
+                  onClick={() => { onClose(); onReject(listing); }}
+                  disabled={isRejLoading}
+                  style={{
+                    flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                    padding: "9px 16px", fontSize: 13, fontWeight: 600,
+                    border: "1.5px solid #fecaca", background: "#fef2f2",
+                    color: "#dc2626", borderRadius: 9, cursor: "pointer",
+                    opacity: isRejLoading ? 0.6 : 1,
+                  }}
+                >
+                  <XCircle size={14} />
+                  Tolak
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -315,19 +335,41 @@ export default function AdminListings() {
   const [actionLoading, setActionLoading] = useState(null);
   const [rejectTarget, setRejectTarget]   = useState(null);
   const [detailTarget, setDetailTarget]   = useState(null);
+  const [statusTab, setStatusTab]         = useState("ACTIVE");
 
   const load = async () => {
-    setLoading(true); setError("");
+    setLoading(true);
+    setError("");
     try {
-      const res = await apiFetch("/admin/listings/pending");
-      setListings(Array.isArray(res.data) ? res.data : []);
+      let rows = [];
+
+      if (statusTab === "PENDING") {
+        rows = await fetchPendingListings();
+      } else if (statusTab === "ACTIVE") {
+        rows = await fetchActiveListings();
+      } else if (statusTab === "ALL") {
+        const [pending, active] = await Promise.all([
+          fetchPendingListings(),
+          fetchActiveListings(),
+        ]);
+        const seen = new Set();
+        rows = [...pending, ...active].filter((l) => {
+          if (!l?.id || seen.has(l.id)) return false;
+          seen.add(l.id);
+          return true;
+        });
+      }
+
+      setListings(rows);
     } catch (err) {
-      if (err.message === "UNAUTHORIZED") { localStorage.removeItem("token"); navigate("/auth"); }
-      else setError(err.message);
-    } finally { setLoading(false); }
+      if (handleAdminAuthError(err, navigate)) return;
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [statusTab]);
 
   const handleApprove = async (id) => {
     setActionLoading(`approve-${id}`);
@@ -361,9 +403,12 @@ export default function AdminListings() {
     finally { setActionLoading(null); }
   };
 
-  const filtered = listings.filter(l =>
-    (l.name ?? "").toLowerCase().includes(search.toLowerCase()) ||
-    (l.owner?.name ?? "").toLowerCase().includes(search.toLowerCase())
+  const q = search.toLowerCase();
+  const filtered = listings.filter(
+    (l) =>
+      (l.name ?? "").toLowerCase().includes(q) ||
+      (l.owner?.name ?? "").toLowerCase().includes(q) ||
+      (l.address ?? "").toLowerCase().includes(q)
   );
 
   const thStyle = {
@@ -401,7 +446,10 @@ export default function AdminListings() {
         <div>
           <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Kelola Listing</h1>
           <p style={{ margin: "4px 0 0", color: "#64748b", fontSize: 13 }}>
-            {listings.length} listing menunggu persetujuan
+            {listings.length} listing
+            {statusTab === "ACTIVE" && " disetujui & aktif (dari katalog publik)"}
+            {statusTab === "PENDING" && " menunggu persetujuan"}
+            {statusTab === "ALL" && " (pending + aktif)"}
           </p>
         </div>
         <button onClick={load} style={{
@@ -413,6 +461,29 @@ export default function AdminListings() {
         }}>
           <RefreshCw size={14} /> Refresh
         </button>
+      </div>
+
+      {/* Filter status */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+        {STATUS_TABS.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => setStatusTab(tab.key)}
+            style={{
+              padding: "8px 14px",
+              fontSize: 13,
+              fontWeight: 600,
+              borderRadius: 9,
+              border: statusTab === tab.key ? "1.5px solid #6366f1" : "1px solid #e2e8f0",
+              background: statusTab === tab.key ? "#eef2ff" : "#fff",
+              color: statusTab === tab.key ? "#4f46e5" : "#64748b",
+              cursor: "pointer",
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* Search */}
@@ -438,9 +509,13 @@ export default function AdminListings() {
           <div style={{ padding: "60px 24px", textAlign: "center", color: "#94a3b8" }}>
             <Building2 size={40} color="#e2e8f0" style={{ margin: "0 auto 12px" }} />
             <p style={{ margin: 0, fontWeight: 600, fontSize: 14 }}>
-              {search ? "Tidak ada hasil pencarian" : "Tidak ada listing pending"}
+              {search ? "Tidak ada hasil pencarian" : "Tidak ada listing di tab ini"}
             </p>
-            <p style={{ margin: "4px 0 0", fontSize: 13 }}>Semua listing sudah ditinjau</p>
+            <p style={{ margin: "4px 0 0", fontSize: 13 }}>
+              {statusTab === "ACTIVE" && "Belum ada listing aktif di katalog"}
+              {statusTab === "PENDING" && "Semua listing sudah ditinjau"}
+              {statusTab === "ALL" && "Tidak ada data listing"}
+            </p>
           </div>
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -460,7 +535,8 @@ export default function AdminListings() {
             <tbody>
               {filtered.map((l) => {
                 const allPhotos = (l.roomTypes ?? []).flatMap(rt => rt.photos ?? []);
-                const firstPhoto = allPhotos[0]?.url ?? allPhotos[0];
+                const firstPhoto = resolveMediaUrl(allPhotos[0]?.url);
+                const isPending = (l.status ?? "").toUpperCase() === "PENDING";
                 const isAppLoading = actionLoading === `approve-${l.id}`;
                 const isRejLoading = actionLoading === `reject-${l.id}`;
                 const isPreLoading = actionLoading === `premium-${l.id}`;
@@ -532,33 +608,39 @@ export default function AdminListings() {
                     </td>
                     <td style={tdStyle}>
                       <div style={{ display: "flex", gap: 6 }} onClick={e => e.stopPropagation()}>
-                        <button
-                          onClick={() => handleApprove(l.id)}
-                          disabled={isAppLoading}
-                          style={{
-                            display: "flex", alignItems: "center", gap: 5,
-                            padding: "6px 12px", fontSize: 12, fontWeight: 600,
-                            border: "1px solid #bbf7d0", background: "#f0fdf4",
-                            color: "#16a34a", borderRadius: 8, cursor: "pointer",
-                            fontFamily: "inherit", opacity: isAppLoading ? 0.6 : 1,
-                          }}
-                        >
-                          <CheckCircle size={13} />
-                          {isAppLoading ? "..." : "Approve"}
-                        </button>
-                        <button
-                          onClick={() => setRejectTarget(l)}
-                          disabled={isRejLoading}
-                          style={{
-                            display: "flex", alignItems: "center", gap: 5,
-                            padding: "6px 12px", fontSize: 12, fontWeight: 600,
-                            border: "1px solid #fecaca", background: "#fef2f2",
-                            color: "#dc2626", borderRadius: 8, cursor: "pointer",
-                            fontFamily: "inherit", opacity: isRejLoading ? 0.6 : 1,
-                          }}
-                        >
-                          <XCircle size={13} /> Tolak
-                        </button>
+                        {isPending ? (
+                          <>
+                            <button
+                              onClick={() => handleApprove(l.id)}
+                              disabled={isAppLoading}
+                              style={{
+                                display: "flex", alignItems: "center", gap: 5,
+                                padding: "6px 12px", fontSize: 12, fontWeight: 600,
+                                border: "1px solid #bbf7d0", background: "#f0fdf4",
+                                color: "#16a34a", borderRadius: 8, cursor: "pointer",
+                                fontFamily: "inherit", opacity: isAppLoading ? 0.6 : 1,
+                              }}
+                            >
+                              <CheckCircle size={13} />
+                              {isAppLoading ? "..." : "Approve"}
+                            </button>
+                            <button
+                              onClick={() => setRejectTarget(l)}
+                              disabled={isRejLoading}
+                              style={{
+                                display: "flex", alignItems: "center", gap: 5,
+                                padding: "6px 12px", fontSize: 12, fontWeight: 600,
+                                border: "1px solid #fecaca", background: "#fef2f2",
+                                color: "#dc2626", borderRadius: 8, cursor: "pointer",
+                                fontFamily: "inherit", opacity: isRejLoading ? 0.6 : 1,
+                              }}
+                            >
+                              <XCircle size={13} /> Tolak
+                            </button>
+                          </>
+                        ) : (
+                          <span style={{ fontSize: 12, color: "#94a3b8" }}>—</span>
+                        )}
                       </div>
                     </td>
                   </tr>
