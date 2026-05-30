@@ -337,12 +337,20 @@ export default function DetailListingPage() {
               <Section icon={MapPin} title="Lokasi">
                 <p className="text-sm text-slate-600 leading-relaxed mb-3">{data.address}</p>
                 {(data.latitude != null || data.longitude != null) && (
-                  <div className="rounded-2xl bg-gradient-to-br from-blue-100 to-sky-50 border border-blue-200 p-6 text-center">
-                    <MapPin size={28} className="text-blue-600 mx-auto mb-2" />
-                    <p className="text-sm font-black text-blue-800">Titik lokasi terdaftar</p>
-                    <p className="text-xs text-blue-600/80 mt-1 font-mono">
-                      {Number(data.latitude).toFixed(5)}, {Number(data.longitude).toFixed(5)}
-                    </p>
+                  <div className="relative rounded-2xl overflow-hidden border border-blue-200 h-40">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-100 via-sky-100 to-blue-50" />
+                    <div
+                      className="absolute inset-0 opacity-60"
+                      style={{
+                        backgroundImage:
+                          "radial-gradient(circle at 20% 25%, rgba(59,130,246,0.45), transparent 38%), radial-gradient(circle at 82% 35%, rgba(14,165,233,0.4), transparent 36%), radial-gradient(circle at 45% 80%, rgba(96,165,250,0.45), transparent 40%)",
+                      }}
+                    />
+                    <div className="absolute inset-0 backdrop-blur-xl" />
+                    <div className="absolute inset-0 bg-white/25" />
+                    <div className="absolute right-3 bottom-3 text-[10px] font-bold text-blue-700/80 bg-white/70 px-2 py-1 rounded-lg">
+                      Lokasi disamarkan
+                    </div>
                   </div>
                 )}
               </Section>

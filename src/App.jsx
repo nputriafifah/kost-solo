@@ -108,14 +108,7 @@ export default function App() {
           }
         />
 
-        <Route
-          path="/like"
-          element={
-            <ProtectedRoute role="pencari">
-              <LikePage />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/like" element={<LikePage />} />
 
         <Route
           path="/profil"

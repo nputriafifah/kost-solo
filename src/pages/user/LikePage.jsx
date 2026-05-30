@@ -8,11 +8,48 @@ import KostCard from "../../components/kost/KostCard";
 import { getApiBase, resolveMediaUrl } from "../../config/apiBase";
 
 const API = getApiBase();
+const getToken = () =>
+  localStorage.getItem("token") || localStorage.getItem("accessToken") || "";
 
 function authHeaders(token) {
   const h = { "Content-Type": "application/json" };
   if (token) h.Authorization = `Bearer ${token}`;
   return h;
+}
+const getLocalFavorites = () => {
+  try { return JSON.parse(localStorage.getItem("atap_favorites") || "[]"); }
+  catch { return []; }
+};
+const setLocalFavorites = (arr) => {
+  localStorage.setItem("atap_favorites", JSON.stringify(arr));
+};
+const getFavoriteListingId = (fav) =>
+  String(fav?.listingId ?? fav?.listing?.id ?? fav?.id ?? "");
+
+function toCardItem(item) {
+  if (!item) return null;
+  const roomTypes = Array.isArray(item.roomTypes) ? item.roomTypes : [];
+  const cheapestFromRooms = roomTypes.length
+    ? Math.min(...roomTypes.map((r) => Number(r?.price) || Infinity))
+    : null;
+  const cheapestPrice = Number.isFinite(cheapestFromRooms)
+    ? cheapestFromRooms
+    : (item.cheapestPrice ?? item.price ?? null);
+  const thumb =
+    item.thumbnailUrl ??
+    item.image ??
+    roomTypes?.[0]?.photos?.[0]?.url ??
+    roomTypes?.[0]?.photos?.[0] ??
+    null;
+  return {
+    id: String(item.id ?? item.listingId ?? ""),
+    name: item.name ?? "Kost",
+    price: cheapestPrice,
+    location: item.address ?? item.location ?? "",
+    gender: (item.genderType ?? item.gender ?? "").toLowerCase(),
+    isPremium: Boolean(item.isPremium),
+    image: resolveMediaUrl(thumb),
+  };
 }
 
 const NAV_ITEMS = [
@@ -156,7 +193,7 @@ export default function LikePage() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadChat,  setUnreadChat]  = useState(0);
 
-  const token      = localStorage.getItem("token");
+  const token      = getToken();
   const user       = JSON.parse(localStorage.getItem("user") || "null");
   const isLoggedIn = !!user;
   const userName   = user?.name || "Guest";
@@ -202,18 +239,92 @@ export default function LikePage() {
   const fetchFavorites = async () => {
     setLoading(true); setError(null);
     try {
+      if (!token) {
+        const localIds = getLocalFavorites().map(String).filter(Boolean);
+        if (!localIds.length) { setData([]); return; }
+        const localDetailResults = await Promise.allSettled(
+          localIds.map(async (favId) => {
+            const detailRes = await fetch(`${API}/listings/${favId}`);
+            if (!detailRes.ok) return null;
+            const detailJson = await detailRes.json().catch(() => ({}));
+            return toCardItem(detailJson?.data ?? detailJson);
+          })
+        );
+        setData(
+          localDetailResults
+            .map((r) => (r.status === "fulfilled" ? r.value : null))
+            .filter((x) => x?.id)
+        );
+        return;
+      }
+
       const res = await fetch(`${API}/favorites`, { headers: authHeaders(token) });
+      if (res.status === 401 || res.status === 403) {
+        // Untuk role yang tidak punya akses favorites, tetap biarkan halaman terbuka.
+        const localIds = getLocalFavorites().map(String);
+        const localDetailResults = await Promise.allSettled(
+          localIds.map(async (favId) => {
+            const detailRes = await fetch(`${API}/listings/${favId}`);
+            if (!detailRes.ok) return null;
+            const detailJson = await detailRes.json().catch(() => ({}));
+            return toCardItem(detailJson?.data ?? detailJson);
+          })
+        );
+        setData(
+          localDetailResults
+            .map((r) => (r.status === "fulfilled" ? r.value : null))
+            .filter((x) => x?.id)
+        );
+        setError(null);
+        return;
+      }
       if (!res.ok) throw new Error("Gagal fetch favorites");
       const json = await res.json();
-      setData((json.data || []).map((item) => ({
-        id: String(item.id),
-        name: item.name,
-        price: item.cheapestPrice ?? null,
-        location: item.address ?? "",
-        gender: (item.genderType || "").toLowerCase(),
-        isPremium: Boolean(item.isPremium),
-        image: resolveMediaUrl(item.thumbnailUrl),
-      })));
+
+      const raw = Array.isArray(json.data)
+        ? json.data
+        : Array.isArray(json.favorites)
+          ? json.favorites
+          : Array.isArray(json)
+            ? json
+            : [];
+
+      // Case 1: backend already returns listing objects
+      const directCards = raw
+        .map((x) => toCardItem(x?.listing ?? x))
+        .filter((x) => x?.id && x?.name && x.name !== "Kost");
+
+      if (directCards.length === raw.length && raw.length > 0) {
+        setLocalFavorites(directCards.map((x) => String(x.id)));
+        setData(directCards);
+        return;
+      }
+
+      // Case 2: backend returns favorite rows / IDs -> fetch listing detail per id
+      const ids = raw
+        .map((x) => getFavoriteListingId(x))
+        .filter(Boolean)
+        .map(String);
+
+      if (!ids.length) {
+        setData([]);
+        return;
+      }
+
+      const detailResults = await Promise.allSettled(
+        ids.map(async (favId) => {
+          const detailRes = await fetch(`${API}/listings/${favId}`);
+          if (!detailRes.ok) return null;
+          const detailJson = await detailRes.json().catch(() => ({}));
+          return toCardItem(detailJson?.data ?? detailJson);
+        })
+      );
+
+      const mapped = detailResults
+        .map((r) => (r.status === "fulfilled" ? r.value : null))
+        .filter((x) => x?.id);
+      setLocalFavorites(mapped.map((x) => String(x.id)));
+      setData(mapped);
     } catch (err) { console.error(err); setError("Gagal memuat favorit"); }
     finally { setLoading(false); }
   };
@@ -223,7 +334,16 @@ export default function LikePage() {
   const handleRemove = async (id, e) => {
     e.stopPropagation();
     try {
-      await fetch(`${API}/favorites/${id}`, { method: "DELETE", headers: authHeaders(token) });
+      const res = await fetch(`${API}/favorites/${id}`, { method: "DELETE", headers: authHeaders(token) });
+      if (res.status === 401 || res.status === 403) {
+        const local = getLocalFavorites().filter((x) => String(x) !== String(id));
+        setLocalFavorites(local);
+        setData((prev) => prev.filter((item) => item.id !== String(id)));
+        setError("Tidak bisa menghapus favorit di akun ini.");
+        return;
+      }
+      if (!res.ok) throw new Error("Gagal hapus favorit");
+      setLocalFavorites(getLocalFavorites().filter((x) => String(x) !== String(id)));
       setData((prev) => prev.filter((item) => item.id !== String(id)));
     } catch (err) { console.error(err); }
   };

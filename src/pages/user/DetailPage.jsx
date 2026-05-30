@@ -156,6 +156,15 @@ const getCurrentUser = () => {
   catch { return {}; }
 };
 const getCurrentUserId = () => getCurrentUser().id || "";
+const getLocalFavorites = () => {
+  try { return JSON.parse(localStorage.getItem("atap_favorites") || "[]"); }
+  catch { return []; }
+};
+const setLocalFavorites = (arr) => {
+  localStorage.setItem("atap_favorites", JSON.stringify(arr));
+};
+const getFavoriteListingId = (fav) =>
+  String(fav?.listingId ?? fav?.listing?.id ?? fav?.id ?? "");
 
 const authFetch = (url, opts = {}) => {
   const token   = getToken();
@@ -1031,40 +1040,63 @@ export default function DetailPage() {
   const [showShare,   setShowShare]   = useState(false);
   const [showChat,    setShowChat]    = useState(false);
 
+  const toggleLocalLike = () => {
+    const favs = getLocalFavorites();
+    const idStr = String(id);
+    const next = favs.includes(idStr)
+      ? favs.filter((x) => String(x) !== idStr)
+      : [...favs, idStr];
+    setLocalFavorites(next);
+    setIsLiked(next.includes(idStr));
+  };
+
   useEffect(() => {
     const token = getToken();
-    if (!token) {
-      const favs = JSON.parse(localStorage.getItem("atap_favorites") || "[]");
-      setIsLiked(favs.includes(id));
-      return;
-    }
+    if (!token) { setIsLiked(getLocalFavorites().includes(id)); return; }
     (async () => {
       try {
         const res = await authFetch(`${API}/favorites`);
-        if (!res.ok) return;
+        if (!res.ok) {
+          // fallback untuk akun tanpa akses favorites endpoint
+          setIsLiked(getLocalFavorites().includes(id));
+          return;
+        }
         const json = await res.json();
         const list = Array.isArray(json.data) ? json.data : [];
-        setIsLiked(list.some((f) => String(f.id) === String(id)));
-      } catch { /* ignore */ }
+        const favIds = list.map(getFavoriteListingId).filter(Boolean);
+        setLocalFavorites(favIds);
+        setIsLiked(favIds.includes(String(id)));
+      } catch {
+        setIsLiked(getLocalFavorites().includes(id));
+      }
     })();
   }, [id, API]);
 
   const toggleLike = async () => {
     const token = getToken();
     if (!token) {
-      navigate("/auth");
+      toggleLocalLike();
       return;
     }
     setLikeLoading(true);
     try {
-      if (isLiked) {
-        await authFetch(`${API}/favorites/${id}`, { method: "DELETE" });
-      } else {
-        await authFetch(`${API}/favorites/${id}`, { method: "POST" });
+      const method = isLiked ? "DELETE" : "POST";
+      const res = await authFetch(`${API}/favorites/${id}`, { method });
+      if (!res.ok) {
+        // fallback lokal kalau API menolak (401/403 dst)
+        toggleLocalLike();
+        return;
       }
-      setIsLiked((v) => !v);
+      const idStr = String(id);
+      const local = getLocalFavorites();
+      const nextLocal = isLiked
+        ? local.filter((x) => String(x) !== idStr)
+        : [...new Set([...local, idStr])];
+      setLocalFavorites(nextLocal);
+      setIsLiked(nextLocal.includes(idStr));
     } catch (err) {
       console.error(err);
+      toggleLocalLike();
     } finally {
       setLikeLoading(false);
     }

@@ -61,6 +61,7 @@ export default function CreateListingPage() {
     description: "",
     contactNumber: "",
     rules: [],
+    newRule: "",
   });
 
   // Koordinat dari map picker
@@ -83,6 +84,21 @@ export default function CreateListingPage() {
 
   const toggleItem = (list, item) =>
     list.includes(item) ? list.filter((x) => x !== item) : [...list, item];
+
+  const addCustomRule = () => {
+    const raw = form.newRule?.trim();
+    if (!raw) return;
+    const exists = form.rules.some((r) => r.toLowerCase() === raw.toLowerCase());
+    if (exists) {
+      setForm({ ...form, newRule: "" });
+      return;
+    }
+    setForm({
+      ...form,
+      rules: [...form.rules, raw],
+      newRule: "",
+    });
+  };
 
   const validateStep = () => {
     const e = {};
@@ -1206,6 +1222,49 @@ export default function CreateListingPage() {
                         );
                       })}
                     </div>
+
+                    <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid #e8eaf2" }}>
+                      <p style={{ fontSize: 12, color: "#64748b", fontWeight: 600, marginBottom: 10 }}>
+                        Tambah Peraturan Custom
+                      </p>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <input
+                          type="text"
+                          className="clp-input"
+                          placeholder="cth. Tidak menerima tamu setelah jam 22.00"
+                          value={form.newRule || ""}
+                          onChange={(e) => setForm({ ...form, newRule: e.target.value })}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              addCustomRule();
+                            }
+                          }}
+                          style={{ flex: 1 }}
+                        />
+                        <button
+                          type="button"
+                          onClick={addCustomRule}
+                          style={{
+                            padding: "11px 16px",
+                            background: "#1d4ed8",
+                            color: "white",
+                            border: "none",
+                            borderRadius: 10,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                          }}
+                        >
+                          <Plus size={14} />
+                          Tambah
+                        </button>
+                      </div>
+                    </div>
+
                     {errors.rules && <p className="clp-error">⚠ {errors.rules}</p>}
                     {form.rules.length > 0 && (
                       <p style={{ fontSize: 12, color: "#22c55e", fontWeight: 600, marginTop: 8 }}>

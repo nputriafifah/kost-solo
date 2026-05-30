@@ -336,6 +336,26 @@ export default function MapPage() {
   /* ── MAP AREA ── */
   .mp-map-area { flex:1; position:relative; overflow:hidden; }
   .mp-map-area .leaflet-container { width:100%; height:100%; }
+  .mp-map-blur-mask {
+    position: absolute;
+    inset: 0;
+    z-index: 250;
+    pointer-events: none;
+    backdrop-filter: blur(10px) saturate(0.9);
+    -webkit-backdrop-filter: blur(10px) saturate(0.9);
+    background:
+      radial-gradient(circle at 18% 22%, rgba(59,130,246,.20), transparent 34%),
+      radial-gradient(circle at 82% 34%, rgba(14,165,233,.18), transparent 30%),
+      radial-gradient(circle at 42% 82%, rgba(96,165,250,.22), transparent 36%),
+      rgba(255,255,255,.12);
+  }
+  .dark-mode .mp-map-blur-mask {
+    background:
+      radial-gradient(circle at 18% 22%, rgba(96,165,250,.18), transparent 34%),
+      radial-gradient(circle at 82% 34%, rgba(14,165,233,.15), transparent 30%),
+      radial-gradient(circle at 42% 82%, rgba(59,130,246,.20), transparent 36%),
+      rgba(15,23,42,.22);
+  }
 
   /* ── FLOATING UI ── */
   .mp-search-bar { position:absolute; top:16px; left:16px; right:16px; z-index:400; display:flex; gap:10px; }
@@ -517,6 +537,7 @@ export default function MapPage() {
               />
             ))}
           </MapContainer>
+          <div className="mp-map-blur-mask" />
 
           {/* Search bar */}
           <div className="mp-search-bar">
