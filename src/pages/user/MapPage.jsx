@@ -8,6 +8,7 @@ import {
   MapPin, Star, ChevronRight, Moon, Sun,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { formatPublicLocation, obfuscateCoordinates } from "../../utils/publicLocation";
 
 // Fix Leaflet default icon
 delete L.Icon.Default.prototype._getIconUrl;
@@ -213,22 +214,25 @@ export default function MapPage() {
       setKosData(
         (json.data || [])
           .filter((item) => item.latitude && item.longitude)
-          .map((item) => ({
-            id: item.id,
-            name: item.name,
-            address: item.address ?? "",
-            price: item.cheapestPrice ?? null,
-            gender: item.genderType ?? "",
-            isPremium: item.isPremium ?? false,
-            latitude: Number(item.latitude),
-            longitude: Number(item.longitude),
-            image: item.thumbnailUrl
-              ? item.thumbnailUrl.startsWith("http")
-                ? item.thumbnailUrl
-                : `${BASE_URL}${item.thumbnailUrl}`
-              : null,
-            rating: item.rating ?? null,
-          }))
+          .map((item) => {
+            const obf = obfuscateCoordinates(item.latitude, item.longitude, String(item.id));
+            return {
+              id: item.id,
+              name: item.name,
+              address: formatPublicLocation(item.address ?? ""),
+              price: item.cheapestPrice ?? null,
+              gender: item.genderType ?? "",
+              isPremium: item.isPremium ?? false,
+              latitude: obf?.lat ?? Number(item.latitude),
+              longitude: obf?.lng ?? Number(item.longitude),
+              image: item.thumbnailUrl
+                ? item.thumbnailUrl.startsWith("http")
+                  ? item.thumbnailUrl
+                  : `${BASE_URL}${item.thumbnailUrl}`
+                : null,
+              rating: item.rating ?? null,
+            };
+          })
       );
     } catch {
       setKosData([]);

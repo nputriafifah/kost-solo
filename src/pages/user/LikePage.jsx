@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import KostCard from "../../components/kost/KostCard";
 import { getApiBase, resolveMediaUrl } from "../../config/apiBase";
+import { formatPublicLocation } from "../../utils/publicLocation";
 
 const API = getApiBase();
 const getToken = () =>
@@ -45,7 +46,7 @@ function toCardItem(item) {
     id: String(item.id ?? item.listingId ?? ""),
     name: item.name ?? "Kost",
     price: cheapestPrice,
-    location: item.address ?? item.location ?? "",
+    location: formatPublicLocation(item.address ?? item.location ?? ""),
     gender: (item.genderType ?? item.gender ?? "").toLowerCase(),
     isPremium: Boolean(item.isPremium),
     image: resolveMediaUrl(thumb),

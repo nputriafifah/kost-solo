@@ -6,8 +6,21 @@ import {
   LayoutGrid, Layers, Camera, ArrowLeft, Plus,
 } from "lucide-react";
 import MapPicker from "../../components/owner/MapPicker";
+import AreaLocationFields from "../../components/owner/AreaLocationFields";
+import SharedFacilityPhotos from "../../components/owner/SharedFacilityPhotos";
+import SelectedFacilityTags from "../../components/owner/SelectedFacilityTags";
+import RoomFacilityFields from "../../components/owner/RoomFacilityFields";
+import ElectricityIncludedField from "../../components/owner/ElectricityIncludedField";
 import { getApiBase } from "../../config/apiBase";
-import { FACILITY_OPTIONS, GENDER_OPTIONS, RULE_OPTIONS } from "../../constants/listing";
+import { buildListingAddress } from "../../utils/publicLocation";
+import {
+  KOST_FACILITY_OPTIONS,
+  GENDER_OPTIONS,
+  RULE_OPTIONS,
+  buildSharedFacilityRoomPayload,
+  SHARED_FACILITY_ROOM_NAME,
+  applyElectricityToFacilities,
+} from "../../constants/listing";
 
 const EMPTY_ROOM = {
   name: "",
@@ -15,7 +28,7 @@ const EMPTY_ROOM = {
   size: "",
   facilities: [],
   availableCount: 1,
-  newFacility: "",
+  electricityIncluded: null,
 };
 
 const PHOTO_MAX = 8;
@@ -24,9 +37,9 @@ const PHOTO_MIME = ["image/jpeg", "image/png", "image/webp"];
 const STEPS = [
   { label: "Data Kos", desc: "Informasi dasar properti kamu", icon: Home },
   { label: "Lokasi", desc: "Alamat & titik peta", icon: MapPinIcon },
-  { label: "Fasilitas & Ketersediaan", desc: "Fasilitas dan jumlah kamar tersedia", icon: Lightbulb },
-  { label: "Detail Kamar", desc: "Tipe, ukuran & harga kamar", icon: Layers },
-  { label: "Foto Kamar", desc: "Upload foto untuk menarik penyewa", icon: Camera },
+  { label: "Fasilitas Kamar", desc: "Fasilitas & jumlah kamar per tipe", icon: Lightbulb },
+  { label: "Detail Tipe Kamar", desc: "Nama, ukuran & harga tipe kamar", icon: Layers },
+  { label: "Foto & Tipe Lain", desc: "Upload foto, lalu tambah tipe kamar jika perlu", icon: Camera },
 ];
 
 const getToken = () => localStorage.getItem("token") || "";
@@ -56,12 +69,16 @@ export default function CreateListingPage() {
   // Listing data (untuk KostListing model)
   const [form, setForm] = useState({
     name: "",
-    address: "",
+    areaDesa: "",
+    areaKecamatan: "",
+    areaKabupaten: "",
     genderType: "PUTRA",
     description: "",
     contactNumber: "",
     rules: [],
     newRule: "",
+    sharedFacilities: [],
+    newSharedFacility: "",
   });
 
   // Koordinat dari map picker
@@ -74,11 +91,11 @@ export default function CreateListingPage() {
     size: "",
     facilities: [],
     availableCount: 1,
-    newFacility: "", // Untuk input fasilitas custom
   });
 
   // Room photos dengan sortOrder
   const [roomPhotos, setRoomPhotos] = useState([]); // Array of File objects
+  const [sharedFacilityPhotos, setSharedFacilityPhotos] = useState([]);
   // Tipe kamar yang sudah diisi (sebelum submit akhir)
   const [savedRoomDrafts, setSavedRoomDrafts] = useState([]);
 
@@ -100,6 +117,21 @@ export default function CreateListingPage() {
     });
   };
 
+  const addCustomSharedFacility = () => {
+    const raw = form.newSharedFacility?.trim();
+    if (!raw) return;
+    const exists = form.sharedFacilities.some((f) => f.toLowerCase() === raw.toLowerCase());
+    if (exists) {
+      setForm({ ...form, newSharedFacility: "" });
+      return;
+    }
+    setForm({
+      ...form,
+      sharedFacilities: [...form.sharedFacilities, raw],
+      newSharedFacility: "",
+    });
+  };
+
   const validateStep = () => {
     const e = {};
     
@@ -108,19 +140,31 @@ export default function CreateListingPage() {
       if (form.description.trim().length < 10) e.description = "Deskripsi minimal 10 karakter";
       if (form.contactNumber.trim().length < 8) e.contactNumber = "Nomor kontak minimal 8 digit";
       if (form.rules.length === 0) e.rules = "Pilih minimal 1 peraturan";
+      if (form.sharedFacilities.length > 0 && sharedFacilityPhotos.length === 0) {
+        e.sharedFacilityPhotos = "Upload minimal 1 foto fasilitas bersama";
+      }
+      if (sharedFacilityPhotos.length > 0 && form.sharedFacilities.length === 0) {
+        e.sharedFacilitiesList = "Pilih minimal 1 fasilitas kost bersama";
+      }
     }
     
     if (step === 2) {
-      if (form.address.trim().length < 10) e.address = "Alamat minimal 10 karakter";
+      if (form.areaDesa.trim().length < 2) e.areaDesa = "Kelurahan/desa minimal 2 karakter";
+      if (form.areaKecamatan.trim().length < 2) e.areaKecamatan = "Kecamatan wajib diisi";
+      if (form.areaKabupaten.trim().length < 2) e.areaKabupaten = "Kabupaten/kota wajib diisi";
       if (!latLng) e.latLng = "Tandai lokasi di peta";
     }
     
     if (step === 3) {
-      if (room.facilities.length === 0) e.facilities = "Pilih minimal 1 fasilitas";
+      if (room.facilities.length === 0) e.facilities = "Pilih minimal 1 fasilitas kamar";
+      if (room.electricityIncluded === null) e.electricity = "Pilih apakah listrik termasuk atau belum";
       if (room.availableCount < 1) e.availableCount = "Minimal 1 kamar harus tersedia";
     }
 
     if (step === 4) {
+      if (room.name.trim().toLowerCase() === SHARED_FACILITY_ROOM_NAME.toLowerCase()) {
+        e.roomName = `"${SHARED_FACILITY_ROOM_NAME}" reserved — gunakan step Foto Fasilitas Bersama`;
+      }
       if (room.name.trim().length < 2) e.roomName = "Nama tipe kamar minimal 2 karakter";
       if (!room.size.trim()) e.roomSize = "Ukuran kamar wajib diisi";
       const price = Math.floor(Number(room.price));
@@ -156,7 +200,8 @@ export default function CreateListingPage() {
 
   const validateRoomDraft = () => {
     const e = {};
-    if (room.facilities.length === 0) e.facilities = "Pilih minimal 1 fasilitas";
+    if (room.facilities.length === 0) e.facilities = "Pilih minimal 1 fasilitas kamar";
+    if (room.electricityIncluded === null) e.electricity = "Pilih apakah listrik termasuk atau belum";
     if (room.availableCount < 1) e.availableCount = "Minimal 1 kamar harus tersedia";
     if (room.name.trim().length < 2) e.roomName = "Nama tipe kamar minimal 2 karakter";
     if (!room.size.trim()) e.roomSize = "Ukuran kamar wajib diisi";
@@ -173,7 +218,7 @@ export default function CreateListingPage() {
       name: room.name.trim(),
       price: Math.floor(Number(room.price)),
       size: room.size.trim(),
-      facilities: room.facilities,
+      facilities: applyElectricityToFacilities(room.facilities, room.electricityIncluded),
       availableCount: Number(room.availableCount),
     },
     photos: [...roomPhotos],
@@ -193,11 +238,43 @@ export default function CreateListingPage() {
     setSavedRoomDrafts((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const createRoomTypeWithPhotos = async (api, listingId, draft) => {
+  const uploadPhotosToRoom = async (api, roomId, photos) => {
+    if (!photos?.length) return;
+    const formData = new FormData();
+    photos.forEach((file) => formData.append("photos", file));
+    const resPhotos = await fetch(`${api}/owner/room-types/${roomId}/photos`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: formData,
+    });
+    if (!resPhotos.ok) throw new Error(await parseApiError(resPhotos));
+  };
+
+  const createSharedFacilityRoomWithPhotos = async (api, listingId, fallbackPrice) => {
+    if (form.sharedFacilities.length === 0 && sharedFacilityPhotos.length === 0) return;
+
+    const payload = buildSharedFacilityRoomPayload(form.sharedFacilities, fallbackPrice);
     const resRoom = await fetch(`${api}/owner/listings/${listingId}/room-types`, {
       method: "POST",
       headers: authHeaders(true),
-      body: JSON.stringify(draft.room),
+      body: JSON.stringify(payload),
+    });
+    if (!resRoom.ok) throw new Error(await parseApiError(resRoom));
+    const roomJson = await resRoom.json();
+    const roomId = roomJson.data?.id;
+    if (!roomId) throw new Error("ID fasilitas bersama tidak diterima dari server");
+    await uploadPhotosToRoom(api, roomId, sharedFacilityPhotos);
+  };
+
+  const createRoomTypeWithPhotos = async (api, listingId, draft) => {
+    const payload = {
+      ...draft.room,
+      facilities: draft.room.facilities,
+    };
+    const resRoom = await fetch(`${api}/owner/listings/${listingId}/room-types`, {
+      method: "POST",
+      headers: authHeaders(true),
+      body: JSON.stringify(payload),
     });
     if (!resRoom.ok) throw new Error(await parseApiError(resRoom));
     const roomJson = await resRoom.json();
@@ -205,14 +282,7 @@ export default function CreateListingPage() {
     if (!roomId) throw new Error("Room Type ID tidak diterima dari server");
 
     if (draft.photos.length > 0) {
-      const formData = new FormData();
-      draft.photos.forEach((file) => formData.append("photos", file));
-      const resPhotos = await fetch(`${api}/owner/room-types/${roomId}/photos`, {
-        method: "POST",
-        headers: authHeaders(),
-        body: formData,
-      });
-      if (!resPhotos.ok) throw new Error(await parseApiError(resPhotos));
+      await uploadPhotosToRoom(api, roomId, draft.photos);
     }
   };
 
@@ -236,7 +306,7 @@ export default function CreateListingPage() {
         headers: authHeaders(true),
         body: JSON.stringify({
           name: form.name.trim(),
-          address: form.address.trim(),
+          address: buildListingAddress(form.areaDesa, form.areaKecamatan, form.areaKabupaten),
           genderType: form.genderType,
           description: form.description.trim(),
           contactNumber: form.contactNumber.trim(),
@@ -254,6 +324,9 @@ export default function CreateListingPage() {
       for (const draft of allRoomDrafts) {
         await createRoomTypeWithPhotos(api, listingId, draft);
       }
+
+      const minPrice = Math.min(...allRoomDrafts.map((d) => d.room.price));
+      await createSharedFacilityRoomWithPhotos(api, listingId, minPrice);
 
       navigate("/owner/properti");
     } catch (err) {
@@ -321,6 +394,55 @@ export default function CreateListingPage() {
         </div>
       </div>
     );
+
+  const currentRoomIndex = savedRoomDrafts.length + 1;
+  const totalRoomTypesLabel =
+    savedRoomDrafts.length > 0
+      ? `${savedRoomDrafts.length + 1} tipe kamar`
+      : "1 tipe kamar (bisa ditambah)";
+
+  const RoomTypeBanner = () => (
+    <div
+      style={{
+        marginBottom: 20,
+        padding: "14px 16px",
+        borderRadius: 12,
+        background: "linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%)",
+        border: "1px solid #bfdbfe",
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 12,
+      }}
+    >
+      <div
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 10,
+          background: "#1d4ed8",
+          color: "white",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontWeight: 800,
+          fontSize: 14,
+          flexShrink: 0,
+        }}
+      >
+        {currentRoomIndex}
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <p style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", marginBottom: 4 }}>
+          Tipe kamar ke-{currentRoomIndex}
+          {room.name.trim() ? `: ${room.name.trim()}` : ""}
+        </p>
+        <p style={{ fontSize: 12, color: "#475569", lineHeight: 1.5, margin: 0 }}>
+          Satu kost bisa punya beberapa tipe kamar (Standar, Deluxe, VIP, dll.). Isi tipe ini dulu —
+          setelah upload foto di langkah terakhir, klik <strong>Tipe kamar lain</strong> untuk menambah.
+        </p>
+      </div>
+    </div>
+  );
 
   const currentStepData = STEPS[step - 1];
   const CurrentIcon = currentStepData.icon;
@@ -1101,6 +1223,24 @@ export default function CreateListingPage() {
                   style={{ width: `${((step - 1) / (STEPS.length - 1)) * 100}%` }}
                 />
               </div>
+              {(step >= 3 || savedRoomDrafts.length > 0) && (
+                <div
+                  style={{
+                    marginTop: 14,
+                    padding: "10px 12px",
+                    borderRadius: 10,
+                    background: "#eff6ff",
+                    border: "1px solid #bfdbfe",
+                  }}
+                >
+                  <p style={{ fontSize: 10, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 4 }}>
+                    Tipe kamar
+                  </p>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "#1d4ed8", margin: 0 }}>
+                    {totalRoomTypesLabel}
+                  </p>
+                </div>
+              )}
             </div>
           </aside>
 
@@ -1272,6 +1412,82 @@ export default function CreateListingPage() {
                       </p>
                     )}
                   </div>
+
+                  <div className="clp-field">
+                    <label className="clp-label">Fasilitas Kost (bersama)</label>
+                    <p className="clp-info-note">
+                      Fasilitas area umum gedung — disimpan terpisah dari fasilitas kamar.
+                    </p>
+                    <div className="clp-toggle-list">
+                      {KOST_FACILITY_OPTIONS.map((f) => {
+                        const checked = form.sharedFacilities.includes(f);
+                        return (
+                          <button
+                            key={f}
+                            type="button"
+                            onClick={() =>
+                              setForm({
+                                ...form,
+                                sharedFacilities: toggleItem(form.sharedFacilities, f),
+                              })
+                            }
+                            className={`clp-toggle-row${checked ? " active" : ""}`}
+                          >
+                            <span>{f}</span>
+                            {checked && (
+                              <span className="clp-toggle-check">
+                                <Check size={12} color="white" />
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid #e8eaf2" }}>
+                      <p style={{ fontSize: 12, color: "#64748b", fontWeight: 600, marginBottom: 10 }}>
+                        Tambah fasilitas bersama custom
+                      </p>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <input
+                          type="text"
+                          className="clp-input"
+                          placeholder="cth. Mushola, Jemuran atap"
+                          value={form.newSharedFacility || ""}
+                          onChange={(e) => setForm({ ...form, newSharedFacility: e.target.value })}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              addCustomSharedFacility();
+                            }
+                          }}
+                          style={{ flex: 1 }}
+                        />
+                        <button type="button" onClick={addCustomSharedFacility} className="clp-btn clp-btn-primary" style={{ padding: "11px 16px", fontSize: 12 }}>
+                          <Plus size={14} /> Tambah
+                        </button>
+                      </div>
+                    </div>
+                    <SelectedFacilityTags
+                      items={form.sharedFacilities}
+                      label="Fasilitas gedung terpilih"
+                      onRemove={(fac) =>
+                        setForm({
+                          ...form,
+                          sharedFacilities: form.sharedFacilities.filter((x) => x !== fac),
+                        })
+                      }
+                    />
+                    {errors.sharedFacilitiesList && (
+                      <p className="clp-error" style={{ marginTop: 8 }}>⚠ {errors.sharedFacilitiesList}</p>
+                    )}
+                  </div>
+
+                  <SharedFacilityPhotos
+                    variant="create"
+                    files={sharedFacilityPhotos}
+                    onFilesChange={setSharedFacilityPhotos}
+                    error={errors.sharedFacilityPhotos || errors.sharedFacilitiesList}
+                  />
                 </>
               )}
 
@@ -1279,22 +1495,33 @@ export default function CreateListingPage() {
               {step === 2 && (
                 <>
                   <div className="clp-field">
-                    <label className="clp-label">Alamat Lengkap</label>
-                    <textarea
-                      className={`clp-textarea${errors.address ? " err" : ""}`}
-                      rows={3}
-                      placeholder="Jl. Contoh No. 12, Kel. ..., Kec. ..., Kota ..."
-                      value={form.address}
-                      onChange={(e) => setForm({ ...form, address: e.target.value })}
-                    />
-                    {errors.address && <p className="clp-error">⚠ {errors.address}</p>}
+                    <label className="clp-label">Area Lokasi (tampil ke user)</label>
+                    <p className="clp-info-note">
+                      Hanya kelurahan/desa, kecamatan, dan kabupaten — tanpa nama jalan atau nomor rumah.
+                      Koordinat pasti hanya untuk pemilik &amp; admin; user melihat area perkiraan di peta.
+                    </p>
                   </div>
+                  <AreaLocationFields
+                    variant="create"
+                    values={{
+                      areaKabupaten: form.areaKabupaten,
+                      areaKecamatan: form.areaKecamatan,
+                      areaDesa: form.areaDesa,
+                    }}
+                    errors={errors}
+                    onChange={(area) => setForm({ ...form, ...area })}
+                  />
+                  {(form.areaDesa || form.areaKecamatan || form.areaKabupaten) && (
+                    <div style={{ marginBottom: 16, padding: "12px 14px", borderRadius: 10, background: "#eff6ff", border: "1px solid #bfdbfe", fontSize: 12, color: "#1e40af" }}>
+                      <strong>Preview publik:</strong>{" "}
+                      {buildListingAddress(form.areaDesa, form.areaKecamatan, form.areaKabupaten) || "—"}
+                    </div>
+                  )}
 
                   <div className="clp-field">
-                    <label className="clp-label">Tandai Lokasi di Peta</label>
+                    <label className="clp-label">Tandai Lokasi di Peta (rahasia)</label>
                     <p className="clp-info-note">
-                      📍 Klik pada peta untuk menentukan lokasi kost secara akurat. Titik pin bisa
-                      digeser kembali setelah ditandai.
+                      📍 Pin untuk jarak &amp; validasi — tidak ditampilkan persis ke calon penyewa.
                     </p>
                     <div className="clp-map-container">
                       <MapPicker setLatLng={setLatLng} />
@@ -1328,161 +1555,26 @@ export default function CreateListingPage() {
               {/* STEP 3: Fasilitas & Ketersediaan */}
               {step === 3 && (
                 <>
+                  <RoomTypeBanner />
                   <SavedDraftsList />
                   <div className="clp-field">
-                    <label className="clp-label">Fasilitas Kamar</label>
-                    <p className="clp-info-note">Pilih fasilitas yang tersedia atau tambahkan fasilitas custom.</p>
-                    
-                    {/* Fasilitas yang sudah ditentukan */}
-                    <p style={{ fontSize: 12, color: "#64748b", fontWeight: 600, marginBottom: 10 }}>
-                      Fasilitas Standar
+                    <label className="clp-label">Fasilitas Kamar (khusus tipe ini)</label>
+                    <p className="clp-info-note">
+                      Fasilitas di dalam kamar untuk tipe ini saja. Fasilitas kost bersama sudah diisi di langkah Data Kos.
                     </p>
-                    <div className="clp-toggle-list">
-                      {FACILITY_OPTIONS.map((f) => {
-                        const checked = room.facilities.includes(f);
-                        return (
-                          <button
-                            key={f}
-                            type="button"
-                            onClick={() =>
-                              setRoom({ ...room, facilities: toggleItem(room.facilities, f) })
-                            }
-                            className={`clp-toggle-row${checked ? " active" : ""}`}
-                          >
-                            <span>{f}</span>
-                            {checked && (
-                              <span className="clp-toggle-check">
-                                <Check size={12} color="white" />
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <RoomFacilityFields
+                      facilities={room.facilities}
+                      onChange={(next) => setRoom({ ...room, facilities: next })}
+                      error={errors.facilities}
+                    />
+                  </div>
 
-                    {/* Input untuk fasilitas custom */}
-                    <div style={{ marginTop: 24, paddingTop: 24, borderTop: "1px solid #e8eaf2" }}>
-                      <p style={{ fontSize: 12, color: "#64748b", fontWeight: 600, marginBottom: 10 }}>
-                        Tambah Fasilitas Custom
-                      </p>
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <input
-                          type="text"
-                          className="clp-input"
-                          placeholder="cth. Kulkas, Microwave, TV"
-                          value={room.newFacility || ""}
-                          onChange={(e) => setRoom({ ...room, newFacility: e.target.value })}
-                          onKeyPress={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              if (room.newFacility?.trim()) {
-                                const newFac = room.newFacility.trim();
-                                if (!room.facilities.includes(newFac)) {
-                                  setRoom({
-                                    ...room,
-                                    facilities: [...room.facilities, newFac],
-                                    newFacility: "",
-                                  });
-                                }
-                              }
-                            }
-                          }}
-                          style={{ flex: 1 }}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (room.newFacility?.trim()) {
-                              const newFac = room.newFacility.trim();
-                              if (!room.facilities.includes(newFac)) {
-                                setRoom({
-                                  ...room,
-                                  facilities: [...room.facilities, newFac],
-                                  newFacility: "",
-                                });
-                              }
-                            }
-                          }}
-                          style={{
-                            padding: "11px 16px",
-                            background: "#1d4ed8",
-                            color: "white",
-                            border: "none",
-                            borderRadius: 10,
-                            fontWeight: 600,
-                            cursor: "pointer",
-                            fontSize: 13,
-                            whiteSpace: "nowrap",
-                            transition: "all 0.2s",
-                          }}
-                          onMouseEnter={(e) => (e.currentTarget.style.background = "#1e40af")}
-                          onMouseLeave={(e) => (e.currentTarget.style.background = "#1d4ed8")}
-                        >
-                          + Tambah
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Daftar semua fasilitas yang dipilih (standar + custom) */}
-                    {room.facilities.length > 0 && (
-                      <div style={{ marginTop: 24 }}>
-                        <p style={{ fontSize: 12, color: "#64748b", fontWeight: 600, marginBottom: 10 }}>
-                          Fasilitas Terpilih ({room.facilities.length})
-                        </p>
-                        <div
-                          style={{
-                            display: "flex",
-                            flexWrap: "wrap",
-                            gap: 8,
-                          }}
-                        >
-                          {room.facilities.map((fac) => (
-                            <div
-                              key={fac}
-                              style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 8,
-                                padding: "8px 12px",
-                                background: "#eff6ff",
-                                border: "1.5px solid #bfdbfe",
-                                borderRadius: 10,
-                                color: "#1d4ed8",
-                                fontSize: 13,
-                                fontWeight: 600,
-                              }}
-                            >
-                              <span>{fac}</span>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setRoom({
-                                    ...room,
-                                    facilities: room.facilities.filter((x) => x !== fac),
-                                  })
-                                }
-                                style={{
-                                  background: "none",
-                                  border: "none",
-                                  color: "#1d4ed8",
-                                  cursor: "pointer",
-                                  fontSize: 16,
-                                  padding: 0,
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  width: 18,
-                                  height: 18,
-                                }}
-                              >
-                                ×
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {errors.facilities && <p className="clp-error">⚠ {errors.facilities}</p>}
+                  <div className="clp-field">
+                    <ElectricityIncludedField
+                      value={room.electricityIncluded}
+                      onChange={(val) => setRoom({ ...room, electricityIncluded: val })}
+                      error={errors.electricity}
+                    />
                   </div>
 
                   <div className="clp-field">
@@ -1536,6 +1628,8 @@ export default function CreateListingPage() {
               {/* STEP 4: Detail Kamar */}
               {step === 4 && (
                 <>
+                  <RoomTypeBanner />
+                  <SavedDraftsList />
                   <div className="clp-field">
                     <label className="clp-label">Nama Tipe Kamar</label>
                     <input
@@ -1584,7 +1678,24 @@ export default function CreateListingPage() {
               {/* STEP 5: Foto Kamar */}
               {step === 5 && (
                 <>
+                  <RoomTypeBanner />
                   <SavedDraftsList />
+                  <div
+                    style={{
+                      marginBottom: 16,
+                      padding: "12px 14px",
+                      borderRadius: 10,
+                      background: "#fefce8",
+                      border: "1px solid #fde047",
+                      fontSize: 12,
+                      color: "#713f12",
+                      lineHeight: 1.55,
+                    }}
+                  >
+                    <strong>Tip:</strong> Setelah upload foto tipe ini, klik tombol{" "}
+                    <strong>Tipe kamar lain</strong> di bawah untuk menambah tipe berikutnya.
+                    Baru klik <strong>Simpan Kost</strong> jika semua tipe sudah lengkap.
+                  </div>
                   <p className="clp-info-note">
                     Upload minimal 1 foto (maks. {PHOTO_MAX}). Format JPG, PNG, atau WEBP — maks. 5MB
                     per file.
@@ -1713,12 +1824,17 @@ export default function CreateListingPage() {
                       Lanjut <ChevronRight size={16} />
                     </button>
                   ) : (
-                    <>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10 }}>
+                      <p style={{ fontSize: 11, color: "#64748b", fontWeight: 600, textAlign: "right", maxWidth: 320, lineHeight: 1.45 }}>
+                        Punya tipe kamar lain? Klik <strong>Tipe kamar lain</strong> dulu sebelum Simpan Kost.
+                      </p>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
                       <button
                         type="button"
                         onClick={handleAddAnotherRoomType}
                         disabled={loading}
                         className="clp-btn clp-btn-outline"
+                        style={{ borderColor: "#1d4ed8", color: "#1d4ed8", fontWeight: 700 }}
                       >
                         <Plus size={16} /> Tipe kamar lain
                       </button>
@@ -1740,7 +1856,8 @@ export default function CreateListingPage() {
                           </>
                         )}
                       </button>
-                    </>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>

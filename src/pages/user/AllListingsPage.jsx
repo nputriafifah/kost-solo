@@ -23,6 +23,7 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import KostCard from "../../components/kost/KostCard";
 import { getApiBase, resolveMediaUrl } from "../../config/apiBase";
+import { formatPublicLocation } from "../../utils/publicLocation";
 
 /* =========================================================
    SKELETON
@@ -234,7 +235,7 @@ export default function AllListingsPage() {
           return {
             id: String(item.id),
             name: item.name || "Tanpa Nama",
-            location: item.address || "Lokasi tidak tersedia",
+            location: formatPublicLocation(item.address || ""),
             price: item.cheapestPrice ?? fallbackPrice ?? 0,
             gender: (item.genderType || "").toLowerCase(),
             image: resolveMediaUrl(item.thumbnailUrl || fallbackPhoto),

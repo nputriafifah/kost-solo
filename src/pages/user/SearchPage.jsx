@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getApiBase, resolveMediaUrl } from "../../config/apiBase";
+import { formatPublicLocation } from "../../utils/publicLocation";
 import { GENDER_OPTIONS } from "../../constants/listing";
 
 const API = getApiBase();
@@ -96,7 +97,7 @@ function mapSearchResult(item) {
     id: item.id,
     name: item.name,
     price: item.cheapestPrice ?? null,
-    location: item.address ?? "",
+    location: formatPublicLocation(item.address ?? ""),
     gender: (item.genderType || "").toLowerCase(),
     isPremium: Boolean(item.isPremium),
     latitude: item.latitude ?? null,

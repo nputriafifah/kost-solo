@@ -2,10 +2,34 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Save, Loader2, Camera, X, Check, BedDouble,
-  Plus, Trash2, ChevronRight,
+  Plus, Trash2, ChevronRight, ChevronDown,
 } from "lucide-react";
 import { getApiBase, resolveMediaUrl } from "../../config/apiBase";
-import { FACILITY_OPTIONS, GENDER_OPTIONS, RULE_OPTIONS } from "../../constants/listing";
+import {
+  KOST_FACILITY_OPTIONS,
+  GENDER_OPTIONS,
+  RULE_OPTIONS,
+  extractKostFacilitiesFromRooms,
+  getRoomOnlyFacilities,
+  parseElectricityIncluded,
+  applyElectricityToFacilities,
+  buildSharedFacilityRoomPayload,
+  findSharedFacilityRoom,
+  getRentableRoomTypes,
+  SHARED_FACILITY_ROOM_NAME,
+} from "../../constants/listing";
+import { buildListingAddress, parseListingAddress } from "../../utils/publicLocation";
+import AreaLocationFields from "../../components/owner/AreaLocationFields";
+import SharedFacilityPhotos from "../../components/owner/SharedFacilityPhotos";
+import SelectedFacilityTags from "../../components/owner/SelectedFacilityTags";
+import RoomFacilityFields from "../../components/owner/RoomFacilityFields";
+import ElectricityIncludedField from "../../components/owner/ElectricityIncludedField";
+import MapPicker from "../../components/owner/MapPicker";
+import {
+  matchKabupatenOption,
+  matchKecamatanOption,
+  matchKelurahanOption,
+} from "../../constants/soloRegions";
 
 const EMPTY_NEW_ROOM = {
   name: "",
@@ -13,6 +37,7 @@ const EMPTY_NEW_ROOM = {
   size: "",
   facilities: [],
   availableCount: 1,
+  electricityIncluded: null,
 };
 
 const STEPS = [
@@ -20,6 +45,15 @@ const STEPS = [
   { label: "Tipe Kamar", desc: "Tambah atau kelola tipe kamar" },
   { label: "Foto Kamar", desc: "Kelola foto tiap tipe kamar" },
 ];
+
+const PHOTO_MAX = 8;
+const PHOTO_MIME = ["image/jpeg", "image/png", "image/webp"];
+
+const SHARED_PHOTO_KEY = "__shared__";
+
+const emptyPhotoEntry = () => ({ newFiles: [], deletedIds: [], uploading: false });
+
+const getPhotoEntry = (state, roomTypeId) => state[roomTypeId] || emptyPhotoEntry();
 
 const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap');
@@ -102,23 +136,47 @@ export default function EditListingPage() {
 
   const [form, setForm] = useState({
     name: "",
-    address: "",
+    areaDesa: "",
+    areaKecamatan: "",
+    areaKabupaten: "",
     description: "",
     contactNumber: "",
     genderType: "PUTRA",
     rules: [],
+    sharedFacilities: [],
+    newSharedFacility: "",
   });
+
+  const [latLng, setLatLng] = useState(null);
 
   const [roomTypes, setRoomTypes] = useState([]);
   const [newRoom, setNewRoom] = useState({ ...EMPTY_NEW_ROOM });
   const [photoState, setPhotoState] = useState({});
+  const [photoErrors, setPhotoErrors] = useState({});
+  const [sharedPhotoError, setSharedPhotoError] = useState("");
+  const [roomFacilityEdits, setRoomFacilityEdits] = useState({});
+  const [roomElectricityEdits, setRoomElectricityEdits] = useState({});
+  const [expandedRoomFacilitiesId, setExpandedRoomFacilitiesId] = useState(null);
+  const [savingRoomFacilitiesId, setSavingRoomFacilitiesId] = useState(null);
+
+  const sharedFacilityRoom = findSharedFacilityRoom(roomTypes);
+  const rentableRoomTypes = getRentableRoomTypes(roomTypes);
 
   const syncPhotoState = useCallback((types) => {
-    const init = {};
-    (types || []).forEach((rt) => {
-      init[rt.id] = { newFiles: [], deletedIds: [], uploading: false };
+    setPhotoState((prev) => {
+      const next = {};
+      getRentableRoomTypes(types || []).forEach((rt) => {
+        if (!rt?.id) return;
+        next[rt.id] = prev[rt.id] || emptyPhotoEntry();
+      });
+      const shared = findSharedFacilityRoom(types || []);
+      if (shared?.id) {
+        next[shared.id] = prev[shared.id] || prev[SHARED_PHOTO_KEY] || emptyPhotoEntry();
+      } else if (prev[SHARED_PHOTO_KEY]) {
+        next[SHARED_PHOTO_KEY] = prev[SHARED_PHOTO_KEY];
+      }
+      return next;
     });
-    setPhotoState(init);
   }, []);
 
   const refreshListing = useCallback(async () => {
@@ -137,14 +195,27 @@ export default function EditListingPage() {
     const fetch_ = async () => {
       try {
         const d = await refreshListing();
+        const area = parseListingAddress(d.address);
+        const areaKabupaten = matchKabupatenOption(area.kabupaten);
+        const areaKecamatan = matchKecamatanOption(areaKabupaten, area.kecamatan);
+        const areaDesa = matchKelurahanOption(areaKabupaten, areaKecamatan, area.desa);
         setForm({
           name: d.name || "",
-          address: d.address || "",
+          areaDesa,
+          areaKecamatan,
+          areaKabupaten,
           description: d.description || "",
           contactNumber: d.contactNumber || "",
           genderType: d.genderType || "PUTRA",
           rules: Array.isArray(d.rules) ? d.rules : [],
+          sharedFacilities: extractKostFacilitiesFromRooms(d.roomTypes),
+          newSharedFacility: "",
         });
+        const lat = Number(d.latitude);
+        const lng = Number(d.longitude);
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+          setLatLng({ lat, lng });
+        }
       } catch (err) {
         alert(err.message);
       } finally {
@@ -154,16 +225,53 @@ export default function EditListingPage() {
     fetch_();
   }, [refreshListing]);
 
+  useEffect(() => {
+    const kostFac = extractKostFacilitiesFromRooms(roomTypes);
+    const facNext = {};
+    const elecNext = {};
+    getRentableRoomTypes(roomTypes).forEach((room) => {
+      if (!room?.id) return;
+      facNext[room.id] = getRoomOnlyFacilities(room.facilities, kostFac);
+      elecNext[room.id] = parseElectricityIncluded(room.facilities);
+    });
+    setRoomFacilityEdits(facNext);
+    setRoomElectricityEdits(elecNext);
+  }, [roomTypes]);
+
   const validate = () => {
     const e = {};
     if (form.name.trim().length < 3) e.name = "Nama minimal 3 karakter";
-    if (form.address.trim().length < 10) e.address = "Alamat minimal 10 karakter";
+    if (form.areaDesa.trim().length < 2) e.areaDesa = "Kelurahan/desa minimal 2 karakter";
+    if (form.areaKecamatan.trim().length < 2) e.areaKecamatan = "Kecamatan wajib diisi";
+    if (form.areaKabupaten.trim().length < 2) e.areaKabupaten = "Kabupaten/kota wajib diisi";
     if (form.description.trim().length < 10) e.description = "Deskripsi minimal 10 karakter";
     if (form.contactNumber.trim().length < 8) e.contactNumber = "Nomor kontak minimal 8 digit";
     if (!GENDER_OPTIONS.some((g) => g.value === form.genderType)) e.genderType = "Pilih tipe kost";
     if (!form.rules?.length) e.rules = "Pilih minimal 1 peraturan";
+    if (form.sharedFacilities.length > 0) {
+      const photoCount = sharedFacilityRoom?.photos?.length ?? 0;
+      if (photoCount === 0) e.sharedFacilityPhotos = "Upload minimal 1 foto fasilitas bersama";
+    }
+    if ((sharedFacilityRoom?.photos?.length ?? 0) > 0 && form.sharedFacilities.length === 0) {
+      e.sharedFacilitiesList = "Pilih minimal 1 fasilitas kost bersama";
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
+  };
+
+  const addCustomSharedFacility = () => {
+    const raw = form.newSharedFacility?.trim();
+    if (!raw) return;
+    const exists = form.sharedFacilities.some((f) => f.toLowerCase() === raw.toLowerCase());
+    if (exists) {
+      setForm({ ...form, newSharedFacility: "" });
+      return;
+    }
+    setForm({
+      ...form,
+      sharedFacilities: [...form.sharedFacilities, raw],
+      newSharedFacility: "",
+    });
   };
 
   const toggleRule = (rule) => {
@@ -178,22 +286,50 @@ export default function EditListingPage() {
   const validateNewRoom = () => {
     const e = {};
     if (newRoom.name.trim().length < 2) e.name = "Nama tipe minimal 2 karakter";
+    if (newRoom.name.trim().toLowerCase() === SHARED_FACILITY_ROOM_NAME.toLowerCase()) {
+      e.name = `"${SHARED_FACILITY_ROOM_NAME}" reserved — gunakan upload foto fasilitas bersama`;
+    }
     if (!newRoom.size.trim()) e.size = "Ukuran wajib diisi";
     const price = Math.floor(Number(newRoom.price));
     if (!price || price <= 0) e.price = "Harga wajib (angka bulat > 0)";
-    if (newRoom.facilities.length === 0) e.facilities = "Pilih minimal 1 fasilitas";
+    if (newRoom.facilities.length === 0) e.facilities = "Pilih minimal 1 fasilitas kamar";
+    if (newRoom.electricityIncluded === null) e.electricity = "Pilih apakah listrik termasuk atau belum";
     if (newRoom.availableCount < 0) e.availableCount = "Stok tidak valid";
     setRoomErrors(e);
     return Object.keys(e).length === 0;
   };
 
-  const toggleFacility = (f) => {
-    setNewRoom((prev) => ({
-      ...prev,
-      facilities: prev.facilities.includes(f)
-        ? prev.facilities.filter((x) => x !== f)
-        : [...prev.facilities, f],
-    }));
+  const handleSaveRoomFacilities = async (roomTypeId) => {
+    const facilities = roomFacilityEdits[roomTypeId] ?? [];
+    const electricityIncluded = roomElectricityEdits[roomTypeId] ?? null;
+    if (facilities.length === 0) {
+      alert("Pilih minimal 1 fasilitas kamar");
+      return;
+    }
+    if (electricityIncluded === null) {
+      alert("Pilih apakah listrik termasuk atau belum");
+      return;
+    }
+    setSavingRoomFacilitiesId(roomTypeId);
+    try {
+      const res = await fetch(`${api}/owner/room-types/${roomTypeId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({
+          facilities: applyElectricityToFacilities(facilities, electricityIncluded),
+        }),
+      });
+      if (!res.ok) throw new Error(await parseApiError(res));
+      await refreshListing();
+      setExpandedRoomFacilitiesId(null);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSavingRoomFacilitiesId(null);
+    }
   };
 
   const handleSaveInfo = async () => {
@@ -208,20 +344,144 @@ export default function EditListingPage() {
         },
         body: JSON.stringify({
           name: form.name.trim(),
-          address: form.address.trim(),
+          address: buildListingAddress(form.areaDesa, form.areaKecamatan, form.areaKabupaten),
           description: form.description.trim(),
           contactNumber: form.contactNumber.trim(),
           genderType: form.genderType,
           rules: form.rules,
+          ...(latLng
+            ? { latitude: Number(latLng.lat), longitude: Number(latLng.lng) }
+            : {}),
         }),
       });
       if (!res.ok) throw new Error(await parseApiError(res));
+
+      const latest = await refreshListing();
+      const shared = findSharedFacilityRoom(latest.roomTypes || roomTypes);
+      const facilitiesPayload =
+        form.sharedFacilities.length > 0 ? form.sharedFacilities : ["Area Bersama"];
+
+      if (shared?.id) {
+        const patchRes = await fetch(`${api}/owner/room-types/${shared.id}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getToken()}`,
+          },
+          body: JSON.stringify({ facilities: facilitiesPayload }),
+        });
+        if (!patchRes.ok) throw new Error(await parseApiError(patchRes));
+      } else if (form.sharedFacilities.length > 0) {
+        const minPrice = Math.min(
+          ...getRentableRoomTypes(latest.roomTypes || roomTypes)
+            .map((r) => Number(r.price))
+            .filter((p) => p > 0),
+        ) || 1;
+        const createRes = await fetch(`${api}/owner/listings/${id}/room-types`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${getToken()}`,
+          },
+          body: JSON.stringify(buildSharedFacilityRoomPayload(form.sharedFacilities, minPrice)),
+        });
+        if (!createRes.ok) throw new Error(await parseApiError(createRes));
+        await refreshListing();
+      }
+
       setStep(2);
     } catch (err) {
       alert(err.message);
     } finally {
       setSaving(false);
     }
+  };
+
+  const ensureSharedFacilityRoom = async () => {
+    const current = findSharedFacilityRoom(roomTypes);
+    if (current?.id) return current.id;
+
+    const minPrice = Math.min(
+      ...getRentableRoomTypes(roomTypes).map((r) => Number(r.price)).filter((p) => p > 0),
+    ) || 1;
+    const createRes = await fetch(`${api}/owner/listings/${id}/room-types`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: JSON.stringify(buildSharedFacilityRoomPayload(form.sharedFacilities, minPrice)),
+    });
+    if (!createRes.ok) throw new Error(await parseApiError(createRes));
+    const json = await createRes.json();
+    const latest = await refreshListing();
+    return json.data?.id || findSharedFacilityRoom(latest.roomTypes || [])?.id;
+  };
+
+  const getSharedPhotoKey = () => sharedFacilityRoom?.id || SHARED_PHOTO_KEY;
+
+  const uploadSharedFacilityPhotos = async (files) => {
+    if (form.sharedFacilities.length === 0) {
+      setSharedPhotoError("Pilih fasilitas kost bersama dulu");
+      return;
+    }
+
+    const fileArr = Array.from(files || []).filter((f) => PHOTO_MIME.includes(f.type));
+    if (fileArr.length === 0) {
+      setSharedPhotoError("Format harus JPG, PNG, atau WEBP");
+      return;
+    }
+
+    const key = getSharedPhotoKey();
+    const room = sharedFacilityRoom;
+    const currentCount = room
+      ? countVisiblePhotos(room, room.id)
+      : 0;
+
+    if (currentCount + fileArr.length > PHOTO_MAX) {
+      setSharedPhotoError(`Maksimal ${PHOTO_MAX} foto fasilitas bersama`);
+      return;
+    }
+
+    setPhotoState((prev) => ({
+      ...prev,
+      [key]: { ...getPhotoEntry(prev, key), uploading: true },
+    }));
+    setSharedPhotoError("");
+
+    try {
+      const roomId = room?.id || (await ensureSharedFacilityRoom());
+      const fd = new FormData();
+      fileArr.forEach((f) => fd.append("photos", f));
+      const uploadRes = await fetch(`${api}/owner/room-types/${roomId}/photos`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${getToken()}` },
+        body: fd,
+      });
+      if (!uploadRes.ok) throw new Error(await parseApiError(uploadRes));
+      await refreshListing();
+      setPhotoState((prev) => ({
+        ...prev,
+        [roomId]: emptyPhotoEntry(),
+      }));
+    } catch (err) {
+      setSharedPhotoError(err.message || "Gagal upload foto");
+      setPhotoState((prev) => ({
+        ...prev,
+        [key]: { ...getPhotoEntry(prev, key), uploading: false },
+      }));
+    }
+  };
+
+  const markDeleteSharedPhoto = (photoId) => {
+    const key = getSharedPhotoKey();
+    markDelete(key, photoId);
+  };
+
+  const saveSharedPhotos = async () => {
+    const key = sharedFacilityRoom?.id;
+    if (!key) return;
+    await savePhotos(key);
   };
 
   const handleAddRoomType = async () => {
@@ -239,7 +499,7 @@ export default function EditListingPage() {
           name: newRoom.name.trim(),
           price,
           size: newRoom.size.trim(),
-          facilities: newRoom.facilities,
+          facilities: applyElectricityToFacilities(newRoom.facilities, newRoom.electricityIncluded),
           availableCount: Number(newRoom.availableCount),
         }),
       });
@@ -269,36 +529,80 @@ export default function EditListingPage() {
     }
   };
 
+  const countVisiblePhotos = (room, roomTypeId, state = photoState) => {
+    const ps = getPhotoEntry(state, roomTypeId);
+    return (room?.photos || []).filter((p) => !ps.deletedIds.includes(p.id)).length;
+  };
+
   const markDelete = (roomTypeId, photoId) => {
-    setPhotoState((prev) => ({
-      ...prev,
-      [roomTypeId]: { ...prev[roomTypeId], deletedIds: [...prev[roomTypeId].deletedIds, photoId] },
-    }));
-  };
-
-  const addFiles = (roomTypeId, files) => {
-    setPhotoState((prev) => ({
-      ...prev,
-      [roomTypeId]: { ...prev[roomTypeId], newFiles: [...prev[roomTypeId].newFiles, ...Array.from(files)] },
-    }));
-  };
-
-  const removeNewFile = (roomTypeId, idx) => {
     setPhotoState((prev) => {
-      const files = [...prev[roomTypeId].newFiles];
-      files.splice(idx, 1);
-      return { ...prev, [roomTypeId]: { ...prev[roomTypeId], newFiles: files } };
+      const entry = getPhotoEntry(prev, roomTypeId);
+      return {
+        ...prev,
+        [roomTypeId]: { ...entry, deletedIds: [...entry.deletedIds, photoId] },
+      };
     });
   };
 
-  const hasPhotoChanges = (roomTypeId) => {
-    const s = photoState[roomTypeId];
-    return s && (s.deletedIds.length > 0 || s.newFiles.length > 0);
+  const hasPhotoChanges = (roomTypeId) =>
+    getPhotoEntry(photoState, roomTypeId).deletedIds.length > 0;
+
+  const uploadNewPhotos = async (roomTypeId, files) => {
+    const room = roomTypes.find((r) => r.id === roomTypeId);
+    const fileArr = Array.from(files || []).filter((f) => PHOTO_MIME.includes(f.type));
+    if (fileArr.length === 0) {
+      setPhotoErrors((prev) => ({ ...prev, [roomTypeId]: "Format harus JPG, PNG, atau WEBP" }));
+      return;
+    }
+
+    const currentCount = countVisiblePhotos(room, roomTypeId);
+    if (currentCount + fileArr.length > PHOTO_MAX) {
+      setPhotoErrors((prev) => ({
+        ...prev,
+        [roomTypeId]: `Maksimal ${PHOTO_MAX} foto per tipe kamar (saat ini ${currentCount})`,
+      }));
+      return;
+    }
+
+    setPhotoState((prev) => ({
+      ...prev,
+      [roomTypeId]: { ...getPhotoEntry(prev, roomTypeId), uploading: true },
+    }));
+    setPhotoErrors((prev) => ({ ...prev, [roomTypeId]: "" }));
+
+    try {
+      const fd = new FormData();
+      fileArr.forEach((f) => fd.append("photos", f));
+      const uploadRes = await fetch(`${api}/owner/room-types/${roomTypeId}/photos`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${getToken()}` },
+        body: fd,
+      });
+      if (!uploadRes.ok) throw new Error(await parseApiError(uploadRes));
+      await refreshListing();
+      setPhotoState((prev) => ({
+        ...prev,
+        [roomTypeId]: { newFiles: [], deletedIds: getPhotoEntry(prev, roomTypeId).deletedIds, uploading: false },
+      }));
+    } catch (err) {
+      setPhotoErrors((prev) => ({ ...prev, [roomTypeId]: err.message || "Gagal upload foto" }));
+      setPhotoState((prev) => ({
+        ...prev,
+        [roomTypeId]: { ...getPhotoEntry(prev, roomTypeId), uploading: false },
+      }));
+    }
   };
 
   const savePhotos = async (roomTypeId) => {
-    const s = photoState[roomTypeId];
-    setPhotoState((prev) => ({ ...prev, [roomTypeId]: { ...prev[roomTypeId], uploading: true } }));
+    const s = getPhotoEntry(photoState, roomTypeId);
+    if (s.deletedIds.length === 0) return;
+
+    setPhotoState((prev) => ({
+      ...prev,
+      [roomTypeId]: { ...getPhotoEntry(prev, roomTypeId), uploading: true },
+    }));
+    setPhotoErrors((prev) => ({ ...prev, [roomTypeId]: "" }));
+
     try {
       for (const photoId of s.deletedIds) {
         const deleteRes = await fetch(`${api}/owner/photos/${photoId}`, {
@@ -308,26 +612,17 @@ export default function EditListingPage() {
         if (!deleteRes.ok) throw new Error(await parseApiError(deleteRes));
       }
 
-      if (s.newFiles.length > 0) {
-        const fd = new FormData();
-        s.newFiles.forEach((f) => fd.append("photos", f));
-        const uploadRes = await fetch(`${api}/owner/room-types/${roomTypeId}/photos`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${getToken()}` },
-          body: fd,
-        });
-        if (!uploadRes.ok) throw new Error(await parseApiError(uploadRes));
-      }
-
       await refreshListing();
       setPhotoState((prev) => ({
         ...prev,
-        [roomTypeId]: { newFiles: [], deletedIds: [], uploading: false },
+        [roomTypeId]: emptyPhotoEntry(),
       }));
-      alert("Foto berhasil diperbarui!");
     } catch (err) {
-      alert(err.message);
-      setPhotoState((prev) => ({ ...prev, [roomTypeId]: { ...prev[roomTypeId], uploading: false } }));
+      setPhotoErrors((prev) => ({ ...prev, [roomTypeId]: err.message || "Gagal menyimpan foto" }));
+      setPhotoState((prev) => ({
+        ...prev,
+        [roomTypeId]: { ...getPhotoEntry(prev, roomTypeId), uploading: false },
+      }));
     }
   };
 
@@ -409,11 +704,30 @@ export default function EditListingPage() {
                       {errors.name && <p className="clp-err">{errors.name}</p>}
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Alamat Lengkap</label>
-                      <textarea className={`clp-input${errors.address ? " clp-input-error" : ""}`} style={{ resize: "none" }} rows={3}
-                        placeholder="Jl. Contoh No. 12, Kel. ..., Kec. ..., Kota ..."
-                        value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
-                      {errors.address && <p className="clp-err">{errors.address}</p>}
+                      <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Area Lokasi (tampil ke user)</label>
+                      <p className="text-xs text-slate-400 mb-3">Tanpa jalan/no rumah — pilih kabupaten, kecamatan, lalu kelurahan/desa.</p>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                        <AreaLocationFields
+                          variant="edit"
+                          values={{
+                            areaKabupaten: form.areaKabupaten,
+                            areaKecamatan: form.areaKecamatan,
+                            areaDesa: form.areaDesa,
+                          }}
+                          errors={errors}
+                          onChange={(area) => setForm({ ...form, ...area })}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Tandai Lokasi di Peta (rahasia)</label>
+                      <p className="text-xs text-slate-400 mb-3">Pin untuk jarak &amp; validasi — tidak ditampilkan persis ke calon penyewa.</p>
+                      <MapPicker setLatLng={setLatLng} initialLatLng={latLng} />
+                      {latLng && (
+                        <p className="clp-err" style={{ color: "#64748b", marginTop: 8, fontSize: 11 }}>
+                          Koordinat: {latLng.lat.toFixed(5)}, {latLng.lng.toFixed(5)}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Deskripsi</label>
@@ -482,6 +796,81 @@ export default function EditListingPage() {
                       </div>
                       {errors.rules && <p className="clp-err">{errors.rules}</p>}
                     </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Fasilitas Kost (bersama)</label>
+                      <p className="text-xs text-slate-400 mb-3">
+                        Fasilitas area umum gedung — disimpan terpisah dari fasilitas kamar.
+                      </p>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                        {KOST_FACILITY_OPTIONS.map((f) => (
+                          <button
+                            key={f}
+                            type="button"
+                            className={`clp-fac-chip${form.sharedFacilities.includes(f) ? " active" : ""}`}
+                            onClick={() =>
+                              setForm((prev) => ({
+                                ...prev,
+                                sharedFacilities: prev.sharedFacilities.includes(f)
+                                  ? prev.sharedFacilities.filter((x) => x !== f)
+                                  : [...prev.sharedFacilities, f],
+                              }))
+                            }
+                          >
+                            {f}
+                          </button>
+                        ))}
+                      </div>
+                      <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid #f1f5f9" }}>
+                        <p className="text-xs text-slate-500 font-semibold mb-2">Tambah fasilitas bersama custom</p>
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <input
+                            className="clp-input"
+                            placeholder="cth. Smart Door Lock, Jasa Laundry"
+                            value={form.newSharedFacility || ""}
+                            onChange={(e) => setForm({ ...form, newSharedFacility: e.target.value })}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                addCustomSharedFacility();
+                              }
+                            }}
+                            style={{ flex: 1 }}
+                          />
+                          <button
+                            type="button"
+                            onClick={addCustomSharedFacility}
+                            className="clp-btn-next px-4 py-2 rounded-xl text-sm"
+                          >
+                            <Plus size={14} style={{ display: "inline", verticalAlign: "middle" }} /> Tambah
+                          </button>
+                        </div>
+                      </div>
+                      <SelectedFacilityTags
+                        variant="edit"
+                        items={form.sharedFacilities}
+                        label="Fasilitas gedung terpilih"
+                        onRemove={(fac) =>
+                          setForm((prev) => ({
+                            ...prev,
+                            sharedFacilities: prev.sharedFacilities.filter((x) => x !== fac),
+                          }))
+                        }
+                      />
+                      {errors.sharedFacilitiesList && (
+                        <p className="clp-err">{errors.sharedFacilitiesList}</p>
+                      )}
+                      <SharedFacilityPhotos
+                        variant="edit"
+                        existingPhotos={sharedFacilityRoom?.photos || []}
+                        deletedIds={getPhotoEntry(photoState, getSharedPhotoKey()).deletedIds}
+                        onMarkDelete={markDeleteSharedPhoto}
+                        onUploadFiles={uploadSharedFacilityPhotos}
+                        uploading={getPhotoEntry(photoState, getSharedPhotoKey()).uploading}
+                        error={sharedPhotoError || errors.sharedFacilityPhotos}
+                        hasPendingDeletes={sharedFacilityRoom?.id ? hasPhotoChanges(sharedFacilityRoom.id) : false}
+                        onSaveDeletes={saveSharedPhotos}
+                      />
+                    </div>
                   </div>
                 )
               )}
@@ -492,34 +881,112 @@ export default function EditListingPage() {
                     Satu kost bisa punya beberapa tipe kamar (mis. Standard & Deluxe). Data kos cukup diisi sekali.
                   </p>
 
-                  {roomTypes.length === 0 ? (
+                  {rentableRoomTypes.length === 0 ? (
                     <p style={{ color: "#94a3b8", fontSize: 14, textAlign: "center", padding: "12px 0" }}>Belum ada tipe kamar</p>
                   ) : (
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                      {roomTypes.map((room) => (
-                        <div key={room.id} style={{ display: "flex", gap: 12, alignItems: "center", padding: 14, borderRadius: 14, border: "1px solid #e8edf6", background: "#fafbff" }}>
-                          <div style={{ width: 40, height: 40, borderRadius: 10, background: "linear-gradient(135deg,#1d4ed8,#3b82f6)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                            <BedDouble size={18} color="white" />
+                      {rentableRoomTypes.map((room) => {
+                        const isExpanded = expandedRoomFacilitiesId === room.id;
+                        const facilities = roomFacilityEdits[room.id] ?? [];
+
+                        return (
+                          <div
+                            key={room.id}
+                            style={{
+                              padding: 14,
+                              borderRadius: 14,
+                              border: "1px solid #e8edf6",
+                              background: "#fafbff",
+                            }}
+                          >
+                            <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                              <div style={{ width: 40, height: 40, borderRadius: 10, background: "linear-gradient(135deg,#1d4ed8,#3b82f6)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                                <BedDouble size={18} color="white" />
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <p style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>{room.name}</p>
+                                <p style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
+                                  Rp {Number(room.price).toLocaleString("id-ID")} · {room.size} · {room.availableCount} tersedia
+                                  {(room.photos?.length ?? 0) > 0 && ` · ${room.photos.length} foto`}
+                                </p>
+                                {!isExpanded && facilities.length > 0 && (
+                                  <p style={{ fontSize: 11, color: "#1d4ed8", marginTop: 6, fontWeight: 600 }}>
+                                    {facilities.length} fasilitas kamar
+                                  </p>
+                                )}
+                              </div>
+                              <div style={{ display: "flex", flexDirection: "column", gap: 6, flexShrink: 0 }}>
+                                <button
+                                  type="button"
+                                  onClick={() => setExpandedRoomFacilitiesId(isExpanded ? null : room.id)}
+                                  style={{
+                                    border: "1px solid #dbeafe",
+                                    background: isExpanded ? "#eff6ff" : "white",
+                                    color: "#1d4ed8",
+                                    borderRadius: 8,
+                                    padding: "8px 10px",
+                                    cursor: "pointer",
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 4,
+                                  }}
+                                >
+                                  Fasilitas
+                                  {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                </button>
+                                {rentableRoomTypes.length > 1 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteRoomType(room.id, room.name)}
+                                    style={{ border: "none", background: "#fef2f2", color: "#ef4444", borderRadius: 8, padding: 8, cursor: "pointer" }}
+                                    title="Hapus tipe"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+
+                            {isExpanded && (
+                              <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid #e8edf6" }}>
+                                <RoomFacilityFields
+                                  variant="edit"
+                                  facilities={facilities}
+                                  onChange={(next) =>
+                                    setRoomFacilityEdits((prev) => ({ ...prev, [room.id]: next }))
+                                  }
+                                />
+                                <div style={{ marginTop: 16 }}>
+                                  <ElectricityIncludedField
+                                    variant="edit"
+                                    value={roomElectricityEdits[room.id] ?? null}
+                                    onChange={(val) =>
+                                      setRoomElectricityEdits((prev) => ({ ...prev, [room.id]: val }))
+                                    }
+                                  />
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleSaveRoomFacilities(room.id)}
+                                  disabled={savingRoomFacilitiesId === room.id}
+                                  className="clp-btn-next flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm w-full"
+                                  style={{ marginTop: 16, opacity: savingRoomFacilitiesId === room.id ? 0.7 : 1 }}
+                                >
+                                  {savingRoomFacilitiesId === room.id ? (
+                                    <>
+                                      <Loader2 size={16} className="animate-spin" /> Menyimpan…
+                                    </>
+                                  ) : (
+                                    "Simpan fasilitas kamar"
+                                  )}
+                                </button>
+                              </div>
+                            )}
                           </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <p style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>{room.name}</p>
-                            <p style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
-                              Rp {Number(room.price).toLocaleString("id-ID")} · {room.size} · {room.availableCount} tersedia
-                              {(room.photos?.length ?? 0) > 0 && ` · ${room.photos.length} foto`}
-                            </p>
-                          </div>
-                          {roomTypes.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteRoomType(room.id, room.name)}
-                              style={{ border: "none", background: "#fef2f2", color: "#ef4444", borderRadius: 8, padding: 8, cursor: "pointer" }}
-                              title="Hapus tipe"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
 
@@ -557,17 +1024,20 @@ export default function EditListingPage() {
                           onChange={(e) => setNewRoom({ ...newRoom, availableCount: Math.max(0, Number(e.target.value)) })} />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Fasilitas</label>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                          {FACILITY_OPTIONS.map((f) => (
-                            <button key={f} type="button" className={`clp-fac-chip${newRoom.facilities.includes(f) ? " active" : ""}`}
-                              onClick={() => toggleFacility(f)}>
-                              {f}
-                            </button>
-                          ))}
-                        </div>
-                        {roomErrors.facilities && <p className="clp-err">{roomErrors.facilities}</p>}
+                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Fasilitas Kamar (khusus tipe ini)</label>
+                        <RoomFacilityFields
+                          variant="edit"
+                          facilities={newRoom.facilities}
+                          onChange={(next) => setNewRoom((prev) => ({ ...prev, facilities: next }))}
+                          error={roomErrors.facilities}
+                        />
                       </div>
+                      <ElectricityIncludedField
+                        variant="edit"
+                        value={newRoom.electricityIncluded}
+                        onChange={(val) => setNewRoom((prev) => ({ ...prev, electricityIncluded: val }))}
+                        error={roomErrors.electricity}
+                      />
                       <button
                         type="button"
                         onClick={handleAddRoomType}
@@ -584,15 +1054,19 @@ export default function EditListingPage() {
 
               {step === 3 && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                  <p className="text-sm text-slate-500">Kelola foto untuk setiap tipe kamar. Hover foto untuk menghapus, atau tambah foto baru.</p>
+                  <p className="text-sm text-slate-500">
+                    Kelola foto untuk setiap tipe kamar. Pilih foto untuk langsung diunggah (maks. {PHOTO_MAX} per tipe). Hapus foto lalu klik Simpan perubahan.
+                  </p>
 
-                  {roomTypes.length === 0 && (
+                  {rentableRoomTypes.length === 0 && (
                     <p style={{ color: "#94a3b8", fontSize: 14, textAlign: "center", padding: "24px 0" }}>Belum ada tipe kamar — kembali ke langkah Tipe Kamar</p>
                   )}
 
-                  {roomTypes.map((room) => {
-                    const ps = photoState[room.id] || { newFiles: [], deletedIds: [], uploading: false };
+                  {rentableRoomTypes.map((room) => {
+                    const ps = getPhotoEntry(photoState, room.id);
                     const visiblePhotos = (room.photos || []).filter((p) => !ps.deletedIds.includes(p.id));
+                    const totalPhotos = visiblePhotos.length;
+                    const canAddMore = totalPhotos < PHOTO_MAX;
 
                     return (
                       <div key={room.id} className="clp-room-card">
@@ -601,12 +1075,16 @@ export default function EditListingPage() {
                             <BedDouble size={15} style={{ color: "#bfdbfe" }} />
                             <span style={{ color: "white", fontWeight: 700, fontSize: 14, fontFamily: "Plus Jakarta Sans" }}>{room.name}</span>
                             <span style={{ marginLeft: "auto", fontSize: 11, color: "rgba(255,255,255,0.75)" }}>
-                              Rp {Number(room.price).toLocaleString("id-ID")}
+                              {totalPhotos}/{PHOTO_MAX} foto · Rp {Number(room.price).toLocaleString("id-ID")}
                             </span>
                           </div>
                         </div>
 
                         <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 12 }}>
+                          {photoErrors[room.id] && (
+                            <p style={{ fontSize: 12, color: "#ef4444", fontWeight: 600, margin: 0 }}>{photoErrors[room.id]}</p>
+                          )}
+
                           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
                             {visiblePhotos.map((p) => (
                               <div key={p.id} className="clp-photo-thumb">
@@ -616,27 +1094,38 @@ export default function EditListingPage() {
                                 </button>
                               </div>
                             ))}
-                            {ps.newFiles.map((file, idx) => (
-                              <div key={`new-${idx}`} className="clp-photo-thumb clp-photo-new">
-                                <img src={URL.createObjectURL(file)} alt={`baru-${idx}`} />
-                                <button type="button" className="clp-photo-del" style={{ opacity: 1 }} onClick={() => removeNewFile(room.id, idx)}>
-                                  <X size={12} color="white" />
-                                </button>
-                                <span style={{ position: "absolute", bottom: 5, left: 5, background: "#3b82f6", color: "white", fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 4 }}>BARU</span>
-                              </div>
-                            ))}
                           </div>
 
-                          <label className="clp-upload-zone">
-                            <Camera size={18} style={{ color: "#94a3b8", marginBottom: 5 }} />
-                            <span style={{ fontSize: 13, fontWeight: 600, color: "#475569" }}>Tambah foto</span>
-                            <span style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>JPG, PNG — bisa pilih beberapa</span>
-                            <input type="file" multiple accept="image/*" style={{ display: "none" }}
-                              onChange={(e) => {
-                                if (e.target.files?.length) addFiles(room.id, e.target.files);
-                                e.target.value = "";
-                              }} />
-                          </label>
+                          {canAddMore ? (
+                            <label className="clp-upload-zone" style={{ opacity: ps.uploading ? 0.6 : 1, pointerEvents: ps.uploading ? "none" : "auto" }}>
+                              {ps.uploading ? (
+                                <Loader2 size={18} className="animate-spin" style={{ color: "#3b82f6", marginBottom: 5 }} />
+                              ) : (
+                                <Camera size={18} style={{ color: "#94a3b8", marginBottom: 5 }} />
+                              )}
+                              <span style={{ fontSize: 13, fontWeight: 600, color: "#475569" }}>
+                                {ps.uploading ? "Mengunggah..." : "Tambah foto"}
+                              </span>
+                              <span style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>
+                                JPG, PNG, WEBP — bisa pilih beberapa
+                              </span>
+                              <input
+                                type="file"
+                                multiple
+                                accept="image/jpeg,image/png,image/webp"
+                                style={{ display: "none" }}
+                                disabled={ps.uploading}
+                                onChange={(e) => {
+                                  if (e.target.files?.length) uploadNewPhotos(room.id, e.target.files);
+                                  e.target.value = "";
+                                }}
+                              />
+                            </label>
+                          ) : (
+                            <p style={{ fontSize: 12, color: "#64748b", textAlign: "center", margin: 0 }}>
+                              Sudah {PHOTO_MAX} foto — hapus dulu jika ingin mengganti.
+                            </p>
+                          )}
 
                           {hasPhotoChanges(room.id) && (
                             <div style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -649,7 +1138,7 @@ export default function EditListingPage() {
                               >
                                 {ps.uploading
                                   ? <><Loader2 size={14} className="animate-spin" /> Menyimpan...</>
-                                  : <><Check size={14} /> Simpan Foto</>}
+                                  : <><Check size={14} /> Simpan perubahan</>}
                               </button>
                             </div>
                           )}

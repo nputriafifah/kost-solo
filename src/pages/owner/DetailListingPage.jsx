@@ -6,7 +6,7 @@ import {
   ImageOff, Shield, Ruler, Building2, Sparkles,
 } from "lucide-react";
 import { getApiBase, resolveMediaUrl } from "../../config/apiBase";
-import { GENDER_LABELS } from "../../constants/listing";
+import { GENDER_LABELS, extractKostFacilitiesFromRooms, getRoomOnlyFacilities, getRentableRoomTypes, findSharedFacilityRoom } from "../../constants/listing";
 
 const STATUS = {
   PENDING:  { label: "Menunggu Review", pill: "bg-amber-100 text-amber-700 border-amber-200", dot: "bg-amber-400" },
@@ -86,16 +86,20 @@ export default function DetailListingPage() {
   const st = STATUS[data.status] ?? STATUS.PENDING;
   const gn = GENDER[data.genderType] ?? { label: data.genderType || "—", cls: "bg-slate-100 text-slate-600 border-slate-200" };
 
+  const rentableRooms = getRentableRoomTypes(data.roomTypes);
+  const sharedFacilityRoom = findSharedFacilityRoom(data.roomTypes);
+
   const allImages = [
     ...(data.photos || []),
-    ...(data.roomTypes?.flatMap((r) => r?.photos || []) || []),
+    ...(rentableRooms.flatMap((r) => r?.photos || [])),
+    ...(sharedFacilityRoom?.photos || []),
   ].filter((p) => p?.url);
 
   const coverUrl = allImages[imgIdx]?.url ? resolveMediaUrl(allImages[imgIdx].url) : null;
-  const totalRooms = data.roomTypes?.reduce((s, r) => s + (r?.availableCount || 0), 0) || 0;
-  const allFac = [...new Set(data.roomTypes?.flatMap((r) => r?.facilities || []) || [])];
-  const minPrice = data.roomTypes?.length
-    ? Math.min(...data.roomTypes.map((r) => Number(r.price)).filter((p) => !isNaN(p)))
+  const totalRooms = rentableRooms.reduce((s, r) => s + (r?.availableCount || 0), 0) || 0;
+  const kostFac = extractKostFacilitiesFromRooms(data.roomTypes);
+  const minPrice = rentableRooms.length
+    ? Math.min(...rentableRooms.map((r) => Number(r.price)).filter((p) => !isNaN(p) && p > 0))
     : null;
 
   const prevImg = () => setImgIdx((i) => (i - 1 + allImages.length) % allImages.length);
@@ -355,10 +359,10 @@ export default function DetailListingPage() {
                 )}
               </Section>
 
-              {allFac.length > 0 && (
-                <Section icon={Sparkles} title="Fasilitas">
+              {kostFac.length > 0 && (
+                <Section icon={Sparkles} title="Fasilitas Kost (bersama)">
                   <div className="flex flex-wrap gap-2">
-                    {allFac.map((f, i) => (
+                    {kostFac.map((f, i) => (
                       <span
                         key={i}
                         className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold"
@@ -407,9 +411,9 @@ export default function DetailListingPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {data.roomTypes.map((room) => {
+                    {rentableRooms.map((room) => {
                       const thumb = room?.photos?.[0]?.url ? resolveMediaUrl(room.photos[0].url) : null;
-                      const facs = (room?.facilities || []).filter(Boolean);
+                      const facs = getRoomOnlyFacilities(room?.facilities || [], kostFac).filter(Boolean);
                       return (
                         <article
                           key={room?.id}

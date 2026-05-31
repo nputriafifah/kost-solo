@@ -9,6 +9,7 @@ import KostCard from "../../components/kost/KostCard";
 import NotificationPanel from "../../components/ui/NotificationPanel";
 import { getApiBase, resolveMediaUrl } from "../../config/apiBase";
 import { GENDER_OPTIONS } from "../../constants/listing";
+import { formatPublicLocation } from "../../utils/publicLocation";
 
 const API = getApiBase();
 const GENDER_TO_API = Object.fromEntries(GENDER_OPTIONS.map((g) => [g.label, g.value]));
@@ -17,7 +18,7 @@ function mapSearchListing(item) {
   return {
     id: String(item.id),
     name: item.name || "Tanpa Nama",
-    location: item.address || "Lokasi tidak tersedia",
+    location: formatPublicLocation(item.address),
     price: item.cheapestPrice ?? 0,
     gender: (item.genderType || "").toLowerCase(),
     image: resolveMediaUrl(item.thumbnailUrl),

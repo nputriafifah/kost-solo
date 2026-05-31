@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Building2, CheckCircle, XCircle, Star, StarOff,
   RefreshCw, AlertTriangle, Search, X, ChevronLeft,
@@ -9,12 +9,17 @@ import {
 
 import { adminApiFetch, handleAdminAuthError } from "./adminApi";
 import { resolveMediaUrl } from "../../config/apiBase";
+import {
+  getReactivationRequests,
+  removeReactivationRequest,
+} from "../../utils/reactivationRequests";
 
-/** Tanpa endpoint admin “semua status” — aktif dari GET /listings (publik) */
+/** Tanpa endpoint admin “semua status” — aktif dari GET /listings (publik), nonaktif dari analytics */
 const STATUS_TABS = [
   { key: "ACTIVE", label: "Disetujui (Aktif)" },
   { key: "PENDING", label: "Menunggu" },
-  { key: "ALL", label: "Semua (aktif + pending)" },
+  { key: "INACTIVE", label: "Nonaktif" },
+  { key: "ALL", label: "Semua" },
 ];
 
 async function fetchPendingListings() {
@@ -26,6 +31,13 @@ async function fetchActiveListings() {
   const res = await apiFetch("/listings");
   const rows = Array.isArray(res.data) ? res.data : Array.isArray(res) ? res : [];
   return rows.map((l) => ({ ...l, status: l.status || "ACTIVE" }));
+}
+
+/** Semua listing nonaktif — dari GET /admin/analytics/top-listings (BE tidak filter status) */
+async function fetchInactiveListings() {
+  const res = await apiFetch("/admin/analytics/top-listings?limit=10000");
+  const rows = Array.isArray(res.data) ? res.data : [];
+  return rows.filter((l) => (l.status ?? "").toUpperCase() === "INACTIVE");
 }
 
 async function apiFetch(path, options = {}) {
@@ -318,6 +330,23 @@ function DetailModal({ listing, onClose, onApprove, onReject, onPremium, actionL
                 </button>
               </>
             )}
+
+            {(listing.status ?? "").toUpperCase() === "INACTIVE" && (
+              <button
+                onClick={() => onApprove(listing.id)}
+                disabled={isAppLoading}
+                style={{
+                  flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  padding: "9px 16px", fontSize: 13, fontWeight: 600,
+                  border: "1.5px solid #bbf7d0", background: "#f0fdf4",
+                  color: "#16a34a", borderRadius: 9, cursor: "pointer",
+                  opacity: isAppLoading ? 0.6 : 1,
+                }}
+              >
+                <CheckCircle size={14} />
+                {isAppLoading ? "Memproses..." : "Approve (aktifkan lagi)"}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -328,6 +357,7 @@ function DetailModal({ listing, onClose, onApprove, onReject, onPremium, actionL
 // ─── Main ───────────────────────────────────────────────────────────────────
 export default function AdminListings() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [listings, setListings]           = useState([]);
   const [loading, setLoading]             = useState(true);
   const [error, setError]                 = useState("");
@@ -335,7 +365,22 @@ export default function AdminListings() {
   const [actionLoading, setActionLoading] = useState(null);
   const [rejectTarget, setRejectTarget]   = useState(null);
   const [detailTarget, setDetailTarget]   = useState(null);
-  const [statusTab, setStatusTab]         = useState("ACTIVE");
+  const [statusTab, setStatusTab]         = useState(() => {
+    const tab = searchParams.get("tab")?.toUpperCase();
+    return ["ACTIVE", "PENDING", "INACTIVE", "ALL"].includes(tab) ? tab : "ACTIVE";
+  });
+  const [reactivationQueue, setReactivationQueue] = useState(() => getReactivationRequests());
+
+  const refreshReactivationQueue = () => setReactivationQueue(getReactivationRequests());
+
+  useEffect(() => {
+    const onUpdate = () => refreshReactivationQueue();
+    window.addEventListener("atap-reactivation-updated", onUpdate);
+    window.addEventListener("storage", (e) => {
+      if (e.key === "atap_reactivation_requests") onUpdate();
+    });
+    return () => window.removeEventListener("atap-reactivation-updated", onUpdate);
+  }, []);
 
   const load = async () => {
     setLoading(true);
@@ -347,13 +392,16 @@ export default function AdminListings() {
         rows = await fetchPendingListings();
       } else if (statusTab === "ACTIVE") {
         rows = await fetchActiveListings();
+      } else if (statusTab === "INACTIVE") {
+        rows = await fetchInactiveListings();
       } else if (statusTab === "ALL") {
-        const [pending, active] = await Promise.all([
+        const [pending, active, inactive] = await Promise.all([
           fetchPendingListings(),
           fetchActiveListings(),
+          fetchInactiveListings(),
         ]);
         const seen = new Set();
-        rows = [...pending, ...active].filter((l) => {
+        rows = [...pending, ...active, ...inactive].filter((l) => {
           if (!l?.id || seen.has(l.id)) return false;
           seen.add(l.id);
           return true;
@@ -373,9 +421,22 @@ export default function AdminListings() {
 
   const handleApprove = async (id) => {
     setActionLoading(`approve-${id}`);
-    try { await apiFetch(`/admin/listings/${id}/approve`, { method: "PATCH" }); await load(); }
-    catch (err) { alert(err.message); }
-    finally { setActionLoading(null); setDetailTarget(null); }
+    try {
+      await apiFetch(`/admin/listings/${id}/approve`, { method: "PATCH" });
+      removeReactivationRequest(id);
+      refreshReactivationQueue();
+      setListings((prev) =>
+        statusTab === "INACTIVE" || statusTab === "ALL"
+          ? prev.filter((l) => l.id !== id)
+          : prev.map((l) => (l.id === id ? { ...l, status: "ACTIVE" } : l))
+      );
+      if (statusTab === "ACTIVE") await load();
+    } catch (err) {
+      alert(err.message || "Gagal mengaktifkan listing");
+    } finally {
+      setActionLoading(null);
+      setDetailTarget(null);
+    }
   };
 
   const handleReject = async (reason) => {
@@ -449,7 +510,8 @@ export default function AdminListings() {
             {listings.length} listing
             {statusTab === "ACTIVE" && " disetujui & aktif (dari katalog publik)"}
             {statusTab === "PENDING" && " menunggu persetujuan"}
-            {statusTab === "ALL" && " (pending + aktif)"}
+            {statusTab === "INACTIVE" && " nonaktif (owner/admin)"}
+            {statusTab === "ALL" && " (pending + aktif + nonaktif)"}
           </p>
         </div>
         <button onClick={load} style={{
@@ -462,6 +524,56 @@ export default function AdminListings() {
           <RefreshCw size={14} /> Refresh
         </button>
       </div>
+
+      {reactivationQueue.length > 0 && (
+        <div style={{
+          marginBottom: 16, padding: "16px 18px", background: "#fffbeb",
+          border: "1px solid #fde68a", borderRadius: 14,
+        }}>
+          <p style={{ margin: "0 0 10px", fontSize: 14, fontWeight: 700, color: "#92400e" }}>
+            Permintaan aktivasi dari owner ({reactivationQueue.length})
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {reactivationQueue.map((req) => {
+              const loading = actionLoading === `approve-${req.listingId}`;
+              return (
+                <div
+                  key={req.listingId}
+                  style={{
+                    display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10,
+                    padding: "10px 12px", background: "#fff", borderRadius: 10,
+                    border: "1px solid #fef3c7",
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 180 }}>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#0f172a" }}>
+                      {req.listingName}
+                    </p>
+                    <p style={{ margin: "2px 0 0", fontSize: 12, color: "#64748b" }}>
+                      {req.ownerName} · {new Date(req.requestedAt).toLocaleString("id-ID")}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleApprove(req.listingId)}
+                    disabled={loading}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 6,
+                      padding: "8px 14px", fontSize: 12, fontWeight: 600,
+                      border: "1px solid #bbf7d0", background: "#f0fdf4",
+                      color: "#16a34a", borderRadius: 8, cursor: "pointer",
+                      opacity: loading ? 0.6 : 1,
+                    }}
+                  >
+                    <CheckCircle size={14} />
+                    {loading ? "Memproses..." : "Approve"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Filter status */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
@@ -514,6 +626,7 @@ export default function AdminListings() {
             <p style={{ margin: "4px 0 0", fontSize: 13 }}>
               {statusTab === "ACTIVE" && "Belum ada listing aktif di katalog"}
               {statusTab === "PENDING" && "Semua listing sudah ditinjau"}
+              {statusTab === "INACTIVE" && "Tidak ada listing nonaktif"}
               {statusTab === "ALL" && "Tidak ada data listing"}
             </p>
           </div>
@@ -536,7 +649,9 @@ export default function AdminListings() {
               {filtered.map((l) => {
                 const allPhotos = (l.roomTypes ?? []).flatMap(rt => rt.photos ?? []);
                 const firstPhoto = resolveMediaUrl(allPhotos[0]?.url);
-                const isPending = (l.status ?? "").toUpperCase() === "PENDING";
+                const statusUpper = (l.status ?? "").toUpperCase();
+                const isPending = statusUpper === "PENDING";
+                const isInactive = statusUpper === "INACTIVE";
                 const isAppLoading = actionLoading === `approve-${l.id}`;
                 const isRejLoading = actionLoading === `reject-${l.id}`;
                 const isPreLoading = actionLoading === `premium-${l.id}`;
@@ -638,6 +753,21 @@ export default function AdminListings() {
                               <XCircle size={13} /> Tolak
                             </button>
                           </>
+                        ) : isInactive ? (
+                          <button
+                            onClick={() => handleApprove(l.id)}
+                            disabled={isAppLoading}
+                            style={{
+                              display: "flex", alignItems: "center", gap: 5,
+                              padding: "6px 12px", fontSize: 12, fontWeight: 600,
+                              border: "1px solid #bbf7d0", background: "#f0fdf4",
+                              color: "#16a34a", borderRadius: 8, cursor: "pointer",
+                              fontFamily: "inherit", opacity: isAppLoading ? 0.6 : 1,
+                            }}
+                          >
+                            <CheckCircle size={13} />
+                            {isAppLoading ? "..." : "Approve"}
+                          </button>
                         ) : (
                           <span style={{ fontSize: 12, color: "#94a3b8" }}>—</span>
                         )}
