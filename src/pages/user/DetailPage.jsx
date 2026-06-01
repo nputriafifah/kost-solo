@@ -65,6 +65,11 @@ const GLOBAL_CSS = `
   .leaflet-container,.leaflet-pane { z-index:0 !important }
   .leaflet-top,.leaflet-bottom     { z-index:1 !important }
 
+  /* ── Fix marker clipping (same as MapPage) ── */
+  .leaflet-marker-icon { overflow: visible !important; }
+  .leaflet-marker-pane { overflow: visible !important; }
+  .leaflet-div-icon { background: transparent !important; border: none !important; overflow: visible !important; }
+
   .lb-thumb-strip::-webkit-scrollbar { display:none }
   .lb-thumb-strip { scrollbar-width:none }
 
@@ -426,20 +431,28 @@ function createPriceIcon(price, active = false) {
     price >= 1_000_000
       ? `Rp ${(price / 1_000_000).toFixed(1).replace(".0", "")}jt`
       : `Rp ${Math.round(price / 1_000)}rb`;
-  const bg     = active ? "#1A56DB" : "#fff";
-  const color  = active ? "#fff"    : "#0D1117";
-  const border = active ? "#1340B0" : "#CDD1E0";
+
+  // Konsisten dengan MapPage
+  const bg     = active ? "#2563EB" : "#ffffff";
+  const color  = active ? "#ffffff" : "#1A1A1A";
+  const border = active ? "#1D4ED8" : "#CBD5E1";
+  const shadow = active
+    ? "0 4px 18px rgba(37,99,235,.55)"
+    : "0 2px 10px rgba(0,0,0,.20)";
+  const tip       = active ? "#2563EB" : "#ffffff";
+  const tipBorder = active ? "#1D4ED8" : "#CBD5E1";
+
   return L.divIcon({
     className: "",
     html: `<div style="position:relative;display:inline-flex;align-items:center;justify-content:center;
       background:${bg};color:${color};padding:5px 12px;border-radius:999px;font-size:12px;font-weight:800;
-      font-family:'DM Sans',sans-serif;white-space:nowrap;cursor:pointer;
-      box-shadow:0 4px 16px rgba(0,0,0,.18);border:2px solid ${border};line-height:1.2;user-select:none;">
+      font-family:'DM Sans',system-ui,-apple-system,sans-serif;white-space:nowrap;cursor:pointer;
+      box-shadow:${shadow};border:2px solid ${border};line-height:1.2;user-select:none;letter-spacing:-0.2px;">
       ${label}
       <span style="position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);width:0;height:0;
-        border-left:6px solid transparent;border-right:6px solid transparent;border-top:7px solid ${border};"></span>
+        border-left:6px solid transparent;border-right:6px solid transparent;border-top:7px solid ${tipBorder};display:block;"></span>
       <span style="position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);width:0;height:0;
-        border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid ${bg};"></span>
+        border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid ${tip};display:block;"></span>
     </div>`,
     iconSize:    [90, 32],
     iconAnchor:  [45, 39],
@@ -582,7 +595,6 @@ function ShareModal({ item, onClose }) {
     catch (err) { console.error(err); }
   };
 
-  // Social share options
   const WaIcon = () => (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
       <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
@@ -685,7 +697,7 @@ function MinatModal({ item, onClose }) {
   const [name, setName]    = useState(profile.name  || "");
   const [phone, setPhone]  = useState(profile.phone || "");
   const [loading, setLoading] = useState(false);
-  const [status, setStatus]   = useState(null);   // null | "success"
+  const [status, setStatus]   = useState(null);
   const [errMsg, setErrMsg]   = useState("");
 
   const handleSubmit = async () => {
@@ -964,7 +976,7 @@ export default function DetailPage() {
   const [fetchError,  setFetchError]  = useState(null);
   const [isLiked,     setIsLiked]     = useState(false);
   const [likeLoading, setLikeLoading] = useState(false);
-  const [lightbox,    setLightbox]    = useState(null);   // null | index
+  const [lightbox,    setLightbox]    = useState(null);
   const [showMinat,   setShowMinat]   = useState(false);
   const [showReport,  setShowReport]  = useState(false);
   const [showShare,   setShowShare]   = useState(false);
@@ -987,7 +999,6 @@ export default function DetailPage() {
       try {
         const res = await authFetch(`${API}/favorites`);
         if (!res.ok) {
-          // fallback untuk akun tanpa akses favorites endpoint
           setIsLiked(getLocalFavorites().includes(id));
           return;
         }
@@ -1013,7 +1024,6 @@ export default function DetailPage() {
       const method = isLiked ? "DELETE" : "POST";
       const res = await authFetch(`${API}/favorites/${id}`, { method });
       if (!res.ok) {
-        // fallback lokal kalau API menolak (401/403 dst)
         toggleLocalLike();
         return;
       }
@@ -1216,7 +1226,7 @@ export default function DetailPage() {
 
           <QuickStatsRow item={item} gender={gender} />
 
-          {/* Price banner — ringkasan dari semua tipe kamar */}
+          {/* Price banner */}
           <div style={{ borderRadius:"var(--radius-lg)", padding:"16px 20px", marginBottom:24, background:"linear-gradient(135deg,#1340B0 0%,#1A56DB 55%,#3B82F6 100%)", display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, flexWrap:"wrap" }}>
             <div>
               <p style={{ fontSize:11, color:"rgba(255,255,255,.6)", marginBottom:4, fontWeight:500 }}>Harga mulai dari</p>
@@ -1239,7 +1249,7 @@ export default function DetailPage() {
             </div>
           </div>
 
-          {/* Deskripsi — selaras step Data Kos */}
+          {/* Deskripsi */}
           {item.description && (
             <div style={{ marginBottom:24 }}>
               <SectionHeading icon={Home} title="Deskripsi" />
@@ -1249,7 +1259,7 @@ export default function DetailPage() {
             </div>
           )}
 
-          {/* Peraturan — selaras step Data Kos */}
+          {/* Peraturan */}
           {item.rules.length > 0 && (
             <div style={{ marginBottom:24 }}>
               <SectionHeading icon={ShieldCheck} title="Peraturan Kos" />
@@ -1298,7 +1308,7 @@ export default function DetailPage() {
             </div>
           )}
 
-          {/* Tipe kamar — selaras step Fasilitas, Detail & Foto (per tipe) */}
+          {/* Tipe kamar */}
           {item.roomTypes?.length > 0 && (
             <div style={{ marginBottom:24 }}>
               <SectionHeading
@@ -1334,7 +1344,7 @@ export default function DetailPage() {
             </div>
           )}
 
-          {/* Lokasi — selaras step Lokasi */}
+          {/* ══ LOKASI — CartoDB Positron (sama seperti MapPage) ══ */}
           <div style={{ marginBottom:24 }}>
             <SectionHeading icon={MapPin} title="Lokasi" />
             <p style={{ fontSize:13, color:"var(--text-secondary)", lineHeight:1.65, marginBottom:12, padding:"0 2px" }}>{item.location}</p>
@@ -1343,15 +1353,21 @@ export default function DetailPage() {
                 <div style={{ borderRadius:"var(--radius-lg)", overflow:"hidden", border:"1px solid var(--border)", height:260, position:"relative", zIndex:0 }}>
                   <MapContainer
                     center={[item.latitude, item.longitude]}
-                    zoom={13}
+                    zoom={15}
                     style={{ width:"100%", height:"100%" }}
                     zoomControl={false}
                   >
+                    {/* CartoDB Positron — minimalis, konsisten dengan MapPage */}
                     <TileLayer
-                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
+                      url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                      subdomains="abcd"
+                      maxZoom={19}
                     />
-                    <Marker position={[item.latitude, item.longitude]} icon={createPriceIcon(item.price, true)} />
+                    <Marker
+                      position={[item.latitude, item.longitude]}
+                      icon={createPriceIcon(item.price, true)}
+                    />
                     <MapCenter lat={item.latitude} lng={item.longitude} />
                   </MapContainer>
                 </div>

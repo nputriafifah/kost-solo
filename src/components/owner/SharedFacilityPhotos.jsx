@@ -18,9 +18,13 @@ export default function SharedFacilityPhotos({
   error = "",
   onSaveDeletes,
   hasPendingDeletes = false,
+  pendingFiles = [],
+  onRemovePending,
 }) {
   const visibleExisting = existingPhotos.filter((p) => !deletedIds.includes(p.id));
-  const totalCount = variant === "create" ? files.length : visibleExisting.length;
+  const pendingCount = pendingFiles?.length ?? 0;
+  const totalCount =
+    variant === "create" ? files.length : visibleExisting.length + pendingCount;
   const canAddMore = totalCount < PHOTO_MAX;
 
   const addCreateFiles = (fileList) => {
@@ -84,21 +88,35 @@ export default function SharedFacilityPhotos({
   }
 
   return (
-    <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid #f1f5f9" }}>
-      <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-        Foto Fasilitas Bersama
-      </label>
-      <p className="text-xs text-slate-400 mb-3">
-        Foto dapur, parkir, ruang tamu, dll. Maks. {PHOTO_MAX} foto per kost.
+    <div className="clp-field" style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid #e8eaf2" }}>
+      <label className="clp-label">Foto Fasilitas Bersama</label>
+      <p className="clp-info-note" style={{ marginBottom: 12 }}>
+        Foto dapur, parkir, ruang tamu, laundry, dll. Maks. {PHOTO_MAX} foto — JPG, PNG, WEBP.
       </p>
-      {error && <p className="clp-err" style={{ marginBottom: 8 }}>{error}</p>}
+      {error && <p className="clp-error" style={{ marginBottom: 10 }}>⚠ {error}</p>}
 
-      {visibleExisting.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 12 }}>
+      {(visibleExisting.length > 0 || pendingCount > 0) && (
+        <div className="clp-photo-grid" style={{ marginTop: 0, marginBottom: 12 }}>
           {visibleExisting.map((p) => (
-            <div key={p.id} className="clp-photo-thumb">
+            <div key={p.id} className="clp-photo-thumb-inline">
               <img src={resolveMediaUrl(p.url)} alt="fasilitas bersama" />
-              <button type="button" className="clp-photo-del" onClick={() => onMarkDelete?.(p.id)}>
+              <button
+                type="button"
+                className="clp-photo-del-btn"
+                onClick={() => onMarkDelete?.(p.id)}
+              >
+                <X size={12} color="white" />
+              </button>
+            </div>
+          ))}
+          {pendingFiles.map((file, i) => (
+            <div key={`pending-${file.name}-${i}`} className="clp-photo-thumb-inline">
+              <img src={URL.createObjectURL(file)} alt={file.name} />
+              <button
+                type="button"
+                className="clp-photo-del-btn"
+                onClick={() => onRemovePending?.(i)}
+              >
                 <X size={12} color="white" />
               </button>
             </div>
@@ -107,18 +125,29 @@ export default function SharedFacilityPhotos({
       )}
 
       {canAddMore ? (
-        <label className="clp-upload-zone" style={{ opacity: uploading ? 0.6 : 1, pointerEvents: uploading ? "none" : "auto" }}>
-          {uploading ? (
-            <Loader2 size={18} className="animate-spin" style={{ color: "#3b82f6", marginBottom: 5 }} />
-          ) : (
-            <Camera size={18} style={{ color: "#94a3b8", marginBottom: 5 }} />
-          )}
-          <span style={{ fontSize: 13, fontWeight: 600, color: "#475569" }}>
-            {uploading ? "Mengunggah..." : "Tambah foto fasilitas bersama"}
-          </span>
-          <span style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>
-            {totalCount}/{PHOTO_MAX} foto · JPG, PNG, WEBP
-          </span>
+        <label style={{ cursor: uploading ? "wait" : "pointer", display: "block" }}>
+          <div
+            className={`clp-upload-zone compact${totalCount > 0 ? " has-files" : ""}`}
+            style={{ opacity: uploading ? 0.6 : 1, pointerEvents: uploading ? "none" : "auto" }}
+          >
+            <div className="clp-upload-icon-wrap" style={{ width: 44, height: 44, marginBottom: 10 }}>
+              {uploading ? (
+                <Loader2 size={22} className="clp-spin" />
+              ) : (
+                <Camera size={22} />
+              )}
+            </div>
+            <p className="clp-upload-text" style={{ fontSize: 13 }}>
+              {uploading
+                ? "Mengunggah..."
+                : totalCount > 0
+                  ? `${totalCount} foto — klik untuk tambah lagi`
+                  : "Klik untuk upload foto fasilitas bersama"}
+            </p>
+            <p className="clp-upload-sub">
+              {totalCount}/{PHOTO_MAX} foto · JPG, PNG, WEBP
+            </p>
+          </div>
           <input
             type="file"
             multiple
@@ -143,10 +172,16 @@ export default function SharedFacilityPhotos({
             type="button"
             onClick={onSaveDeletes}
             disabled={uploading}
-            className="clp-btn-next flex items-center gap-2 px-5 py-2 rounded-xl text-sm"
+            className="clp-btn clp-btn-primary"
             style={{ opacity: uploading ? 0.7 : 1 }}
           >
-            {uploading ? "Menyimpan..." : "Simpan penghapusan foto"}
+            {uploading ? (
+              <>
+                <Loader2 size={14} className="clp-spin" /> Menyimpan...
+              </>
+            ) : (
+              "Simpan penghapusan foto"
+            )}
           </button>
         </div>
       )}

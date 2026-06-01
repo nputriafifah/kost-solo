@@ -1,9 +1,11 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  ArrowLeft, Save, Loader2, Camera, X, Check, BedDouble,
-  Plus, Trash2, ChevronRight, ChevronDown,
+  ArrowLeft, Loader2, Camera, X, Check, BedDouble,
+  Plus, Trash2, ChevronRight, ChevronDown, ChevronLeft,
+  Home, Layers,
 } from "lucide-react";
+import { CLP_LAYOUT_STYLES } from "../../styles/clpLayoutStyles";
 import { getApiBase, resolveMediaUrl } from "../../config/apiBase";
 import {
   KOST_FACILITY_OPTIONS,
@@ -31,6 +33,17 @@ import {
   matchKelurahanOption,
 } from "../../constants/soloRegions";
 
+// ─── helpers ───────────────────────────────────────────────────────────────────
+// area fields can be either a plain string OR a { value, label } option object
+// (from react-select / custom select components). Always extract a plain string.
+const toStr = (v) => {
+  if (!v) return "";
+  if (typeof v === "string") return v;
+  // react-select / custom option object
+  if (typeof v === "object") return v.value ?? v.label ?? "";
+  return String(v);
+};
+
 const EMPTY_NEW_ROOM = {
   name: "",
   price: "",
@@ -41,9 +54,9 @@ const EMPTY_NEW_ROOM = {
 };
 
 const STEPS = [
-  { label: "Data Kos", desc: "Perbarui info dasar kost" },
-  { label: "Tipe Kamar", desc: "Tambah atau kelola tipe kamar" },
-  { label: "Foto Kamar", desc: "Kelola foto tiap tipe kamar" },
+  { label: "Data Kos", desc: "Perbarui info dasar kost", icon: Home },
+  { label: "Tipe Kamar", desc: "Tambah atau kelola tipe kamar", icon: Layers },
+  { label: "Foto Kamar", desc: "Kelola foto tiap tipe kamar", icon: Camera },
 ];
 
 const PHOTO_MAX = 8;
@@ -55,72 +68,18 @@ const emptyPhotoEntry = () => ({ newFiles: [], deletedIds: [], uploading: false 
 
 const getPhotoEntry = (state, roomTypeId) => state[roomTypeId] || emptyPhotoEntry();
 
-const STYLES = `
-  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap');
-  .clp-root * { font-family: 'DM Sans', sans-serif; box-sizing: border-box; }
-  .clp-root h1, .clp-root h2, .clp-root h3 { font-family: 'Plus Jakarta Sans', sans-serif; }
-  .clp-gradient { background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 30%, #2563eb 60%, #3b82f6 100%); }
-  .clp-input {
-    width: 100%; background: #f8faff; border: 1px solid #e2e8f4;
-    border-radius: 10px; padding: 11px 14px; font-size: 14px; color: #1e293b;
-    outline: none; transition: all 0.2s; font-family: 'DM Sans', sans-serif;
-  }
-  .clp-input::placeholder { color: #94a3b8; }
-  .clp-input:focus { border-color: #3b82f6; background: #fff; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
-  .clp-input-error { border-color: #ef4444 !important; background: #fff5f5 !important; }
-  .clp-btn-next {
-    background: linear-gradient(135deg, #1d4ed8, #3b82f6);
-    box-shadow: 0 4px 16px rgba(37,99,235,0.3); transition: all 0.2s;
-    color: white; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600;
-    border: none; cursor: pointer;
-  }
-  .clp-btn-next:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(37,99,235,0.4); }
-  .clp-btn-next:disabled { opacity: 0.6; cursor: not-allowed; }
-  .clp-btn-back {
-    border: 1px solid #e2e8f4; background: white; color: #475569;
-    transition: all 0.2s; font-family: 'DM Sans', sans-serif; font-weight: 500; cursor: pointer;
-  }
-  .clp-btn-back:hover { border-color: #3b82f6; color: #1d4ed8; background: #eff6ff; }
-  .clp-err { color: #ef4444; font-size: 11px; margin-top: 4px; font-weight: 500; }
-  .clp-photo-thumb {
-    position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden;
-    border: 1px solid #e2e8f4;
-  }
-  .clp-photo-thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.2s; }
-  .clp-photo-thumb:hover img { transform: scale(1.04); }
-  .clp-photo-del {
-    position: absolute; top: 5px; right: 5px;
-    width: 22px; height: 22px; border-radius: 50%;
-    background: rgba(239,68,68,0.88); border: none; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    opacity: 0; transition: opacity 0.2s;
-  }
-  .clp-photo-thumb:hover .clp-photo-del { opacity: 1; }
-  .clp-photo-new .clp-photo-del { opacity: 1; }
-  .clp-upload-zone {
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    border: 2px dashed #cbd5e1; border-radius: 12px; padding: 18px;
-    background: #f8faff; cursor: pointer; transition: all 0.2s;
-  }
-  .clp-upload-zone:hover { border-color: #3b82f6; background: #eff6ff; }
-  .clp-room-card { background: white; border: 1px solid #e8edf6; border-radius: 18px; overflow: hidden; }
-  .clp-step-fade { animation: clpFade 0.25s ease; }
-  .clp-fac-chip {
-    padding: 8px 12px; border-radius: 10px; border: 1px solid #e2e8f4;
-    background: #f8faff; font-size: 12px; font-weight: 600; color: #475569;
-    cursor: pointer; transition: all 0.15s;
-  }
-  .clp-fac-chip.active { background: #eff6ff; border-color: #3b82f6; color: #1d4ed8; }
-  @keyframes clpFade { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
-`;
-
 const getToken = () => localStorage.getItem("token") || "";
 
 const parseApiError = async (res) => {
-  const data = await res.json().catch(() => ({}));
-  if (data?.message) return data.message;
-  if (Array.isArray(data?.error)) return data.error.map((e) => e.message).join(", ");
-  return "Request gagal";
+  try {
+    const data = await res.json();
+    if (data?.message) return data.message;
+    if (Array.isArray(data?.error)) return data.error.map((e) => e.message).join(", ");
+    if (typeof data?.error === "string") return data.error;
+    return `Request gagal (${res.status})`;
+  } catch {
+    return `Request gagal (${res.status})`;
+  }
 };
 
 export default function EditListingPage() {
@@ -145,6 +104,7 @@ export default function EditListingPage() {
     rules: [],
     sharedFacilities: [],
     newSharedFacility: "",
+    newRule: "",
   });
 
   const [latLng, setLatLng] = useState(null);
@@ -154,6 +114,7 @@ export default function EditListingPage() {
   const [photoState, setPhotoState] = useState({});
   const [photoErrors, setPhotoErrors] = useState({});
   const [sharedPhotoError, setSharedPhotoError] = useState("");
+  const [pendingSharedPhotos, setPendingSharedPhotos] = useState([]);
   const [roomFacilityEdits, setRoomFacilityEdits] = useState({});
   const [roomElectricityEdits, setRoomElectricityEdits] = useState({});
   const [expandedRoomFacilitiesId, setExpandedRoomFacilitiesId] = useState(null);
@@ -210,6 +171,7 @@ export default function EditListingPage() {
           rules: Array.isArray(d.rules) ? d.rules : [],
           sharedFacilities: extractKostFacilitiesFromRooms(d.roomTypes),
           newSharedFacility: "",
+          newRule: "",
         });
         const lat = Number(d.latitude);
         const lng = Number(d.longitude);
@@ -238,21 +200,54 @@ export default function EditListingPage() {
     setRoomElectricityEdits(elecNext);
   }, [roomTypes]);
 
+  const countSharedFacilityPhotos = (state = photoState) => {
+    if (!sharedFacilityRoom?.id) return pendingSharedPhotos.length;
+    const ps = getPhotoEntry(state, sharedFacilityRoom.id);
+    const serverCount = (sharedFacilityRoom.photos || []).filter(
+      (p) => !ps.deletedIds.includes(p.id),
+    ).length;
+    return serverCount + pendingSharedPhotos.length;
+  };
+
+  const clearSharedPhotoError = () => {
+    setSharedPhotoError("");
+    setErrors((prev) => {
+      if (!prev.sharedFacilityPhotos) return prev;
+      const next = { ...prev };
+      delete next.sharedFacilityPhotos;
+      return next;
+    });
+  };
+
+  // ─── validate ────────────────────────────────────────────────────────────────
+  // Always call toStr() on area fields since they may be option objects
   const validate = () => {
     const e = {};
-    if (form.name.trim().length < 3) e.name = "Nama minimal 3 karakter";
-    if (form.areaDesa.trim().length < 2) e.areaDesa = "Kelurahan/desa minimal 2 karakter";
-    if (form.areaKecamatan.trim().length < 2) e.areaKecamatan = "Kecamatan wajib diisi";
-    if (form.areaKabupaten.trim().length < 2) e.areaKabupaten = "Kabupaten/kota wajib diisi";
-    if (form.description.trim().length < 10) e.description = "Deskripsi minimal 10 karakter";
-    if (form.contactNumber.trim().length < 8) e.contactNumber = "Nomor kontak minimal 8 digit";
+
+    const name = form.name?.trim() ?? "";
+    const areaDesa = toStr(form.areaDesa).trim();
+    const areaKecamatan = toStr(form.areaKecamatan).trim();
+    const areaKabupaten = toStr(form.areaKabupaten).trim();
+    const description = form.description?.trim() ?? "";
+    const contactNumber = form.contactNumber?.trim() ?? "";
+
+    if (name.length < 3) e.name = "Nama minimal 3 karakter";
+    if (areaDesa.length < 2) e.areaDesa = "Kelurahan/desa minimal 2 karakter";
+    if (areaKecamatan.length < 2) e.areaKecamatan = "Kecamatan wajib diisi";
+    if (areaKabupaten.length < 2) e.areaKabupaten = "Kabupaten/kota wajib diisi";
+    if (description.length < 20) e.description = "Deskripsi minimal 20 karakter";
+    if (contactNumber.length < 8) e.contactNumber = "Nomor kontak minimal 8 digit";
     if (!GENDER_OPTIONS.some((g) => g.value === form.genderType)) e.genderType = "Pilih tipe kost";
     if (!form.rules?.length) e.rules = "Pilih minimal 1 peraturan";
-    if (form.sharedFacilities.length > 0) {
-      const photoCount = sharedFacilityRoom?.photos?.length ?? 0;
-      if (photoCount === 0) e.sharedFacilityPhotos = "Upload minimal 1 foto fasilitas bersama";
+    if (form.sharedFacilities.length > 0 && countSharedFacilityPhotos() === 0) {
+      e.sharedFacilityPhotos = "Upload minimal 1 foto fasilitas bersama";
     }
-    if ((sharedFacilityRoom?.photos?.length ?? 0) > 0 && form.sharedFacilities.length === 0) {
+    const visibleSharedPhotos = sharedFacilityRoom?.id
+      ? (sharedFacilityRoom.photos || []).filter(
+          (p) => !getPhotoEntry(photoState, sharedFacilityRoom.id).deletedIds.includes(p.id),
+        ).length
+      : 0;
+    if (visibleSharedPhotos > 0 && form.sharedFacilities.length === 0) {
       e.sharedFacilitiesList = "Pilih minimal 1 fasilitas kost bersama";
     }
     setErrors(e);
@@ -281,6 +276,17 @@ export default function EditListingPage() {
         ? prev.rules.filter((r) => r !== rule)
         : [...prev.rules, rule],
     }));
+  };
+
+  const addCustomRule = () => {
+    const raw = form.newRule?.trim();
+    if (!raw) return;
+    const exists = form.rules.some((r) => r.toLowerCase() === raw.toLowerCase());
+    if (exists) {
+      setForm({ ...form, newRule: "" });
+      return;
+    }
+    setForm({ ...form, rules: [...form.rules, raw], newRule: "" });
   };
 
   const validateNewRoom = () => {
@@ -332,32 +338,60 @@ export default function EditListingPage() {
     }
   };
 
+  const uploadFilesToRoom = async (roomId, fileArr) => {
+    if (!fileArr?.length) return;
+    const fd = new FormData();
+    fileArr.forEach((f) => fd.append("photos", f));
+    const uploadRes = await fetch(`${api}/owner/room-types/${roomId}/photos`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${getToken()}` },
+      body: fd,
+    });
+    if (!uploadRes.ok) throw new Error(await parseApiError(uploadRes));
+  };
+
+  // ─── handleSaveInfo ──────────────────────────────────────────────────────────
   const handleSaveInfo = async () => {
-    if (!validate()) return;
+    if (!validate()) {
+      document.querySelector(".clp-form-card")?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+      return;
+    }
     setSaving(true);
     try {
+      // Always convert area fields to plain strings before sending to API
+      const areaDesa = toStr(form.areaDesa).trim();
+      const areaKecamatan = toStr(form.areaKecamatan).trim();
+      const areaKabupaten = toStr(form.areaKabupaten).trim();
+
+      const rawAddress = buildListingAddress(areaDesa, areaKecamatan, areaKabupaten);
+      const address = rawAddress.length >= 10
+        ? rawAddress
+        : [areaDesa, areaKecamatan, areaKabupaten].filter(Boolean).join(", ");
+
+      const patchBody = {
+        name: form.name.trim(),
+        address,
+        description: form.description.trim(),
+        contactNumber: form.contactNumber.trim(),
+        genderType: form.genderType,
+        rules: form.rules,
+        ...(latLng
+          ? { latitude: Number(latLng.lat), longitude: Number(latLng.lng) }
+          : {}),
+      };
+
       const res = await fetch(`${api}/listings/owner/${id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${getToken()}`,
         },
-        body: JSON.stringify({
-          name: form.name.trim(),
-          address: buildListingAddress(form.areaDesa, form.areaKecamatan, form.areaKabupaten),
-          description: form.description.trim(),
-          contactNumber: form.contactNumber.trim(),
-          genderType: form.genderType,
-          rules: form.rules,
-          ...(latLng
-            ? { latitude: Number(latLng.lat), longitude: Number(latLng.lng) }
-            : {}),
-        }),
+        body: JSON.stringify(patchBody),
       });
       if (!res.ok) throw new Error(await parseApiError(res));
 
-      const latest = await refreshListing();
-      const shared = findSharedFacilityRoom(latest.roomTypes || roomTypes);
+      let latest = await refreshListing();
+      let shared = findSharedFacilityRoom(latest.roomTypes || roomTypes);
       const facilitiesPayload =
         form.sharedFacilities.length > 0 ? form.sharedFacilities : ["Area Bersama"];
 
@@ -372,11 +406,11 @@ export default function EditListingPage() {
         });
         if (!patchRes.ok) throw new Error(await parseApiError(patchRes));
       } else if (form.sharedFacilities.length > 0) {
-        const minPrice = Math.min(
-          ...getRentableRoomTypes(latest.roomTypes || roomTypes)
-            .map((r) => Number(r.price))
-            .filter((p) => p > 0),
-        ) || 1;
+        const rentable = getRentableRoomTypes(latest.roomTypes || roomTypes);
+        const minPrice =
+          rentable.length > 0
+            ? Math.min(...rentable.map((r) => Number(r.price)).filter((p) => p > 0)) || 1
+            : 1;
         const createRes = await fetch(`${api}/owner/listings/${id}/room-types`, {
           method: "POST",
           headers: {
@@ -386,6 +420,15 @@ export default function EditListingPage() {
           body: JSON.stringify(buildSharedFacilityRoomPayload(form.sharedFacilities, minPrice)),
         });
         if (!createRes.ok) throw new Error(await parseApiError(createRes));
+        latest = await refreshListing();
+        shared = findSharedFacilityRoom(latest.roomTypes || []);
+      }
+
+      if (pendingSharedPhotos.length > 0) {
+        const roomId = shared?.id || (await ensureSharedFacilityRoom());
+        if (!roomId) throw new Error("Gagal menyiapkan tipe fasilitas bersama untuk upload foto");
+        await uploadFilesToRoom(roomId, pendingSharedPhotos);
+        setPendingSharedPhotos([]);
         await refreshListing();
       }
 
@@ -401,9 +444,16 @@ export default function EditListingPage() {
     const current = findSharedFacilityRoom(roomTypes);
     if (current?.id) return current.id;
 
-    const minPrice = Math.min(
-      ...getRentableRoomTypes(roomTypes).map((r) => Number(r.price)).filter((p) => p > 0),
-    ) || 1;
+    if (form.sharedFacilities.length === 0) {
+      throw new Error("Pilih minimal 1 fasilitas kost bersama");
+    }
+
+    const rentable = getRentableRoomTypes(roomTypes);
+    const minPrice =
+      rentable.length > 0
+        ? Math.min(...rentable.map((r) => Number(r.price)).filter((p) => p > 0)) || 1
+        : 1;
+
     const createRes = await fetch(`${api}/owner/listings/${id}/room-types`, {
       method: "POST",
       headers: {
@@ -414,8 +464,11 @@ export default function EditListingPage() {
     });
     if (!createRes.ok) throw new Error(await parseApiError(createRes));
     const json = await createRes.json();
+    const roomId =
+      json.data?.id ?? json.data?.roomType?.id ?? json.id ?? json.roomTypeId;
     const latest = await refreshListing();
-    return json.data?.id || findSharedFacilityRoom(latest.roomTypes || [])?.id;
+    const created = findSharedFacilityRoom(latest.roomTypes || []);
+    return roomId || created?.id || null;
   };
 
   const getSharedPhotoKey = () => sharedFacilityRoom?.id || SHARED_PHOTO_KEY;
@@ -433,10 +486,7 @@ export default function EditListingPage() {
     }
 
     const key = getSharedPhotoKey();
-    const room = sharedFacilityRoom;
-    const currentCount = room
-      ? countVisiblePhotos(room, room.id)
-      : 0;
+    const currentCount = countSharedFacilityPhotos();
 
     if (currentCount + fileArr.length > PHOTO_MAX) {
       setSharedPhotoError(`Maksimal ${PHOTO_MAX} foto fasilitas bersama`);
@@ -449,28 +499,51 @@ export default function EditListingPage() {
     }));
     setSharedPhotoError("");
 
+    let roomId = sharedFacilityRoom?.id;
     try {
-      const roomId = room?.id || (await ensureSharedFacilityRoom());
-      const fd = new FormData();
-      fileArr.forEach((f) => fd.append("photos", f));
-      const uploadRes = await fetch(`${api}/owner/room-types/${roomId}/photos`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${getToken()}` },
-        body: fd,
-      });
-      if (!uploadRes.ok) throw new Error(await parseApiError(uploadRes));
+      roomId = roomId || (await ensureSharedFacilityRoom());
+      if (!roomId) throw new Error("Gagal menyiapkan tipe fasilitas bersama");
+
+      await uploadFilesToRoom(roomId, fileArr);
       await refreshListing();
+      setPendingSharedPhotos([]);
       setPhotoState((prev) => ({
         ...prev,
         [roomId]: emptyPhotoEntry(),
+        [SHARED_PHOTO_KEY]: emptyPhotoEntry(),
       }));
+      clearSharedPhotoError();
     } catch (err) {
-      setSharedPhotoError(err.message || "Gagal upload foto");
+      if (!roomId) {
+        setPendingSharedPhotos((prev) => {
+          const merged = [...prev, ...fileArr];
+          return merged.slice(0, PHOTO_MAX);
+        });
+        clearSharedPhotoError();
+        setSharedPhotoError(
+          "Foto disimpan sementara — akan diunggah saat Anda klik Simpan & Lanjut",
+        );
+      } else {
+        setSharedPhotoError(err.message || "Gagal upload foto");
+      }
       setPhotoState((prev) => ({
         ...prev,
         [key]: { ...getPhotoEntry(prev, key), uploading: false },
       }));
     }
+  };
+
+  const removePendingSharedPhoto = (index) => {
+    setPendingSharedPhotos((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      const serverCount = sharedFacilityRoom?.id
+        ? (sharedFacilityRoom.photos || []).filter(
+            (p) => !getPhotoEntry(photoState, sharedFacilityRoom.id).deletedIds.includes(p.id),
+          ).length
+        : 0;
+      if (serverCount + next.length > 0) clearSharedPhotoError();
+      return next;
+    });
   };
 
   const markDeleteSharedPhoto = (photoId) => {
@@ -636,177 +709,286 @@ export default function EditListingPage() {
 
   const handleFinish = () => navigate("/owner/properti");
 
+  const currentStepData = STEPS[step - 1];
+  const CurrentIcon = currentStepData.icon;
+  const roomTypesLabel =
+    rentableRoomTypes.length > 0
+      ? `${rentableRoomTypes.length} tipe kamar`
+      : "Belum ada tipe";
+
   return (
     <>
-      <style>{STYLES}</style>
-      <div
-        className="clp-root min-h-screen flex items-start justify-center py-10 px-4"
-        style={{ background: "linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 50%, #f0f4ff 100%)" }}
-      >
-        <div className="w-full max-w-2xl">
-
-          <div className="mb-6">
-            <p className="text-xs font-semibold text-blue-500 uppercase tracking-widest mb-1">Atap</p>
-            <h1 className="text-2xl font-extrabold text-slate-800" style={{ fontFamily: "Plus Jakarta Sans" }}>Edit Kost</h1>
+      <style>{CLP_LAYOUT_STYLES}</style>
+      <div className="clp-root">
+        <header className="clp-topbar">
+          <div className="clp-topbar-left">
+            <span className="clp-topbar-brand">Atap</span>
+            <div className="clp-topbar-divider" />
+            <span className="clp-topbar-title">Edit Kost</span>
           </div>
+          <button type="button" className="clp-back-dashboard" onClick={() => navigate("/owner/properti")}>
+            <ArrowLeft size={15} />
+            Kembali ke Properti
+          </button>
+        </header>
 
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-4">
-            <div className="flex items-center">
+        <div className="clp-body">
+          <aside className="clp-sidebar">
+            <p className="clp-sidebar-heading">Langkah Edit</p>
+            <div className="clp-sidebar-steps">
               {STEPS.map((s, i) => {
                 const num = i + 1;
                 const done = num < step;
                 const active = num === step;
+                const todo = num > step;
+                const StepIcon = s.icon;
+                const stateClass = done ? "done" : active ? "active" : "todo inactive";
                 return (
-                  <div key={num} className="flex items-center flex-1 min-w-0">
-                    <div className="flex flex-col items-center">
-                      <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 flex-shrink-0"
-                        style={{
-                          background: done ? "linear-gradient(135deg,#1d4ed8,#3b82f6)" : active ? "linear-gradient(135deg,#1e3a8a,#1d4ed8)" : "#f1f5f9",
-                          color: done || active ? "white" : "#94a3b8",
-                          boxShadow: active ? "0 0 0 4px rgba(59,130,246,0.15)" : "none",
-                        }}
-                      >
-                        {done ? <Check size={14} /> : num}
+                  <div key={num}>
+                    <button
+                      type="button"
+                      className={`clp-sidebar-step ${stateClass}`}
+                      onClick={() => !todo && setStep(num)}
+                    >
+                      <div className="clp-step-num">
+                        {done ? <Check size={16} /> : active ? <StepIcon size={15} /> : <span>{num}</span>}
                       </div>
-                      <span className="text-[10px] mt-1 font-medium text-center leading-tight hidden sm:block"
-                        style={{ color: active ? "#1d4ed8" : done ? "#3b82f6" : "#94a3b8" }}>
-                        {s.label}
-                      </span>
-                    </div>
+                      <div className="clp-step-info">
+                        <p className="clp-step-name">{s.label}</p>
+                        <p className="clp-step-subdesc">{s.desc}</p>
+                      </div>
+                    </button>
                     {i < STEPS.length - 1 && (
-                      <div className="flex-1 h-0.5 mx-2 rounded transition-all duration-500"
-                        style={{ background: done ? "linear-gradient(90deg,#3b82f6,#60a5fa)" : "#e2e8f0" }} />
+                      <span className={`clp-sidebar-connector${done ? " done" : ""}`} />
                     )}
                   </div>
                 );
               })}
             </div>
-          </div>
+            <div className="clp-sidebar-progress">
+              <div className="clp-sidebar-progress-label">
+                <span>Progres</span>
+                <span style={{ color: "#1d4ed8", fontWeight: 700 }}>
+                  {step - 1}/{STEPS.length - 1}
+                </span>
+              </div>
+              <div className="clp-sidebar-progress-bar">
+                <div
+                  className="clp-sidebar-progress-fill"
+                  style={{ width: `${((step - 1) / (STEPS.length - 1)) * 100}%` }}
+                />
+              </div>
+              {step >= 2 && (
+                <div
+                  style={{
+                    marginTop: 14,
+                    padding: "10px 12px",
+                    borderRadius: 10,
+                    background: "#eff6ff",
+                    border: "1px solid #bfdbfe",
+                  }}
+                >
+                  <p style={{ fontSize: 10, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 4 }}>
+                    Tipe kamar
+                  </p>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "#1d4ed8", margin: 0 }}>{roomTypesLabel}</p>
+                </div>
+              )}
+            </div>
+          </aside>
 
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-            <div className="clp-gradient px-8 py-5">
-              <p className="text-blue-200 text-xs font-medium mb-0.5">{STEPS[step - 1].desc}</p>
-              <h2 className="text-xl font-bold text-white" style={{ fontFamily: "Plus Jakarta Sans" }}>{STEPS[step - 1].label}</h2>
+          <main className="clp-content">
+            <div className="clp-content-header">
+              <div className="clp-content-breadcrumb">
+                Edit Kost
+                <ChevronRight size={12} />
+                <span>{currentStepData.label}</span>
+              </div>
+              <div className="clp-content-title-row">
+                <div className="clp-content-icon-wrap">
+                  <CurrentIcon size={22} />
+                </div>
+                <div>
+                  <h1 className="clp-content-title">{currentStepData.label}</h1>
+                  <p className="clp-content-subtitle">{currentStepData.desc}</p>
+                </div>
+              </div>
             </div>
 
-            <div className="px-8 py-7 clp-step-fade" key={step}>
+            <div className="clp-form-card clp-step-fade" key={step}>
+              {step === 1 && loading && (
+                <p style={{ color: "#94a3b8", fontSize: 14, textAlign: "center", padding: "32px 0" }}>
+                  <Loader2 size={20} className="clp-spin" style={{ display: "inline", verticalAlign: "middle", marginRight: 8 }} />
+                  Memuat data kost...
+                </p>
+              )}
 
-              {step === 1 && (
-                loading ? (
-                  <p style={{ color: "#94a3b8", fontSize: 14, textAlign: "center", padding: "24px 0" }}>Memuat data...</p>
-                ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Nama Kost</label>
-                      <input className={`clp-input${errors.name ? " clp-input-error" : ""}`} placeholder="cth. Kost Melati Indah"
-                        value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-                      {errors.name && <p className="clp-err">{errors.name}</p>}
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Area Lokasi (tampil ke user)</label>
-                      <p className="text-xs text-slate-400 mb-3">Tanpa jalan/no rumah — pilih kabupaten, kecamatan, lalu kelurahan/desa.</p>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                        <AreaLocationFields
-                          variant="edit"
-                          values={{
-                            areaKabupaten: form.areaKabupaten,
-                            areaKecamatan: form.areaKecamatan,
-                            areaDesa: form.areaDesa,
-                          }}
-                          errors={errors}
-                          onChange={(area) => setForm({ ...form, ...area })}
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Tandai Lokasi di Peta (rahasia)</label>
-                      <p className="text-xs text-slate-400 mb-3">Pin untuk jarak &amp; validasi — tidak ditampilkan persis ke calon penyewa.</p>
+              {step === 1 && !loading && (
+                <>
+                  <div className="clp-field">
+                    <label className="clp-label">Nama Kost</label>
+                    <input
+                      className={`clp-input${errors.name ? " err" : ""}`}
+                      placeholder="cth. Kost Melati Indah"
+                      value={form.name}
+                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    />
+                    {errors.name && <p className="clp-error">⚠ {errors.name}</p>}
+                  </div>
+
+                  <div className="clp-field">
+                    <label className="clp-label">Area Lokasi (tampil ke user)</label>
+                    <p style={{ fontSize: 12, color: "#94a3b8", fontWeight: 500, marginBottom: 10 }}>
+                      Tanpa jalan/no rumah — pilih kabupaten, kecamatan, lalu kelurahan/desa.
+                    </p>
+                    <AreaLocationFields
+                      variant="edit"
+                      values={{
+                        areaKabupaten: form.areaKabupaten,
+                        areaKecamatan: form.areaKecamatan,
+                        areaDesa: form.areaDesa,
+                      }}
+                      errors={errors}
+                      onChange={(area) => setForm({ ...form, ...area })}
+                    />
+                  </div>
+
+                  <div className="clp-field">
+                    <label className="clp-label">Tandai Lokasi di Peta (rahasia)</label>
+                    <p style={{ fontSize: 12, color: "#94a3b8", fontWeight: 500, marginBottom: 10 }}>
+                      Pin untuk jarak & validasi — tidak ditampilkan persis ke calon penyewa.
+                    </p>
+                    <div className="clp-map-container">
                       <MapPicker setLatLng={setLatLng} initialLatLng={latLng} />
-                      {latLng && (
-                        <p className="clp-err" style={{ color: "#64748b", marginTop: 8, fontSize: 11 }}>
-                          Koordinat: {latLng.lat.toFixed(5)}, {latLng.lng.toFixed(5)}
-                        </p>
-                      )}
                     </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Deskripsi</label>
-                      <textarea className={`clp-input${errors.description ? " clp-input-error" : ""}`} style={{ resize: "none" }} rows={4}
-                        placeholder="Ceritakan tentang kost kamu..."
-                        value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-                      {errors.description && <p className="clp-err">{errors.description}</p>}
+                    {latLng && (
+                      <div className="clp-coord-badge">
+                        Koordinat: {latLng.lat.toFixed(5)}, {latLng.lng.toFixed(5)}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="clp-field">
+                    <label className="clp-label">Deskripsi</label>
+                    <textarea
+                      className={`clp-textarea${errors.description ? " err" : ""}`}
+                      rows={4}
+                      placeholder="Ceritakan tentang kost kamu..."
+                      value={form.description}
+                      onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    />
+                    {errors.description && <p className="clp-error">⚠ {errors.description}</p>}
+                  </div>
+
+                  <div className="clp-field">
+                    <label className="clp-label">Nomor Kontak (WhatsApp)</label>
+                    <input
+                      className={`clp-input${errors.contactNumber ? " err" : ""}`}
+                      placeholder="cth. 08123456789"
+                      value={form.contactNumber}
+                      onChange={(e) => setForm({ ...form, contactNumber: e.target.value })}
+                    />
+                    {errors.contactNumber && <p className="clp-error">⚠ {errors.contactNumber}</p>}
+                  </div>
+
+                  <div className="clp-field">
+                    <label className="clp-label">Tipe Kost</label>
+                    <div className="clp-gender-group">
+                      {GENDER_OPTIONS.map(({ value, label }) => (
+                        <button
+                          key={value}
+                          type="button"
+                          className={`clp-gender-btn${form.genderType === value ? " active" : ""}`}
+                          onClick={() => setForm({ ...form, genderType: value })}
+                        >
+                          {value === "PUTRA" ? "🧑" : value === "PUTRI" ? "👩" : "👥"} {label}
+                        </button>
+                      ))}
                     </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Nomor Kontak</label>
-                      <input className={`clp-input${errors.contactNumber ? " clp-input-error" : ""}`} placeholder="cth. 08123456789"
-                        value={form.contactNumber} onChange={(e) => setForm({ ...form, contactNumber: e.target.value })} />
-                      {errors.contactNumber && <p className="clp-err">{errors.contactNumber}</p>}
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Tipe Kost</label>
-                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        {GENDER_OPTIONS.map(({ value, label }) => (
+                    {errors.genderType && <p className="clp-error">⚠ {errors.genderType}</p>}
+                  </div>
+
+                  <div className="clp-field">
+                    <label className="clp-label">Peraturan Kos</label>
+                    <p style={{ fontSize: 12, color: "#94a3b8", fontWeight: 500, marginBottom: 10 }}>
+                      Pilih minimal 1 peraturan yang berlaku
+                    </p>
+                    <div className="clp-toggle-list">
+                      {RULE_OPTIONS.map((rule) => {
+                        const checked = form.rules.includes(rule);
+                        return (
                           <button
-                            key={value}
+                            key={rule}
                             type="button"
-                            onClick={() => setForm({ ...form, genderType: value })}
-                            style={{
-                              padding: "8px 14px",
-                              borderRadius: 10,
-                              border: `1.5px solid ${form.genderType === value ? "#3b82f6" : "#e2e8f4"}`,
-                              background: form.genderType === value ? "#eff6ff" : "#fff",
-                              color: form.genderType === value ? "#1d4ed8" : "#64748b",
-                              fontWeight: 600,
-                              fontSize: 13,
-                              cursor: "pointer",
-                            }}
+                            onClick={() => toggleRule(rule)}
+                            className={`clp-toggle-row${checked ? " active" : ""}`}
                           >
-                            {label}
+                            <span>{rule}</span>
+                            {checked && (
+                              <span className="clp-toggle-check">
+                                <Check size={12} color="white" />
+                              </span>
+                            )}
                           </button>
-                        ))}
-                      </div>
-                      {errors.genderType && <p className="clp-err">{errors.genderType}</p>}
+                        );
+                      })}
                     </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Peraturan Kost</label>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                        {RULE_OPTIONS.map((rule) => {
-                          const checked = form.rules.includes(rule);
-                          return (
-                            <button
-                              key={rule}
-                              type="button"
-                              onClick={() => toggleRule(rule)}
-                              style={{
-                                textAlign: "left",
-                                padding: "10px 14px",
-                                borderRadius: 10,
-                                border: `1.5px solid ${checked ? "#3b82f6" : "#e2e8f4"}`,
-                                background: checked ? "#eff6ff" : "#fff",
-                                color: checked ? "#1d4ed8" : "#475569",
-                                fontSize: 13,
-                                fontWeight: checked ? 600 : 500,
-                                cursor: "pointer",
-                              }}
-                            >
-                              {checked ? "✓ " : ""}{rule}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      {errors.rules && <p className="clp-err">{errors.rules}</p>}
-                    </div>
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Fasilitas Kost (bersama)</label>
-                      <p className="text-xs text-slate-400 mb-3">
-                        Fasilitas area umum gedung — disimpan terpisah dari fasilitas kamar.
+                    <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid #e8eaf2" }}>
+                      <p style={{ fontSize: 12, color: "#64748b", fontWeight: 600, marginBottom: 10 }}>
+                        Tambah Peraturan Custom
                       </p>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                        {KOST_FACILITY_OPTIONS.map((f) => (
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <input
+                          type="text"
+                          className="clp-input"
+                          placeholder="cth. Tidak menerima tamu setelah jam 22.00"
+                          value={form.newRule || ""}
+                          onChange={(e) => setForm({ ...form, newRule: e.target.value })}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              addCustomRule();
+                            }
+                          }}
+                          style={{ flex: 1 }}
+                        />
+                        <button
+                          type="button"
+                          onClick={addCustomRule}
+                          style={{
+                            padding: "11px 16px",
+                            background: "#1d4ed8",
+                            color: "white",
+                            border: "none",
+                            borderRadius: 10,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                          }}
+                        >
+                          <Plus size={14} />
+                          Tambah
+                        </button>
+                      </div>
+                    </div>
+                    {errors.rules && <p className="clp-error">⚠ {errors.rules}</p>}
+                  </div>
+
+                  <div className="clp-field">
+                    <label className="clp-label">Fasilitas Kost (bersama)</label>
+                    <p className="clp-info-note">
+                      Fasilitas area umum gedung — disimpan terpisah dari fasilitas kamar.
+                    </p>
+                    <div className="clp-toggle-list">
+                      {KOST_FACILITY_OPTIONS.map((f) => {
+                        const checked = form.sharedFacilities.includes(f);
+                        return (
                           <button
                             key={f}
                             type="button"
-                            className={`clp-fac-chip${form.sharedFacilities.includes(f) ? " active" : ""}`}
                             onClick={() =>
                               setForm((prev) => ({
                                 ...prev,
@@ -815,92 +997,119 @@ export default function EditListingPage() {
                                   : [...prev.sharedFacilities, f],
                               }))
                             }
+                            className={`clp-toggle-row${checked ? " active" : ""}`}
                           >
-                            {f}
+                            <span>{f}</span>
+                            {checked && (
+                              <span className="clp-toggle-check">
+                                <Check size={12} color="white" />
+                              </span>
+                            )}
                           </button>
-                        ))}
-                      </div>
-                      <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid #f1f5f9" }}>
-                        <p className="text-xs text-slate-500 font-semibold mb-2">Tambah fasilitas bersama custom</p>
-                        <div style={{ display: "flex", gap: 8 }}>
-                          <input
-                            className="clp-input"
-                            placeholder="cth. Smart Door Lock, Jasa Laundry"
-                            value={form.newSharedFacility || ""}
-                            onChange={(e) => setForm({ ...form, newSharedFacility: e.target.value })}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                addCustomSharedFacility();
-                              }
-                            }}
-                            style={{ flex: 1 }}
-                          />
-                          <button
-                            type="button"
-                            onClick={addCustomSharedFacility}
-                            className="clp-btn-next px-4 py-2 rounded-xl text-sm"
-                          >
-                            <Plus size={14} style={{ display: "inline", verticalAlign: "middle" }} /> Tambah
-                          </button>
-                        </div>
-                      </div>
-                      <SelectedFacilityTags
-                        variant="edit"
-                        items={form.sharedFacilities}
-                        label="Fasilitas gedung terpilih"
-                        onRemove={(fac) =>
-                          setForm((prev) => ({
-                            ...prev,
-                            sharedFacilities: prev.sharedFacilities.filter((x) => x !== fac),
-                          }))
-                        }
-                      />
-                      {errors.sharedFacilitiesList && (
-                        <p className="clp-err">{errors.sharedFacilitiesList}</p>
-                      )}
-                      <SharedFacilityPhotos
-                        variant="edit"
-                        existingPhotos={sharedFacilityRoom?.photos || []}
-                        deletedIds={getPhotoEntry(photoState, getSharedPhotoKey()).deletedIds}
-                        onMarkDelete={markDeleteSharedPhoto}
-                        onUploadFiles={uploadSharedFacilityPhotos}
-                        uploading={getPhotoEntry(photoState, getSharedPhotoKey()).uploading}
-                        error={sharedPhotoError || errors.sharedFacilityPhotos}
-                        hasPendingDeletes={sharedFacilityRoom?.id ? hasPhotoChanges(sharedFacilityRoom.id) : false}
-                        onSaveDeletes={saveSharedPhotos}
-                      />
+                        );
+                      })}
                     </div>
+                    <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid #e8eaf2" }}>
+                      <p style={{ fontSize: 12, color: "#64748b", fontWeight: 600, marginBottom: 10 }}>
+                        Tambah fasilitas bersama custom
+                      </p>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        <input
+                          className="clp-input"
+                          placeholder="cth. Smart Door Lock, Jasa Laundry"
+                          value={form.newSharedFacility || ""}
+                          onChange={(e) => setForm({ ...form, newSharedFacility: e.target.value })}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              addCustomSharedFacility();
+                            }
+                          }}
+                          style={{ flex: 1 }}
+                        />
+                        <button
+                          type="button"
+                          onClick={addCustomSharedFacility}
+                          style={{
+                            padding: "11px 16px",
+                            background: "#1d4ed8",
+                            color: "white",
+                            border: "none",
+                            borderRadius: 10,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                          }}
+                        >
+                          <Plus size={14} />
+                          Tambah
+                        </button>
+                      </div>
+                    </div>
+                    <SelectedFacilityTags
+                      variant="edit"
+                      items={form.sharedFacilities}
+                      label="Fasilitas gedung terpilih"
+                      onRemove={(fac) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          sharedFacilities: prev.sharedFacilities.filter((x) => x !== fac),
+                        }))
+                      }
+                    />
+                    {errors.sharedFacilitiesList && (
+                      <p className="clp-error">⚠ {errors.sharedFacilitiesList}</p>
+                    )}
+                    <SharedFacilityPhotos
+                      variant="edit"
+                      existingPhotos={sharedFacilityRoom?.photos || []}
+                      deletedIds={getPhotoEntry(photoState, getSharedPhotoKey()).deletedIds}
+                      pendingFiles={pendingSharedPhotos}
+                      onRemovePending={removePendingSharedPhoto}
+                      onMarkDelete={markDeleteSharedPhoto}
+                      onUploadFiles={uploadSharedFacilityPhotos}
+                      uploading={getPhotoEntry(photoState, getSharedPhotoKey()).uploading}
+                      error={sharedPhotoError || errors.sharedFacilityPhotos}
+                      hasPendingDeletes={sharedFacilityRoom?.id ? hasPhotoChanges(sharedFacilityRoom.id) : false}
+                      onSaveDeletes={saveSharedPhotos}
+                    />
                   </div>
-                )
+                </>
               )}
 
               {step === 2 && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                  <p className="text-sm text-slate-500">
-                    Satu kost bisa punya beberapa tipe kamar (mis. Standard & Deluxe). Data kos cukup diisi sekali.
+                <>
+                  <p className="clp-info-note">
+                    Satu kost bisa punya beberapa tipe kamar (mis. Standard & Deluxe). Data kos cukup diisi sekali di langkah sebelumnya.
                   </p>
 
                   {rentableRoomTypes.length === 0 ? (
-                    <p style={{ color: "#94a3b8", fontSize: 14, textAlign: "center", padding: "12px 0" }}>Belum ada tipe kamar</p>
+                    <p style={{ color: "#94a3b8", fontSize: 14, textAlign: "center", padding: "16px 0" }}>
+                      Belum ada tipe kamar
+                    </p>
                   ) : (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
                       {rentableRoomTypes.map((room) => {
                         const isExpanded = expandedRoomFacilitiesId === room.id;
                         const facilities = roomFacilityEdits[room.id] ?? [];
-
                         return (
-                          <div
-                            key={room.id}
-                            style={{
-                              padding: 14,
-                              borderRadius: 14,
-                              border: "1px solid #e8edf6",
-                              background: "#fafbff",
-                            }}
-                          >
+                          <div key={room.id} className="clp-edit-room-list-item">
                             <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                              <div style={{ width: 40, height: 40, borderRadius: 10, background: "linear-gradient(135deg,#1d4ed8,#3b82f6)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                              <div
+                                style={{
+                                  width: 40,
+                                  height: 40,
+                                  borderRadius: 10,
+                                  background: "#1d4ed8",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  flexShrink: 0,
+                                }}
+                              >
                                 <BedDouble size={18} color="white" />
                               </div>
                               <div style={{ flex: 1, minWidth: 0 }}>
@@ -919,19 +1128,8 @@ export default function EditListingPage() {
                                 <button
                                   type="button"
                                   onClick={() => setExpandedRoomFacilitiesId(isExpanded ? null : room.id)}
-                                  style={{
-                                    border: "1px solid #dbeafe",
-                                    background: isExpanded ? "#eff6ff" : "white",
-                                    color: "#1d4ed8",
-                                    borderRadius: 8,
-                                    padding: "8px 10px",
-                                    cursor: "pointer",
-                                    fontSize: 11,
-                                    fontWeight: 700,
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 4,
-                                  }}
+                                  className="clp-btn clp-btn-outline"
+                                  style={{ padding: "8px 10px", fontSize: 11 }}
                                 >
                                   Fasilitas
                                   {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
@@ -940,7 +1138,14 @@ export default function EditListingPage() {
                                   <button
                                     type="button"
                                     onClick={() => handleDeleteRoomType(room.id, room.name)}
-                                    style={{ border: "none", background: "#fef2f2", color: "#ef4444", borderRadius: 8, padding: 8, cursor: "pointer" }}
+                                    style={{
+                                      border: "none",
+                                      background: "#fef2f2",
+                                      color: "#ef4444",
+                                      borderRadius: 8,
+                                      padding: 8,
+                                      cursor: "pointer",
+                                    }}
                                     title="Hapus tipe"
                                   >
                                     <Trash2 size={16} />
@@ -948,9 +1153,8 @@ export default function EditListingPage() {
                                 )}
                               </div>
                             </div>
-
                             {isExpanded && (
-                              <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid #e8edf6" }}>
+                              <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid #e8eaf2" }}>
                                 <RoomFacilityFields
                                   variant="edit"
                                   facilities={facilities}
@@ -971,12 +1175,12 @@ export default function EditListingPage() {
                                   type="button"
                                   onClick={() => handleSaveRoomFacilities(room.id)}
                                   disabled={savingRoomFacilitiesId === room.id}
-                                  className="clp-btn-next flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm w-full"
-                                  style={{ marginTop: 16, opacity: savingRoomFacilitiesId === room.id ? 0.7 : 1 }}
+                                  className="clp-btn clp-btn-primary"
+                                  style={{ marginTop: 16, width: "100%", justifyContent: "center" }}
                                 >
                                   {savingRoomFacilitiesId === room.id ? (
                                     <>
-                                      <Loader2 size={16} className="animate-spin" /> Menyimpan…
+                                      <Loader2 size={16} className="clp-spin" /> Menyimpan…
                                     </>
                                   ) : (
                                     "Simpan fasilitas kamar"
@@ -990,76 +1194,103 @@ export default function EditListingPage() {
                     </div>
                   )}
 
-                  <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: 20 }}>
-                    <p style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 14, fontFamily: "Plus Jakarta Sans" }}>
+                  <div style={{ borderTop: "1px solid #e8eaf2", paddingTop: 24 }}>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 16 }}>
                       <Plus size={16} style={{ display: "inline", verticalAlign: "middle", marginRight: 6 }} />
                       Tambah tipe kamar baru
                     </p>
-
-                    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Nama Tipe</label>
-                        <input className={`clp-input${roomErrors.name ? " clp-input-error" : ""}`} placeholder="cth. Kamar Deluxe"
-                          value={newRoom.name} onChange={(e) => setNewRoom({ ...newRoom, name: e.target.value })} />
-                        {roomErrors.name && <p className="clp-err">{roomErrors.name}</p>}
-                      </div>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Ukuran</label>
-                          <input className={`clp-input${roomErrors.size ? " clp-input-error" : ""}`} placeholder="3x4 m"
-                            value={newRoom.size} onChange={(e) => setNewRoom({ ...newRoom, size: e.target.value })} />
-                          {roomErrors.size && <p className="clp-err">{roomErrors.size}</p>}
-                        </div>
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Harga / bulan</label>
-                          <input type="number" className={`clp-input${roomErrors.price ? " clp-input-error" : ""}`} placeholder="800000"
-                            value={newRoom.price} onChange={(e) => setNewRoom({ ...newRoom, price: e.target.value })} />
-                          {roomErrors.price && <p className="clp-err">{roomErrors.price}</p>}
-                        </div>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Kamar tersedia</label>
-                        <input type="number" min="0" className="clp-input" style={{ maxWidth: 120 }}
-                          value={newRoom.availableCount}
-                          onChange={(e) => setNewRoom({ ...newRoom, availableCount: Math.max(0, Number(e.target.value)) })} />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Fasilitas Kamar (khusus tipe ini)</label>
-                        <RoomFacilityFields
-                          variant="edit"
-                          facilities={newRoom.facilities}
-                          onChange={(next) => setNewRoom((prev) => ({ ...prev, facilities: next }))}
-                          error={roomErrors.facilities}
-                        />
-                      </div>
-                      <ElectricityIncludedField
-                        variant="edit"
-                        value={newRoom.electricityIncluded}
-                        onChange={(val) => setNewRoom((prev) => ({ ...prev, electricityIncluded: val }))}
-                        error={roomErrors.electricity}
+                    <div className="clp-field">
+                      <label className="clp-label">Nama Tipe</label>
+                      <input
+                        className={`clp-input${roomErrors.name ? " err" : ""}`}
+                        placeholder="cth. Kamar Deluxe"
+                        value={newRoom.name}
+                        onChange={(e) => setNewRoom({ ...newRoom, name: e.target.value })}
                       />
-                      <button
-                        type="button"
-                        onClick={handleAddRoomType}
-                        disabled={saving}
-                        className="clp-btn-next flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm w-full"
-                        style={{ opacity: saving ? 0.7 : 1 }}
-                      >
-                        {saving ? <><Loader2 size={16} className="animate-spin" /> Menyimpan...</> : <><Plus size={16} /> Simpan tipe kamar</>}
-                      </button>
+                      {roomErrors.name && <p className="clp-error">⚠ {roomErrors.name}</p>}
                     </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                      <div className="clp-field">
+                        <label className="clp-label">Ukuran</label>
+                        <input
+                          className={`clp-input${roomErrors.size ? " err" : ""}`}
+                          placeholder="3x4 m"
+                          value={newRoom.size}
+                          onChange={(e) => setNewRoom({ ...newRoom, size: e.target.value })}
+                        />
+                        {roomErrors.size && <p className="clp-error">⚠ {roomErrors.size}</p>}
+                      </div>
+                      <div className="clp-field">
+                        <label className="clp-label">Harga / bulan</label>
+                        <input
+                          type="number"
+                          className={`clp-input${roomErrors.price ? " err" : ""}`}
+                          placeholder="800000"
+                          value={newRoom.price}
+                          onChange={(e) => setNewRoom({ ...newRoom, price: e.target.value })}
+                        />
+                        {roomErrors.price && <p className="clp-error">⚠ {roomErrors.price}</p>}
+                      </div>
+                    </div>
+                    <div className="clp-field">
+                      <label className="clp-label">Kamar tersedia</label>
+                      <input
+                        type="number"
+                        min="0"
+                        className="clp-input"
+                        style={{ maxWidth: 120 }}
+                        value={newRoom.availableCount}
+                        onChange={(e) =>
+                          setNewRoom({ ...newRoom, availableCount: Math.max(0, Number(e.target.value)) })
+                        }
+                      />
+                    </div>
+                    <div className="clp-field">
+                      <label className="clp-label">Fasilitas Kamar (khusus tipe ini)</label>
+                      <RoomFacilityFields
+                        variant="edit"
+                        facilities={newRoom.facilities}
+                        onChange={(next) => setNewRoom((prev) => ({ ...prev, facilities: next }))}
+                        error={roomErrors.facilities}
+                      />
+                    </div>
+                    <ElectricityIncludedField
+                      variant="edit"
+                      value={newRoom.electricityIncluded}
+                      onChange={(val) => setNewRoom((prev) => ({ ...prev, electricityIncluded: val }))}
+                      error={roomErrors.electricity}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddRoomType}
+                      disabled={saving}
+                      className="clp-btn clp-btn-primary"
+                      style={{ width: "100%", justifyContent: "center", marginTop: 8 }}
+                    >
+                      {saving ? (
+                        <>
+                          <Loader2 size={16} className="clp-spin" /> Menyimpan...
+                        </>
+                      ) : (
+                        <>
+                          <Plus size={16} /> Simpan tipe kamar
+                        </>
+                      )}
+                    </button>
                   </div>
-                </div>
+                </>
               )}
 
               {step === 3 && (
-                <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                  <p className="text-sm text-slate-500">
+                <>
+                  <p className="clp-info-note">
                     Kelola foto untuk setiap tipe kamar. Pilih foto untuk langsung diunggah (maks. {PHOTO_MAX} per tipe). Hapus foto lalu klik Simpan perubahan.
                   </p>
 
                   {rentableRoomTypes.length === 0 && (
-                    <p style={{ color: "#94a3b8", fontSize: 14, textAlign: "center", padding: "24px 0" }}>Belum ada tipe kamar — kembali ke langkah Tipe Kamar</p>
+                    <p style={{ color: "#94a3b8", fontSize: 14, textAlign: "center", padding: "24px 0" }}>
+                      Belum ada tipe kamar — kembali ke langkah Tipe Kamar
+                    </p>
                   )}
 
                   {rentableRoomTypes.map((room) => {
@@ -1069,46 +1300,45 @@ export default function EditListingPage() {
                     const canAddMore = totalPhotos < PHOTO_MAX;
 
                     return (
-                      <div key={room.id} className="clp-room-card">
-                        <div className="clp-gradient" style={{ padding: "12px 18px" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <BedDouble size={15} style={{ color: "#bfdbfe" }} />
-                            <span style={{ color: "white", fontWeight: 700, fontSize: 14, fontFamily: "Plus Jakarta Sans" }}>{room.name}</span>
-                            <span style={{ marginLeft: "auto", fontSize: 11, color: "rgba(255,255,255,0.75)" }}>
-                              {totalPhotos}/{PHOTO_MAX} foto · Rp {Number(room.price).toLocaleString("id-ID")}
-                            </span>
-                          </div>
+                      <div key={room.id} className="clp-edit-room-card">
+                        <div className="clp-edit-room-head">
+                          <BedDouble size={16} color="#1d4ed8" />
+                          <span className="clp-edit-room-head-title">{room.name}</span>
+                          <span className="clp-edit-room-head-meta">
+                            {totalPhotos}/{PHOTO_MAX} foto · Rp {Number(room.price).toLocaleString("id-ID")}
+                          </span>
                         </div>
-
-                        <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 12 }}>
+                        <div className="clp-edit-room-body">
                           {photoErrors[room.id] && (
-                            <p style={{ fontSize: 12, color: "#ef4444", fontWeight: 600, margin: 0 }}>{photoErrors[room.id]}</p>
+                            <p className="clp-error" style={{ marginBottom: 12 }}>⚠ {photoErrors[room.id]}</p>
                           )}
-
-                          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-                            {visiblePhotos.map((p) => (
-                              <div key={p.id} className="clp-photo-thumb">
-                                <img src={resolveMediaUrl(p.url)} alt="foto" />
-                                <button type="button" className="clp-photo-del" onClick={() => markDelete(room.id, p.id)}>
-                                  <X size={12} color="white" />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-
+                          {visiblePhotos.length > 0 && (
+                            <div className="clp-photo-grid" style={{ marginTop: 0, marginBottom: 12 }}>
+                              {visiblePhotos.map((p) => (
+                                <div key={p.id} className="clp-photo-thumb-inline">
+                                  <img src={resolveMediaUrl(p.url)} alt="foto" />
+                                  <button
+                                    type="button"
+                                    className="clp-photo-del-btn"
+                                    onClick={() => markDelete(room.id, p.id)}
+                                  >
+                                    <X size={12} color="white" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                           {canAddMore ? (
-                            <label className="clp-upload-zone" style={{ opacity: ps.uploading ? 0.6 : 1, pointerEvents: ps.uploading ? "none" : "auto" }}>
+                            <label className="clp-upload-zone compact" style={{ opacity: ps.uploading ? 0.6 : 1, pointerEvents: ps.uploading ? "none" : "auto" }}>
                               {ps.uploading ? (
-                                <Loader2 size={18} className="animate-spin" style={{ color: "#3b82f6", marginBottom: 5 }} />
+                                <Loader2 size={20} className="clp-spin" style={{ color: "#1d4ed8", marginBottom: 6 }} />
                               ) : (
-                                <Camera size={18} style={{ color: "#94a3b8", marginBottom: 5 }} />
+                                <Camera size={20} style={{ color: "#94a3b8", marginBottom: 6 }} />
                               )}
-                              <span style={{ fontSize: 13, fontWeight: 600, color: "#475569" }}>
+                              <p className="clp-upload-text" style={{ fontSize: 13 }}>
                                 {ps.uploading ? "Mengunggah..." : "Tambah foto"}
-                              </span>
-                              <span style={{ fontSize: 11, color: "#94a3b8", marginTop: 2 }}>
-                                JPG, PNG, WEBP — bisa pilih beberapa
-                              </span>
+                              </p>
+                              <p className="clp-upload-sub">JPG, PNG, WEBP — bisa pilih beberapa</p>
                               <input
                                 type="file"
                                 multiple
@@ -1126,19 +1356,23 @@ export default function EditListingPage() {
                               Sudah {PHOTO_MAX} foto — hapus dulu jika ingin mengganti.
                             </p>
                           )}
-
                           {hasPhotoChanges(room.id) && (
-                            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
                               <button
                                 type="button"
                                 onClick={() => savePhotos(room.id)}
                                 disabled={ps.uploading}
-                                className="clp-btn-next flex items-center gap-2 px-5 py-2 rounded-xl text-sm"
-                                style={{ opacity: ps.uploading ? 0.7 : 1 }}
+                                className="clp-btn clp-btn-primary"
                               >
-                                {ps.uploading
-                                  ? <><Loader2 size={14} className="animate-spin" /> Menyimpan...</>
-                                  : <><Check size={14} /> Simpan perubahan</>}
+                                {ps.uploading ? (
+                                  <>
+                                    <Loader2 size={14} className="clp-spin" /> Menyimpan...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Check size={14} /> Simpan perubahan
+                                  </>
+                                )}
                               </button>
                             </div>
                           )}
@@ -1146,45 +1380,57 @@ export default function EditListingPage() {
                       </div>
                     );
                   })}
-                </div>
+                </>
               )}
             </div>
 
-            <div className="flex justify-between items-center px-8 py-5" style={{ borderTop: "1px solid #f1f5f9", background: "#fafbff" }}>
-              {step > 1 ? (
-                <button type="button" onClick={() => setStep(step - 1)} className="clp-btn-back flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm">
-                  <ArrowLeft size={16} /> Kembali
-                </button>
-              ) : (
-                <button type="button" onClick={() => navigate(-1)} className="clp-btn-back flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm">
-                  <ArrowLeft size={16} /> Batal
-                </button>
-              )}
-
-              {step === 1 && (
-                <button type="button" onClick={handleSaveInfo} disabled={saving || loading}
-                  className="clp-btn-next flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm"
-                  style={{ opacity: saving || loading ? 0.7 : 1 }}>
-                  {saving
-                    ? <><Loader2 size={16} className="animate-spin" /> Menyimpan...</>
-                    : <><Save size={16} /> Simpan & Lanjut</>}
-                </button>
-              )}
-              {step === 2 && (
-                <button type="button" onClick={goToPhotos}
-                  className="clp-btn-next flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm">
-                  Lanjut ke Foto <ChevronRight size={16} />
-                </button>
-              )}
-              {step === 3 && (
-                <button type="button" onClick={handleFinish}
-                  className="clp-btn-next flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm">
-                  <Check size={16} /> Selesai
-                </button>
-              )}
+            <div className="clp-nav">
+              <div className="clp-nav-left">
+                {step > 1 ? (
+                  <button type="button" onClick={() => setStep(step - 1)} className="clp-btn clp-btn-outline">
+                    <ChevronLeft size={16} /> Kembali
+                  </button>
+                ) : (
+                  <button type="button" onClick={() => navigate("/owner/properti")} className="clp-btn clp-btn-outline">
+                    <ArrowLeft size={15} /> Properti
+                  </button>
+                )}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                <span style={{ fontSize: 12, color: "#94a3b8", fontWeight: 600 }}>
+                  {step} / {STEPS.length}
+                </span>
+                {step === 1 && (
+                  <button
+                    type="button"
+                    onClick={handleSaveInfo}
+                    disabled={saving || loading}
+                    className="clp-btn clp-btn-primary"
+                  >
+                    {saving ? (
+                      <>
+                        <Loader2 size={16} className="clp-spin" /> Menyimpan...
+                      </>
+                    ) : (
+                      <>
+                        Simpan & Lanjut <ChevronRight size={16} />
+                      </>
+                    )}
+                  </button>
+                )}
+                {step === 2 && (
+                  <button type="button" onClick={goToPhotos} className="clp-btn clp-btn-primary">
+                    Lanjut ke Foto <ChevronRight size={16} />
+                  </button>
+                )}
+                {step === 3 && (
+                  <button type="button" onClick={handleFinish} className="clp-btn clp-btn-primary">
+                    <Check size={16} /> Selesai
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
-
+          </main>
         </div>
       </div>
     </>

@@ -27,7 +27,6 @@ const formatPrice = (price) => {
   return `${Math.round(price / 1_000)}rb`;
 };
 
-
 const NAV_ITEMS = [
   { label: "Home", path: "/", icon: Home, desktop: true, mobile: true, guestMobile: true },
   { label: "Search", path: "/search", icon: Search, desktop: true, mobile: true, guestMobile: true },
@@ -283,7 +282,7 @@ export default function MapPage() {
   .mp-root { font-family:'DM Sans',sans-serif; color:var(--text-primary); height:100vh; display:flex; flex-direction:column; overflow:hidden; }
   .mp-root h1,.mp-root h2,.mp-root h3 { font-family:'Plus Jakarta Sans',sans-serif; }
 
-  /* ── NAVBAR — identik dengan Dashboard ── */
+  /* ── NAVBAR ── */
   .mp-navbar {
     position: sticky; top: 0; z-index: 500;
     height: 72px; flex-shrink: 0;
@@ -494,8 +493,8 @@ export default function MapPage() {
             ) : (
               <>
                 <span className="mp-navbar-link" onClick={() => navigate("/")}>Home</span>
-<span className="mp-navbar-link" onClick={() => navigate("/search")}>Search</span>
-<span className="mp-navbar-link" onClick={() => navigate("/map")}>Peta</span>
+                <span className="mp-navbar-link" onClick={() => navigate("/search")}>Search</span>
+                <span className="mp-navbar-link" onClick={() => navigate("/map")}>Peta</span>
                 <div className="mp-navbar-divider" />
                 <button className="mp-theme-toggle" onClick={() => setDarkMode(!darkMode)} title={darkMode ? "Mode Terang" : "Mode Gelap"}>
                   {darkMode ? <Sun size={18} /> : <Moon size={18} />}
@@ -517,7 +516,7 @@ export default function MapPage() {
         {/* ── MAP AREA ── */}
         <div className="mp-map-area">
 
-          {/* Leaflet Map */}
+          {/* Leaflet Map — CartoDB Positron (minimalis, mirip Papikos) */}
           <MapContainer
             center={SOLO_CENTER}
             zoom={13}
@@ -525,8 +524,10 @@ export default function MapPage() {
             zoomControl={false}
           >
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
+              url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+              subdomains="abcd"
+              maxZoom={19}
             />
             {userCoords && <FlyToLocation coords={userCoords} />}
 

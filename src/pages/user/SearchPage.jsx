@@ -57,7 +57,12 @@ function LeafletMap({ results, activePinId, onPinClick }) {
   return (
     <div style={{ position: "relative", width: "100%", height: 240, flexShrink: 0 }}>
       <MapContainer center={SOLO_CENTER} zoom={13} style={{ width: "100%", height: "100%" }} zoomControl={false}>
-        <TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          subdomains="abcd"
+          maxZoom={19}
+        />
         <FitBounds results={results} />
         {results.map((item) => item.latitude && item.longitude ? (
           <Marker key={item.id} position={[item.latitude, item.longitude]} icon={createPriceIcon(item.price, activePinId === item.id)} eventHandlers={{ click: () => onPinClick(item.id) }} />
@@ -315,7 +320,6 @@ export default function SearchPage() {
     });
   };
 
-  // API hanya menerima satu genderType (enum Prisma)
   const toggleGender = (val) =>
     setSelectedGenders((prev) => (prev.includes(val) ? [] : [val]));
 
