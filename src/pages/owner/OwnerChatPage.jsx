@@ -35,7 +35,6 @@ function formatTime(date) {
 const BOTTOM_NAV_ITEMS = [
   { id: "home",     icon: Home,          label: "Beranda",  path: "/owner/dashboard" },
   { id: "properti", icon: Building2,     label: "Properti", path: "/owner/properti"  },
-  { id: "pesan",    icon: MessageCircle, label: "Pesan",    path: "/owner/chat", badge: true },
   { id: "akun",     icon: User,          label: "Profil",   path: "/owner/profil"    },
 ];
 
@@ -53,7 +52,7 @@ export default function OwnerChatPage() {
   const [chats,        setChats]        = useState([]);
   const [loading,      setLoading]      = useState(true);
   const [sidebarOpen,  setSidebarOpen]  = useState(false);
-  const [activeNav,    setActiveNav]    = useState("pesan");
+  const [activeNav,    setActiveNav]    = useState("home");
 
   // ── Polling unread count (juga munculkan toast otomatis) ──────
   const { unreadCount } = useUnreadCount(token, user?.id);
@@ -415,8 +414,8 @@ export default function OwnerChatPage() {
         className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-100 flex md:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        {BOTTOM_NAV_ITEMS.map(({ id, icon: Icon, label, path, badge }) => {
-          const isActive = id === "pesan";
+        {BOTTOM_NAV_ITEMS.map(({ id, icon: Icon, label, path }) => {
+          const isActive = activeNav === id;
           return (
             <button key={id} onClick={() => path && navigate(path)}
               className="flex-1 flex flex-col items-center justify-center py-3 gap-0.5 relative active:scale-95 transition-transform">
@@ -424,19 +423,6 @@ export default function OwnerChatPage() {
               <div className="relative">
                 <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8}
                   className={isActive ? "text-blue-600" : "text-slate-400"} />
-                {/* Badge unread di bottom nav */}
-                {badge && unreadCount > 0 && (
-                  <span style={{
-                    position: "absolute", top: -5, right: -7,
-                    minWidth: 16, height: 16, borderRadius: 8,
-                    background: "#EF4444", border: "2px solid white",
-                    fontSize: 9, fontWeight: 800, color: "white",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    padding: "0 3px",
-                  }}>
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </span>
-                )}
               </div>
               <span className={`text-[10px] font-bold ${isActive ? "text-blue-600" : "text-slate-400"}`}>
                 {label}

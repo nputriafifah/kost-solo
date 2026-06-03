@@ -10,6 +10,7 @@ import { GENDER_LABELS_LOWER, extractKostFacilitiesFromRooms, getRoomOnlyFacilit
 import { formatPublicLocation, obfuscateCoordinates } from "../../utils/publicLocation";
 import FacilityChipList from "../../components/user/FacilityChipList";
 import FacilitiesModal from "../../components/user/FacilitiesModal";
+import { createPriceIcon } from "../../utils/mapPriceIcon";
 import {
   ArrowLeft, MapPin, Heart, Home,
   ShieldCheck, ChevronLeft, ChevronRight, X,
@@ -425,40 +426,6 @@ L.Icon.Default.mergeOptions({
   iconUrl:       "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
   shadowUrl:     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
-
-function createPriceIcon(price, active = false) {
-  const label =
-    price >= 1_000_000
-      ? `Rp ${(price / 1_000_000).toFixed(1).replace(".0", "")}jt`
-      : `Rp ${Math.round(price / 1_000)}rb`;
-
-  // Konsisten dengan MapPage
-  const bg     = active ? "#2563EB" : "#ffffff";
-  const color  = active ? "#ffffff" : "#1A1A1A";
-  const border = active ? "#1D4ED8" : "#CBD5E1";
-  const shadow = active
-    ? "0 4px 18px rgba(37,99,235,.55)"
-    : "0 2px 10px rgba(0,0,0,.20)";
-  const tip       = active ? "#2563EB" : "#ffffff";
-  const tipBorder = active ? "#1D4ED8" : "#CBD5E1";
-
-  return L.divIcon({
-    className: "",
-    html: `<div style="position:relative;display:inline-flex;align-items:center;justify-content:center;
-      background:${bg};color:${color};padding:5px 12px;border-radius:999px;font-size:12px;font-weight:800;
-      font-family:'DM Sans',system-ui,-apple-system,sans-serif;white-space:nowrap;cursor:pointer;
-      box-shadow:${shadow};border:2px solid ${border};line-height:1.2;user-select:none;letter-spacing:-0.2px;">
-      ${label}
-      <span style="position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);width:0;height:0;
-        border-left:6px solid transparent;border-right:6px solid transparent;border-top:7px solid ${tipBorder};display:block;"></span>
-      <span style="position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);width:0;height:0;
-        border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid ${tip};display:block;"></span>
-    </div>`,
-    iconSize:    [90, 32],
-    iconAnchor:  [45, 39],
-    popupAnchor: [0, -42],
-  });
-}
 
 function MapCenter({ lat, lng }) {
   const map = useMap();
@@ -1200,11 +1167,6 @@ export default function DetailPage() {
 
           {/* Badges */}
           <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10, flexWrap:"wrap" }}>
-            {item.isPremium && (
-              <span style={{ fontSize:10, fontWeight:800, padding:"4px 10px", borderRadius:99, background:"#FEF3C7", color:"#92400E", border:"1px solid #FDE68A", letterSpacing:.5, textTransform:"uppercase" }}>
-                Premium
-              </span>
-            )}
             {gender && (
               <span style={{ fontSize:11, fontWeight:600, padding:"4px 10px", borderRadius:99, background:gender.bg, color:gender.text, border:`1px solid ${gender.border}` }}>
                 {gender.label}

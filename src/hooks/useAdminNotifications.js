@@ -1,7 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 
-import { getReactivationRequests } from "../utils/reactivationRequests";
-
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 const READ_KEY = "atap_admin_notif_read";
 
@@ -36,21 +34,8 @@ async function apiFetch(path) {
   return res.json();
 }
 
-function buildNotifications(pendingListings, pendingReports, reactivationRequests, readIds) {
+function buildNotifications(pendingListings, pendingReports, readIds) {
   const items = [];
-
-  for (const req of reactivationRequests) {
-    const id = `reactivation-${req.listingId}`;
-    items.push({
-      id,
-      type: "REACTIVATION_REQUEST",
-      title: "Permintaan aktivasi kost",
-      message: `${req.ownerName} minta aktifkan lagi "${req.listingName}".`,
-      createdAt: req.requestedAt,
-      readAt: readIds.has(id) ? new Date().toISOString() : null,
-      listingId: req.listingId,
-    });
-  }
 
   for (const listing of pendingListings) {
     const id = `listing-${listing.id}`;
@@ -115,12 +100,7 @@ export function useAdminNotifications({ pollMs = 30000, enabled = true } = {}) {
           ? reportsRes
           : [];
 
-      const items = buildNotifications(
-        pendingListings,
-        pendingReports,
-        getReactivationRequests(),
-        readIds
-      );
+      const items = buildNotifications(pendingListings, pendingReports, readIds);
       setNotifications(items);
       setUnreadCount(items.filter((n) => !n.readAt).length);
     } catch (err) {

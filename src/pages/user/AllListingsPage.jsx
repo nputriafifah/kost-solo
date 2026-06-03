@@ -17,8 +17,6 @@ import {
   Home,
   MessageCircle,
   Sparkles,
-  Moon,
-  Sun,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import KostCard from "../../components/kost/KostCard";
@@ -56,9 +54,7 @@ const SORT_OPTIONS = [
 const NAV_ITEMS = [
   { label: "Home", path: "/", icon: Home, desktop: true, mobile: true, guestMobile: true },
   { label: "Search", path: "/search", icon: Search, desktop: true, mobile: true, guestMobile: true },
-  { label: "Peta", path: "/map", icon: Map, desktop: true, mobile: true, guestMobile: true },
-  { label: "Favorit", path: "/like", icon: Heart, desktop: true, mobile: true, guestMobile: false },
-  { label: "Chat", path: "/chat", icon: MessageCircle, desktop: false, mobile: false, guestMobile: false },
+  { label: "My List", path: "/like", icon: Heart, desktop: true, mobile: true, guestMobile: false },
   { label: "Profil", path: "/profil", icon: User, desktop: false, mobile: true, guestMobile: false },
 ];
 
@@ -101,19 +97,6 @@ export default function AllListingsPage() {
   const [aiTagline, setAiTagline] = useState("");
   const [aiLoading, setAiLoading] = useState(true);
   const [unreadChat, setUnreadChat] = useState(0);
-
-  // ── DARK MODE (sama persis Dashboard) ──
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem("atap_theme") === "dark");
-
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark-mode");
-      localStorage.setItem("atap_theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark-mode");
-      localStorage.setItem("atap_theme", "light");
-    }
-  }, [darkMode]);
 
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const isLoggedIn = !!user;
@@ -868,29 +851,6 @@ export default function AllListingsPage() {
                 ))}
                 <div className="al-navbar-divider" />
 
-                {/* Chat button dengan badge (sama persis Dashboard) */}
-                <div
-                  className="al-chat-btn-wrap"
-                  onClick={() => navigate("/chat")}
-                  title="Chat"
-                >
-                  <div className="al-chat-btn"><MessageCircle size={16} /></div>
-                  {unreadChat > 0 && (
-                    <span className="al-chat-badge">
-                      {unreadChat > 99 ? "99+" : unreadChat}
-                    </span>
-                  )}
-                </div>
-
-                {/* Theme toggle (sama persis Dashboard) */}
-                <button
-                  className="al-theme-toggle"
-                  onClick={() => setDarkMode(!darkMode)}
-                  title={darkMode ? "Mode Terang" : "Mode Gelap"}
-                >
-                  {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-                </button>
-
                 {/* Avatar dropdown */}
                 <div className="al-dropdown-wrap" ref={menuRef}>
                   <div
@@ -920,38 +880,13 @@ export default function AllListingsPage() {
               <>
                 <span className="al-navbar-link" onClick={() => navigate("/")}>Home</span>
                 <span className="al-navbar-link" onClick={() => navigate("/search")}>Search</span>
-                <span className="al-navbar-link" onClick={() => navigate("/map")}>Peta</span>
                 <div className="al-navbar-divider" />
-                {/* Theme toggle untuk guest juga */}
-                <button
-                  className="al-theme-toggle"
-                  onClick={() => setDarkMode(!darkMode)}
-                  title={darkMode ? "Mode Terang" : "Mode Gelap"}
-                >
-                  {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-                </button>
                 <span className="al-navbar-login" onClick={() => navigate("/auth")}>Masuk</span>
                 <button className="al-navbar-cta" onClick={() => navigate("/auth")}>Daftar Gratis</button>
               </>
             )}
           </div>
 
-          {/* Mobile chat button */}
-          {isLoggedIn && (
-            <div
-              className="al-chat-btn-wrap al-mobile-chat"
-              style={{ display: "none" }}
-              onClick={() => navigate("/chat")}
-              title="Chat"
-            >
-              <div className="al-chat-btn"><MessageCircle size={16} /></div>
-              {unreadChat > 0 && (
-                <span className="al-chat-badge">
-                  {unreadChat > 99 ? "99+" : unreadChat}
-                </span>
-              )}
-            </div>
-          )}
         </nav>
 
         {/* ── HERO ── */}

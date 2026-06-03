@@ -1,15 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import {
-  MessageCircle, Moon, Sun, User, Settings, LogOut,
-} from "lucide-react";
+import { User, Settings, LogOut } from "lucide-react";
 import { useUserNavBadges } from "../../hooks/useUserNavBadges";
 
 const DESKTOP_LINKS = [
   { label: "Home", path: "/" },
   { label: "Search", path: "/search" },
-  { label: "Peta", path: "/map" },
-  { label: "Favorit", path: "/like" },
+  { label: "My List", path: "/like" },
 ];
 
 export const USER_NAVBAR_CSS = `
@@ -22,15 +19,6 @@ export const USER_NAVBAR_CSS = `
     --border-color: #E2E8F0;
     --card-shadow: 0 1px 3px rgba(0,0,0,0.1);
   }
-  .dark-mode {
-    --bg-primary: #0F172A;
-    --bg-secondary: #1E293B;
-    --bg-tertiary: #334155;
-    --text-primary: #F8FAFC;
-    --text-secondary: #CBD5E1;
-    --border-color: #334155;
-    --card-shadow: 0 1px 3px rgba(0,0,0,0.3);
-  }
 
   .atap-navbar {
     position: sticky; top: 0; z-index: 100;
@@ -41,7 +29,6 @@ export const USER_NAVBAR_CSS = `
     display: flex; align-items: center; justify-content: space-between;
     padding: 0 42px;
   }
-  .dark-mode .atap-navbar { background: rgba(30,41,59,0.92); }
   .atap-navbar-logo {
     font-family: 'Plus Jakarta Sans', sans-serif;
     font-size: 25px; font-weight: 800; letter-spacing: -1px;
@@ -55,37 +42,25 @@ export const USER_NAVBAR_CSS = `
     transition: 0.15s; font-family: 'DM Sans', sans-serif;
   }
   .atap-navbar-link:hover { color: #2563EB; background: #EFF6FF; }
-  .dark-mode .atap-navbar-link:hover { background: rgba(59,130,246,0.15); }
-  .atap-navbar-link.active { color: #2563EB; }
+  .atap-navbar-link.active { color: #2563EB; background: #EFF6FF; }
+  .atap-navbar-login {
+    font-size: 14px; font-weight: 600; color: var(--text-secondary);
+    cursor: pointer; padding: 7px 11px; border-radius: 9px;
+    transition: 0.15s; font-family: 'DM Sans', sans-serif;
+  }
+  .atap-navbar-login:hover { color: #2563EB; background: #EFF6FF; }
+  .atap-navbar-cta {
+    border: none; cursor: pointer; padding: 11px 22px; border-radius: 12px;
+    background: linear-gradient(135deg, #2563EB, #3B82F6); color: #fff;
+    font-size: 13px; font-weight: 700; transition: 0.2s;
+    font-family: 'DM Sans', sans-serif; flex-shrink: 0;
+  }
+  .atap-navbar-cta:hover {
+    transform: translateY(-1px); box-shadow: 0 12px 25px rgba(37, 99, 235, 0.22);
+  }
   .atap-navbar-divider {
     width: 1px; height: 22px; background: var(--border-color); margin: 0 6px;
   }
-  .atap-theme-toggle {
-    display: flex; align-items: center; justify-content: center;
-    width: 36px; height: 36px; border-radius: 50%;
-    background: var(--bg-tertiary); border: 1.5px solid var(--border-color);
-    cursor: pointer; transition: 0.2s; color: var(--text-primary); margin-left: 2px;
-  }
-  .atap-theme-toggle:hover { background: #EFF6FF; color: #2563EB; }
-  .dark-mode .atap-theme-toggle:hover { background: rgba(59,130,246,0.15); }
-  .atap-chat-btn-wrap { position: relative; display: inline-flex; margin-left: 2px; cursor: pointer; }
-  .atap-chat-btn {
-    width: 36px; height: 36px; border-radius: 50%;
-    background: var(--bg-tertiary); color: var(--text-secondary);
-    display: flex; align-items: center; justify-content: center;
-    border: 1.5px solid var(--border-color); transition: 0.2s;
-  }
-  .atap-chat-btn:hover { background: #EFF6FF; color: #2563EB; border-color: #BFDBFE; }
-  .dark-mode .atap-chat-btn:hover { background: rgba(59,130,246,0.15); }
-  .atap-chat-badge {
-    position: absolute; top: -3px; right: -3px;
-    min-width: 16px; height: 16px; background: #EF4444; border-radius: 999px;
-    border: 2px solid var(--bg-secondary);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 9px; font-weight: 800; color: white; padding: 0 3px; line-height: 1;
-    pointer-events: none; box-shadow: 0 0 0 2px rgba(239,68,68,.2);
-  }
-  .atap-mobile-chat { display: none; }
   .atap-dropdown-wrap { position: relative; }
   .atap-avatar-wrap { position: relative; display: inline-block; margin-left: 4px; }
   .atap-notif-dot {
@@ -127,14 +102,18 @@ export const USER_NAVBAR_CSS = `
   }
   .atap-navbar-dropdown button.danger { color: #EF4444; }
   .atap-navbar-dropdown button.danger:hover { background: #FEF2F2; }
-  .dark-mode .atap-navbar-dropdown button.danger:hover {
-    background: rgba(239,68,68,0.15);
-  }
 
   @media (max-width: 768px) {
     .atap-navbar { padding: 0 16px; height: 60px; }
     .atap-navbar-links { display: none; }
-    .atap-mobile-chat { display: flex; }
+    .atap-navbar-links--guest {
+      display: flex !important; align-items: center; gap: 6px;
+    }
+    .atap-navbar-links--guest .atap-nav-desktop-only { display: none; }
+    .atap-navbar-links--guest .atap-navbar-divider { display: none; }
+    .atap-navbar-links--guest .atap-navbar-cta {
+      padding: 9px 14px; font-size: 12px;
+    }
   }
 `;
 
@@ -148,10 +127,7 @@ export default function UserNavbar({ badges: badgesProp, activePath: activePathP
   const badges = badgesProp ?? internalBadges;
   const activePath = activePathProp ?? location.pathname;
   const {
-    unreadChat,
     unreadCount,
-    darkMode,
-    setDarkMode,
     doLogout,
     initials,
     userName,
@@ -167,7 +143,7 @@ export default function UserNavbar({ badges: badgesProp, activePath: activePathP
   }, []);
 
   const isLinkActive = (path) => {
-    if (path === "/") return activePath === "/";
+    if (path === "/") return activePath === "/" || activePath === "/dashboard";
     return activePath === path || activePath.startsWith(`${path}/`);
   };
 
@@ -177,7 +153,7 @@ export default function UserNavbar({ badges: badgesProp, activePath: activePathP
         Atap<span>.</span>
       </div>
 
-      <div className="atap-navbar-links">
+      <div className={`atap-navbar-links${isLoggedIn ? "" : " atap-navbar-links--guest"}`}>
         {isLoggedIn ? (
           <>
             {DESKTOP_LINKS.map(({ label, path }) => (
@@ -190,24 +166,6 @@ export default function UserNavbar({ badges: badgesProp, activePath: activePathP
               </span>
             ))}
             <div className="atap-navbar-divider" />
-            <div className="atap-chat-btn-wrap" onClick={() => navigate("/chat")} title="Chat">
-              <div className="atap-chat-btn">
-                <MessageCircle size={16} />
-              </div>
-              {unreadChat > 0 && (
-                <span className="atap-chat-badge">
-                  {unreadChat > 99 ? "99+" : unreadChat}
-                </span>
-              )}
-            </div>
-            <button
-              type="button"
-              className="atap-theme-toggle"
-              onClick={() => setDarkMode(!darkMode)}
-              title={darkMode ? "Mode Terang" : "Mode Gelap"}
-            >
-              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
             <div className="atap-dropdown-wrap" ref={menuRef}>
               <div className="atap-avatar-wrap">
                 <div
@@ -264,46 +222,26 @@ export default function UserNavbar({ badges: badgesProp, activePath: activePathP
           </>
         ) : (
           <>
-            {DESKTOP_LINKS.slice(0, 3).map(({ label, path }) => (
+            {DESKTOP_LINKS.slice(0, 2).map(({ label, path }) => (
               <span
                 key={path}
-                className="atap-navbar-link"
+                className={`atap-navbar-link atap-nav-desktop-only${isLinkActive(path) ? " active" : ""}`}
                 onClick={() => navigate(path)}
               >
                 {label}
               </span>
             ))}
-            <div className="atap-navbar-divider" />
-            <button
-              type="button"
-              className="atap-theme-toggle"
-              onClick={() => setDarkMode(!darkMode)}
-            >
-              {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-            </button>
-            <span className="atap-navbar-link" onClick={() => navigate("/auth")}>
+            <div className="atap-navbar-divider atap-nav-desktop-only" />
+            <span className="atap-navbar-login" onClick={() => navigate("/auth")}>
               Masuk
             </span>
+            <button type="button" className="atap-navbar-cta" onClick={() => navigate("/auth")}>
+              Daftar Gratis
+            </button>
           </>
         )}
       </div>
 
-      {isLoggedIn && (
-        <div
-          className="atap-chat-btn-wrap atap-mobile-chat"
-          onClick={() => navigate("/chat")}
-          title="Chat"
-        >
-          <div className="atap-chat-btn">
-            <MessageCircle size={16} />
-          </div>
-          {unreadChat > 0 && (
-            <span className="atap-chat-badge">
-              {unreadChat > 99 ? "99+" : unreadChat}
-            </span>
-          )}
-        </div>
-      )}
     </nav>
   );
 }

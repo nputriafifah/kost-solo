@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Heart, AlertCircle, RefreshCw,
-  Home, Map, MessageCircle, User, Settings, LogOut, Search, Moon, Sun,
+  Home, User, Settings, LogOut, Search,
 } from "lucide-react";
 import KostCard from "../../components/kost/KostCard";
 import { getApiBase, resolveMediaUrl } from "../../config/apiBase";
@@ -56,9 +56,7 @@ function toCardItem(item) {
 const NAV_ITEMS = [
   { label: "Home",    path: "/",       icon: Home,          desktop: true,  mobile: true,  guestMobile: true  },
   { label: "Search",  path: "/search", icon: Search,        desktop: true,  mobile: true,  guestMobile: true  },
-  { label: "Peta",    path: "/map",    icon: Map,           desktop: true,  mobile: true,  guestMobile: true  },
-  { label: "Favorit", path: "/like",   icon: Heart,         desktop: true,  mobile: true,  guestMobile: false },
-  { label: "Chat",    path: "/chat",   icon: MessageCircle, desktop: false, mobile: false, guestMobile: false },
+  { label: "My List", path: "/like",   icon: Heart,         desktop: true,  mobile: true,  guestMobile: false },
   { label: "Profil",  path: "/profil", icon: User,          desktop: false, mobile: true,  guestMobile: false },
 ];
 
@@ -159,7 +157,6 @@ const css = `
   @media(max-width:768px) { .fav-navbar-links { display:none; } .fav-mobile-chat { display:flex; } }
   @media(max-width:640px) {
     .fav-navbar { height:60px; padding:0 16px; }
-    .fav-hero { padding:24px 16px !important; }
     .fav-content { padding:20px 16px 96px; }
     .fav-grid { grid-template-columns:repeat(2, 1fr); gap:12px; }
     .fav-bottom-nav {
@@ -190,7 +187,6 @@ export default function LikePage() {
   const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState(null);
   const [showMenu,    setShowMenu]    = useState(false);
-  const [darkMode,    setDarkMode]    = useState(false);  // ✅ FIX 1: state darkMode
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadChat,  setUnreadChat]  = useState(0);
 
@@ -354,8 +350,7 @@ export default function LikePage() {
   return (
     <>
       <style>{css}</style>
-      {/* ✅ FIX 2: darkMode class applied ke root div */}
-      <div className={`fav-root${darkMode ? " dark-mode" : ""}`}>
+      <div className="fav-root">
 
         {/* NAVBAR */}
         <nav className="fav-navbar">
@@ -375,22 +370,6 @@ export default function LikePage() {
                 ))}
                 <div className="fav-navbar-divider" />
 
-                {/* Chat button */}
-                <div className="fav-chat-btn-wrap" onClick={() => navigate("/chat")} title="Chat">
-                  <div className="fav-chat-btn"><MessageCircle size={16} /></div>
-                  {unreadChat > 0 && <span className="fav-chat-badge">{unreadChat > 99 ? "99+" : unreadChat}</span>}
-                </div>
-
-                {/* ✅ FIX 3: button dark mode ditutup dengan benar */}
-                <button
-                  className="mp-theme-toggle"
-                  onClick={() => setDarkMode((d) => !d)}
-                  title={darkMode ? "Mode Terang" : "Mode Gelap"}
-                >
-                  {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-                </button>
-
-                {/* ✅ FIX 4: dropdown di luar button */}
                 <div className="fav-dropdown-wrap" ref={menuRef}>
                   <div className="fav-avatar-wrap">
                     <div className="fav-navbar-avatar" onClick={() => setShowMenu((p) => !p)} title={userName}>
@@ -423,7 +402,6 @@ export default function LikePage() {
             ) : (
               <>
                 <span className="fav-navbar-link" onClick={() => navigate("/search")}>Search</span>
-                <span className="fav-navbar-link" onClick={() => navigate("/map")}>Peta</span>
                 <div className="fav-navbar-divider" />
                 <span className="fav-navbar-login" onClick={() => navigate("/auth")}>Masuk</span>
                 <button className="fav-navbar-cta" onClick={() => navigate("/auth")}>Daftar Gratis</button>
@@ -431,38 +409,7 @@ export default function LikePage() {
             )}
           </div>
 
-          {/* Mobile chat icon */}
-          {isLoggedIn && (
-            <div className="fav-chat-btn-wrap fav-mobile-chat" onClick={() => navigate("/chat")} title="Chat">
-              <div className="fav-chat-btn"><MessageCircle size={16} /></div>
-              {unreadChat > 0 && <span className="fav-chat-badge">{unreadChat > 99 ? "99+" : unreadChat}</span>}
-            </div>
-          )}
         </nav>
-
-        {/* HERO */}
-        <div
-          className="fav-hero"
-          style={{
-            background: "linear-gradient(135deg, #0F172A 0%, #1E3A8A 45%, #2563EB 100%)",
-            padding: "32px 42px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <div>
-            <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 26, fontWeight: 800, color: "#fff", letterSpacing: -0.8, margin: 0 }}>
-              Favorit<span style={{ color: "#93C5FD" }}>.</span>
-            </h1>
-            <p style={{ fontSize: 13, color: "rgba(255,255,255,.6)", margin: "4px 0 0" }}>
-              {!loading && !error ? `${data.length} kost tersimpan` : "Kost favorit kamu"}
-            </p>
-          </div>
-          <div style={{ width: 52, height: 52, borderRadius: 16, background: "rgba(255,255,255,.12)", border: "1px solid rgba(255,255,255,.18)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Heart size={24} color="rgba(255,255,255,.8)" />
-          </div>
-        </div>
 
         {/* CONTENT */}
         <div className="fav-content">

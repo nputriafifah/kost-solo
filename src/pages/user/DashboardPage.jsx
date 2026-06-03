@@ -2,14 +2,14 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   Search, SearchX, AlertCircle, RefreshCw, Heart, User, ChevronRight,
   LogOut, Settings, Map, SlidersHorizontal, Home, MessageCircle,
-  BadgeCheck, Tag, MessageSquare, Moon, Sun, MapPin, Bookmark, Navigation,
+  BadgeCheck, Tag, MessageSquare, MapPin, Bookmark, Navigation, Globe,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import KostCard from "../../components/kost/KostCard";
 import NotificationPanel from "../../components/ui/NotificationPanel";
 import { getApiBase, resolveMediaUrl } from "../../config/apiBase";
 import { GENDER_OPTIONS } from "../../constants/listing";
-import { formatPublicLocation } from "../../utils/publicLocation";
+import { formatPublicLocation, countListingAreas } from "../../utils/publicLocation";
 
 const API = getApiBase();
 const GENDER_TO_API = Object.fromEntries(GENDER_OPTIONS.map((g) => [g.label, g.value]));
@@ -53,9 +53,7 @@ const FILTERS = ["Semua", "Putra", "Putri", "Campur"];
 const NAV_ITEMS = [
   { label: "Home", path: "/", icon: Home, desktop: true, mobile: true, guestMobile: true },
   { label: "Search", path: "/search", icon: Search, desktop: true, mobile: true, guestMobile: true },
-  { label: "Peta", path: "/map", icon: Map, desktop: true, mobile: true, guestMobile: true },
-  { label: "Favorit", path: "/like", icon: Heart, desktop: true, mobile: true, guestMobile: false },
-  { label: "Chat", path: "/chat", icon: MessageCircle, desktop: false, mobile: false, guestMobile: false },
+  { label: "My List", path: "/like", icon: Heart, desktop: true, mobile: true, guestMobile: false },
   { label: "Profil", path: "/profil", icon: User, desktop: false, mobile: true, guestMobile: false },
 ];
 
@@ -97,6 +95,10 @@ export default function DashboardPage() {
   const location = useLocation();
   const menuRef = useRef(null);
   const currentPath = location.pathname;
+  const isNavActive = (path) => {
+    if (path === "/") return currentPath === "/" || currentPath === "/dashboard";
+    return currentPath === path || currentPath.startsWith(`${path}/`);
+  };
 
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -107,9 +109,10 @@ export default function DashboardPage() {
   const [showNotif, setShowNotif] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadChat, setUnreadChat] = useState(0);
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem("atap_theme") === "dark");
 
-  const [stats, setStats] = useState({ listings: 0, premium: 0, disimpan: 0 });
+  const [stats, setStats] = useState({
+    listings: 0, premium: 0, disimpan: 0, kecamatan: 0, kabupaten: 0,
+  });
 
   // Lokasi terdekat
   const [userCoords, setUserCoords] = useState(null);
@@ -125,16 +128,6 @@ export default function DashboardPage() {
   const initials = isLoggedIn
     ? userName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "GU";
-
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark-mode");
-      localStorage.setItem("atap_theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark-mode");
-      localStorage.setItem("atap_theme", "light");
-    }
-  }, [darkMode]);
 
   useEffect(() => {
     const saved = localStorage.getItem("atap_notifications");
@@ -216,12 +209,15 @@ export default function DashboardPage() {
       const json = await res.json();
       const raw = Array.isArray(json.data) ? json.data : [];
       const mappedData = raw.map(mapSearchListing);
+      const { kecamatanCount, kabupatenCount } = countListingAreas(raw);
 
       setData(mappedData);
       setStats((prev) => ({
         ...prev,
         listings: mappedData.length,
         premium: mappedData.filter((item) => item.isPremium).length,
+        kecamatan: kecamatanCount,
+        kabupaten: kabupatenCount,
       }));
     } catch {
       setError("Gagal memuat data");
@@ -291,10 +287,23 @@ export default function DashboardPage() {
     }
   }, [data]);
 
+  const wilayahValue = stats.kecamatan > 0
+    ? stats.kecamatan.toLocaleString("id-ID")
+    : stats.kabupaten > 0
+      ? stats.kabupaten.toLocaleString("id-ID")
+      : "0";
+  const wilayahLabel = stats.kecamatan > 0
+    ? "Kecamatan"
+    : stats.kabupaten > 0
+      ? "Kabupaten"
+      : "Wilayah";
+
   const STATS = [
-    { icon: MapPin, label: "Kost Aktif", value: stats.listings.toLocaleString("id-ID"), color: "#3B82F6" },
-    { icon: BadgeCheck, label: "Premium", value: stats.premium.toLocaleString("id-ID"), color: "#8B5CF6" },
-    { icon: Bookmark, label: "Favorit", value: stats.disimpan.toLocaleString("id-ID"), color: "#EC4899" },
+    { icon: MapPin, label: "Kost Aktif", value: stats.listings.toLocaleString("id-ID"), color: "#3B82F6", loadingKey: "listings" },
+    { icon: Globe, label: wilayahLabel, value: wilayahValue, color: "#10B981", loadingKey: "listings" },
+    ...(isLoggedIn
+      ? [{ icon: Bookmark, label: "Favorit", value: stats.disimpan.toLocaleString("id-ID"), color: "#EC4899", loadingKey: null }]
+      : []),
   ];
 
   const doLogout = () => { localStorage.removeItem("user"); localStorage.removeItem("token"); navigate("/auth"); };
@@ -344,22 +353,13 @@ export default function DashboardPage() {
     );
 
     return nearbyData.slice(0, 8).map((item) => (
-      <div key={item.id} style={{ position: "relative" }}>
-        {item.distanceKm !== null && (
-          <div className="atap-distance-badge">
-            <MapPin size={10} />
-            {item.distanceKm < 1
-              ? `${Math.round(item.distanceKm * 1000)} m`
-              : `${item.distanceKm.toFixed(1)} km`}
-          </div>
-        )}
-        <KostCard
-          item={item}
-          isLiked={favorites.includes(item.id)}
-          onLike={() => handleToggleLike(item.id)}
-          onClick={() => navigate(`/detail/${item.id}`)}
-        />
-      </div>
+      <KostCard
+        key={item.id}
+        item={item}
+        isLiked={favorites.includes(item.id)}
+        onLike={() => handleToggleLike(item.id)}
+        onClick={() => navigate(`/detail/${item.id}`)}
+      />
     ));
   };
 
@@ -382,7 +382,7 @@ export default function DashboardPage() {
   .atap-navbar-link { font-size: 14px; font-weight: 600; color: var(--text-secondary); cursor: pointer; padding: 7px 11px; border-radius: 9px; transition: 0.15s; font-family: 'DM Sans', sans-serif; }
   .atap-navbar-link:hover { color: #2563EB; background: #EFF6FF; }
   .dark-mode .atap-navbar-link:hover { background: rgba(59, 130, 246, 0.15); }
-  .atap-navbar-link.active { color: #2563EB; }
+  .atap-navbar-link.active { color: #2563EB; background: #EFF6FF; }
   .atap-navbar-divider { width: 1px; height: 22px; background: var(--border-color); margin: 0 6px; }
   .atap-theme-toggle { display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; background: var(--bg-tertiary); border: 1.5px solid var(--border-color); cursor: pointer; transition: 0.2s; color: var(--text-primary); margin-left: 2px; }
   .atap-theme-toggle:hover { background: #EFF6FF; color: #2563EB; }
@@ -425,17 +425,26 @@ export default function DashboardPage() {
   .atap-search-btn:hover { transform: translateY(-1px); }
 
   .atap-stats-section { max-width: 1180px; margin: -40px auto 0; position: relative; z-index: 10; padding: 0 28px; }
-  .atap-stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
-  .atap-stat-box { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 18px; padding: 22px; display: flex; align-items: center; gap: 16px; box-shadow: var(--card-shadow); transition: 0.2s; }
-  .atap-stat-box:hover { border-color: #93C5FD; box-shadow: 0 4px 16px rgba(37,99,235,0.12); transform: translateY(-2px); }
-  .dark-mode .atap-stat-box:hover { box-shadow: 0 4px 16px rgba(37,99,235,0.2); }
-  .atap-stat-icon { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-  .atap-stat-content { flex: 1; }
-  .atap-stat-value { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 20px; font-weight: 800; color: var(--text-primary); margin: 0 0 2px; }
+  .atap-stats-grid {
+    display: grid; gap: 18px;
+    grid-template-columns: repeat(var(--stat-cols, 1), minmax(0, 1fr));
+  }
+  .atap-stats-grid.is-single { max-width: 360px; margin: 0 auto; }
+  .atap-stat-box {
+    background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 18px;
+    padding: 22px; display: flex; align-items: center; gap: 16px;
+    box-shadow: 0 4px 24px rgba(15, 23, 42, 0.08);
+    transition: 0.2s;
+  }
+  .atap-stat-box:hover { border-color: #93C5FD; box-shadow: 0 8px 28px rgba(37, 99, 235, 0.12); transform: translateY(-2px); }
+  .atap-stat-icon {
+    width: 52px; height: 52px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .atap-stat-content { flex: 1; min-width: 0; }
+  .atap-stat-value { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 22px; font-weight: 800; color: var(--text-primary); margin: 0 0 2px; line-height: 1.1; }
   .atap-stat-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin: 0; }
-
-  /* Stat loading skeleton */
-  .atap-stat-value-loading { height: 20px; width: 60px; border-radius: 6px; background: var(--bg-tertiary); animation: pulse 1.4s infinite; }
+  .atap-stat-value-loading { height: 22px; width: 64px; border-radius: 6px; background: var(--bg-tertiary); animation: pulse 1.4s infinite; }
 
   .atap-section { max-width: 1180px; margin: auto; padding: 42px 28px; }
   .atap-sec-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
@@ -454,16 +463,6 @@ export default function DashboardPage() {
   .atap-empty { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 60px 0; color: var(--text-secondary); }
   .atap-empty p { font-size: 14px; color: var(--text-secondary); font-weight: 600; }
   .atap-retry-btn { border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; background: #2563EB; color: white; padding: 10px 18px; border-radius: 12px; font-weight: 700; font-family: 'DM Sans', sans-serif; }
-
-  /* Distance badge */
-  .atap-distance-badge {
-    position: absolute; top: 10px; left: 10px; z-index: 5;
-    display: flex; align-items: center; gap: 4px;
-    background: rgba(15,23,42,0.75); backdrop-filter: blur(6px);
-    color: white; font-size: 11px; font-weight: 700;
-    padding: 4px 9px; border-radius: 999px;
-    font-family: 'DM Sans', sans-serif; pointer-events: none;
-  }
 
   /* Nearby location info bar */
   .atap-nearby-info {
@@ -525,13 +524,14 @@ export default function DashboardPage() {
   .atap-bn-icon-wrap { position: relative; display: inline-flex; }
   .atap-bn-chat-badge { position: absolute; top: -4px; right: -6px; min-width: 14px; height: 14px; background: #EF4444; border-radius: 999px; border: 1.5px solid var(--bg-secondary); display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 800; color: white; padding: 0 3px; line-height: 1; pointer-events: none; }
 
-  @media(max-width: 1100px) { .atap-grid { grid-template-columns: repeat(3, 1fr); } .atap-stats-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media(max-width: 1100px) { .atap-grid { grid-template-columns: repeat(3, 1fr); } }
   @media(max-width: 900px) {
     .atap-navbar { padding: 0 20px; } .atap-hero { padding: 56px 20px 64px; } .atap-hero p { font-size: 15px; }
     .atap-section { padding: 40px 20px; } .atap-grid { grid-template-columns: repeat(2, 1fr); }
     .atap-why-grid { grid-template-columns: repeat(2, 1fr); } .atap-footer-inner { flex-direction: column; gap: 36px; }
     .atap-footer-brand p { max-width: 100%; } .atap-cta-inner { flex-direction: column; text-align: center; padding: 40px 28px; }
-    .atap-cta-btns { justify-content: center; } .atap-stats-grid { grid-template-columns: repeat(3, 1fr); }
+    .atap-cta-btns { justify-content: center; }
+    .atap-stats-section { padding: 0 20px; }
   }
   @media(max-width: 768px) { .atap-navbar-links { display: none; } .atap-mobile-chat { display: flex; } }
   @media(max-width: 640px) {
@@ -543,7 +543,9 @@ export default function DashboardPage() {
     .atap-sec-header { flex-direction: column; align-items: flex-start; gap: 10px; }
     .atap-section { padding-bottom: 96px; }
     .atap-why-grid { grid-template-columns: 1fr; gap: 12px; } .atap-why-card { padding: 20px 16px; }
-    .atap-stats-grid { grid-template-columns: 1fr; }
+    .atap-stats-section { margin-top: -32px; padding: 0 16px; }
+    .atap-stats-grid { grid-template-columns: 1fr !important; }
+    .atap-stats-grid.is-single { max-width: none; }
     .atap-footer-links { flex-wrap: wrap; gap: 28px; }
     .atap-footer-bottom { flex-direction: column; gap: 10px; text-align: center; }
     .atap-footer-bottom-links { flex-wrap: wrap; justify-content: center; gap: 12px; }
@@ -579,19 +581,12 @@ export default function DashboardPage() {
               <>
                 {DESKTOP_LINKS.map(({ label, path }) => (
                   <span key={path}
-                    className={`atap-navbar-link${currentPath === path ? " active" : ""}`}
+                    className={`atap-navbar-link${isNavActive(path) ? " active" : ""}`}
                     onClick={() => navigate(path)}>
                     {label}
                   </span>
                 ))}
                 <div className="atap-navbar-divider" />
-                <div className="atap-chat-btn-wrap" onClick={() => navigate("/chat")} title="Chat">
-                  <div className="atap-chat-btn"><MessageCircle size={16} /></div>
-                  {unreadChat > 0 && <span className="atap-chat-badge">{unreadChat > 99 ? "99+" : unreadChat}</span>}
-                </div>
-                <button className="atap-theme-toggle" onClick={() => setDarkMode(!darkMode)} title={darkMode ? "Mode Terang" : "Mode Gelap"}>
-                  {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-                </button>
                 <div className="atap-dropdown-wrap" ref={menuRef}>
                   <div className="atap-avatar-wrap">
                     <div className="atap-navbar-avatar" onClick={() => setShowMenu((p) => !p)} title={userName}>{initials}</div>
@@ -618,24 +613,24 @@ export default function DashboardPage() {
               </>
             ) : (
               <>
-                <span className="atap-navbar-link" onClick={() => navigate("/")}>Home</span>
-<span className="atap-navbar-link" onClick={() => navigate("/search")}>Search</span>
-<span className="atap-navbar-link" onClick={() => navigate("/map")}>Peta</span>
+                <span
+                  className={`atap-navbar-link${isNavActive("/") ? " active" : ""}`}
+                  onClick={() => navigate("/")}
+                >
+                  Home
+                </span>
+                <span
+                  className={`atap-navbar-link${isNavActive("/search") ? " active" : ""}`}
+                  onClick={() => navigate("/search")}
+                >
+                  Search
+                </span>
                 <div className="atap-navbar-divider" />
-                <button className="atap-theme-toggle" onClick={() => setDarkMode(!darkMode)} title={darkMode ? "Mode Terang" : "Mode Gelap"}>
-                  {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-                </button>
                 <span className="atap-navbar-login" onClick={() => navigate("/auth")}>Masuk</span>
                 <button className="atap-navbar-cta" onClick={() => navigate("/auth")}>Daftar Gratis</button>
               </>
             )}
           </div>
-          {isLoggedIn && (
-            <div className="atap-chat-btn-wrap atap-mobile-chat" onClick={() => navigate("/chat")} title="Chat">
-              <div className="atap-chat-btn"><MessageCircle size={16} /></div>
-              {unreadChat > 0 && <span className="atap-chat-badge">{unreadChat > 99 ? "99+" : unreadChat}</span>}
-            </div>
-          )}
         </nav>
 
         {/* HERO */}
@@ -656,25 +651,30 @@ export default function DashboardPage() {
         </div>
 
         {/* STATS */}
-        <div className="atap-stats-section">
-          <div className="atap-stats-grid">
-            {STATS.map(({ icon: Icon, label, value, color }) => (
-              <div key={label} className="atap-stat-box">
-                <div className="atap-stat-icon" style={{ background: `${color}15`, color }}>
-                  <Icon size={24} />
+        {STATS.length > 0 && (
+          <div className="atap-stats-section">
+            <div
+              className={`atap-stats-grid${STATS.length === 1 ? " is-single" : ""}`}
+              style={{ "--stat-cols": STATS.length }}
+            >
+              {STATS.map(({ icon: Icon, label, value, color, loadingKey }) => (
+                <div key={label} className="atap-stat-box">
+                  <div className="atap-stat-icon" style={{ background: `${color}15`, color }}>
+                    <Icon size={24} />
+                  </div>
+                  <div className="atap-stat-content">
+                    {loading && loadingKey === "listings" ? (
+                      <div className="atap-stat-value-loading" />
+                    ) : (
+                      <p className="atap-stat-value">{value}</p>
+                    )}
+                    <p className="atap-stat-label">{label}</p>
+                  </div>
                 </div>
-                <div className="atap-stat-content">
-                  {loading ? (
-                    <div className="atap-stat-value-loading" />
-                  ) : (
-                    <p className="atap-stat-value">{value}</p>
-                  )}
-                  <p className="atap-stat-label">{label}</p>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* LISTINGS + NEARBY */}
         <div className="atap-section">
@@ -790,7 +790,7 @@ export default function DashboardPage() {
         {/* MOBILE BOTTOM NAV */}
         <nav className="atap-bottom-nav">
           {(isLoggedIn ? MOBILE_NAV : GUEST_MOBILE).map(({ label, path, icon: Icon }) => {
-            const isActive = currentPath === path;
+            const isActive = isNavActive(path);
             const isProfil = path === "/profil";
             const isChat = path === "/chat";
             return (

@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
 import {
   Plus, LogOut, Building2, Home,
-  Zap, BarChart3, TrendingUp, User, ChevronRight,
-  BedDouble, Edit3, Eye, Trash2,
-  MessageSquare, Settings, ArrowUpRight, Calendar,
-  Menu, Search, CheckCheck, Check,
+  BarChart3, TrendingUp, User, ChevronRight,
+  BedDouble, Eye,
+  MessageSquare, Settings,
+  Menu,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useUnreadCount } from "../../hooks/useUnreadCount";
 import Sidebar, { NAV_ITEMS } from "../../components/owner/Sidebar";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
@@ -24,7 +23,6 @@ const STATUS_CONFIG = {
 const BOTTOM_NAV_ITEMS = [
   { id: "home",     icon: Home,         label: "Beranda",  path: "/owner/dashboard" },
   { id: "properti", icon: Building2,    label: "Properti", path: "/owner/properti"  },
-  { id: "pesan",    icon: MessageSquare,label: "Pesan",    path: null, badge: true   },
   { id: "akun",     icon: User,         label: "Profil",   path: "/owner/profil"    },
 ];
 
@@ -35,36 +33,16 @@ const MONTH_NAMES = [
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
-const GRADIENTS = [
-  "linear-gradient(135deg,#3B82F6,#22D3EE)",
-  "linear-gradient(135deg,#8B5CF6,#22D3EE)",
-  "linear-gradient(135deg,#10B981,#3B82F6)",
-  "linear-gradient(135deg,#F59E0B,#F97316)",
-  "linear-gradient(135deg,#EC4899,#FB7185)",
-];
-const avatarGradient = (id) =>
-  GRADIENTS[parseInt(id?.slice(-4) || "0", 16) % GRADIENTS.length];
-
-function formatTime(date) {
-  const now = new Date();
-  const diffDays = Math.floor((now - date) / 86_400_000);
-  if (diffDays === 0)
-    return date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
-  if (diffDays === 1) return "Kemarin";
-  if (diffDays < 7)  return date.toLocaleDateString("id-ID", { weekday: "short" });
-  return date.toLocaleDateString("id-ID", { day: "2-digit", month: "short" });
-}
-
 // ─── BOTTOM NAV ───────────────────────────────────────────────────────────────
 
-function BottomNav({ active, unreadCount, onNavClick }) {
+function BottomNav({ active, onNavClick }) {
   const navigate = useNavigate();
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-100 flex md:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      {BOTTOM_NAV_ITEMS.map(({ id, icon: Icon, label, path, badge }) => {
+      {BOTTOM_NAV_ITEMS.map(({ id, icon: Icon, label, path }) => {
         const isActive = active === id;
         return (
           <button
@@ -81,9 +59,6 @@ function BottomNav({ active, unreadCount, onNavClick }) {
             <div className="relative">
               <Icon size={21} strokeWidth={isActive ? 2.5 : 1.8}
                 className={isActive ? "text-blue-600" : "text-slate-400"} />
-              {badge && unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white" />
-              )}
             </div>
             <span className={`text-[10px] font-bold ${isActive ? "text-blue-600" : "text-slate-400"}`}>
               {label}
@@ -103,8 +78,6 @@ export default function DashboardOwnerPage() {
   const [summary,       setSummary]       = useState(null);
   const [summaryLoading,setSummaryLoading]= useState(true);
   const [summaryError,  setSummaryError]  = useState(null);
-  const [chats,         setChats]         = useState([]);
-  const [chatsLoading,  setChatsLoading]  = useState(true);
   const [activeNav,     setActiveNav]     = useState("home");
   const [sidebarOpen,   setSidebarOpen]   = useState(false);
   const navigate = useNavigate();
@@ -112,8 +85,6 @@ export default function DashboardOwnerPage() {
   const user     = JSON.parse(localStorage.getItem("user") || "{}");
   const token    = localStorage.getItem("token");
 
-  const { unreadCount } = useUnreadCount(token, user?.id);
-  
   const initials = user.name
     ? user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
     : "U";
@@ -151,46 +122,14 @@ export default function DashboardOwnerPage() {
     })();
   }, []);
 
-  // ── fetch chats ──────────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!token) return;
-    (async () => {
-      try {
-        const res  = await fetch(`${API}/chats`, { headers: { Authorization: `Bearer ${token}` } });
-        if (!res.ok) return;
-        const json = await res.json();
-        const raw  = Array.isArray(json.data) ? json.data : [];
-        setChats(raw.map((thread) => {
-          const lm = thread.lastMessage;
-          return {
-            id:          thread.id,
-            name:        thread.displayName || thread.student?.name || "Calon Penyewa",
-            kost:        thread.listing?.name || "-",
-            lastMessage: lm?.message || "Belum ada pesan",
-            time:        lm?.sentAt ? formatTime(new Date(lm.sentAt)) : "",
-            unread:      lm && !lm.readAt && lm.senderId !== user?.id ? 1 : 0,
-            isRead:      lm ? !!lm.readAt : true,
-          };
-        }));
-      } catch { }
-      finally { setChatsLoading(false); }
-    })();
-  }, [token, user?.id]);
-
   const handleLogout = () => {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
     navigate("/auth");
   };
 
-  // ── FIX: navigate ke owner chat route ────────────────────────────────────────
-  const handleOpenChat = (chatId) => {
-    navigate(`/owner/chat/${chatId}`);
-  };
-
   const totalActive  = summary?.activeListings ?? listings.filter((l) => l.status === "ACTIVE").length;
   const totalKamar   = listings.flatMap((l) => l.roomTypes || []).reduce((a, r) => a + (r.availableCount || 0), 0);
-  const totalUnread  = chats.reduce((acc, c) => acc + c.unread, 0);
   const now          = new Date();
   const bulanIni     = `${MONTH_NAMES[now.getMonth()]} ${now.getFullYear()}`;
   const pageTitle    = NAV_ITEMS.find((n) => n.id === activeNav)?.label ?? "";
@@ -218,7 +157,7 @@ export default function DashboardOwnerPage() {
               {[
                 { icon: Building2,    value: summary?.totalListings ?? "—",                        label: "Total listing"        },
                 { icon: Eye,          value: summary?.todayViews?.toLocaleString("id-ID") ?? "—",  label: "Tayangan hari ini"    },
-                { icon: MessageSquare,value: summary?.activeChats ?? totalUnread,                  label: "Chat aktif"           },
+                { icon: MessageSquare,value: summary?.activeChats ?? "—",                          label: "Chat aktif"           },
                 { icon: TrendingUp,   value: summary?.weeklyViews?.toLocaleString("id-ID") ?? "—", label: "Tayangan minggu ini"  },
                 { icon: BedDouble,    value: totalActive,                                          label: "Listing aktif"        },
                 { icon: User,         value: summary?.totalLeads?.toLocaleString("id-ID") ?? "—",  label: "Total leads"          },
@@ -237,12 +176,10 @@ export default function DashboardOwnerPage() {
       {/* Quick actions */}
       <div>
         <h3 className="text-slate-800 font-black text-sm mb-3">Aksi cepat</h3>
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           {[
-            { icon: Plus,      label: "Tambah kamar",       color: "bg-blue-50 text-blue-600",      action: () => navigate("/owner/create") },
-            { icon: Calendar,   label: "Atur jadwal survey",  color: "bg-sky-50 text-sky-600",         action: () => navigate("/owner/survey")     },
-{ icon: TrendingUp, label: "Tarik pendapatan",    color: "bg-emerald-50 text-emerald-600", action: () => navigate("/owner/pendapatan") },
-{ icon: Zap,        label: "Tingkatkan listing",  color: "bg-amber-50 text-amber-600",     action: () => navigate("/owner/promosi")    },
+            { icon: Plus,       label: "Tambah kamar",    color: "bg-blue-50 text-blue-600",      action: () => navigate("/owner/create") },
+            { icon: TrendingUp, label: "Tarik pendapatan", color: "bg-emerald-50 text-emerald-600", action: () => navigate("/owner/pendapatan") },
           ].map(({ icon: Icon, label, color, action }) => (
             <button key={label} onClick={action} className="flex flex-col items-center gap-2 active:scale-95 transition-transform">
               <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm ${color}`}>
@@ -269,59 +206,6 @@ export default function DashboardOwnerPage() {
           ))}
         </div>
       )}
-
-      {/* Messages preview */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h3 className="text-slate-800 font-black text-sm">Permintaan baru</h3>
-            <p className="text-[11px] text-slate-400">
-              {chatsLoading ? "Memuat..." : `${totalUnread} pesan belum dibaca`}
-            </p>
-          </div>
-          <button onClick={() => setActiveNav("pesan")} className="text-blue-600 font-black text-xs flex items-center gap-1">
-            Semua pesan <ChevronRight size={12} />
-          </button>
-        </div>
-
-        {chatsLoading ? (
-          <div className="space-y-2">
-            {[1,2,3].map(i => <div key={i} className="h-16 bg-white rounded-2xl border border-slate-100 animate-pulse" />)}
-          </div>
-        ) : chats.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-slate-100 p-6 text-center">
-            <MessageSquare size={20} className="text-slate-200 mx-auto mb-2" />
-            <p className="text-xs text-slate-400 font-semibold">Belum ada pesan masuk</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {chats.slice(0, 3).map((chat) => (
-              <button
-                key={chat.id}
-                onClick={() => handleOpenChat(chat.id)}  // ✅ FIX
-                className="w-full flex items-center gap-3 bg-white rounded-2xl border border-slate-100 px-4 py-3.5 active:scale-[0.98] transition-transform text-left shadow-sm hover:border-blue-100"
-              >
-                <div className="relative flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-sm"
-                  style={{ background: avatarGradient(chat.id) }}>
-                  {chat.name?.[0]?.toUpperCase() || "?"}
-                  {chat.unread > 0 && <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-white" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-0.5">
-                    <p className={`text-sm ${chat.unread > 0 ? "font-black text-slate-900" : "font-semibold text-slate-600"} truncate`}>
-                      {chat.name}
-                    </p>
-                    <span className="text-[10px] text-slate-400 ml-2 flex-shrink-0">{chat.time}</span>
-                  </div>
-                  <p className="text-[11px] text-blue-500 font-bold truncate mb-0.5">{chat.kost}</p>
-                  <p className="text-[11px] text-slate-400 truncate">{chat.lastMessage}</p>
-                </div>
-                {chat.unread > 0 && <div className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
 
       {/* Properti quick */}
       <div>
@@ -369,75 +253,6 @@ export default function DashboardOwnerPage() {
           </div>
         )}
       </div>
-    </div>
-  );
-
-  // ── renderPesan ──────────────────────────────────────────────────────────────
-  const renderPesan = () => (
-    <div className="space-y-3 max-w-2xl">
-      <div className="grid grid-cols-3 gap-3 mb-2">
-        {[
-          { label: "Belum dibaca", value: totalUnread,                              color: "text-blue-600 bg-blue-50"     },
-          { label: "Sudah dibaca", value: chats.filter(c => c.unread === 0).length, color: "text-amber-600 bg-amber-50"   },
-          { label: "Total",        value: chats.length,                             color: "text-emerald-600 bg-emerald-50"},
-        ].map((s) => (
-          <div key={s.label} className={`rounded-2xl px-3 py-3 text-center ${s.color}`}>
-            <p className="text-xl font-black">{s.value}</p>
-            <p className="text-[10px] font-semibold opacity-70">{s.label}</p>
-          </div>
-        ))}
-      </div>
-
-      {chatsLoading && (
-        <div className="space-y-2">
-          {[1,2,3,4].map(i => <div key={i} className="h-20 bg-white rounded-2xl border border-slate-100 animate-pulse" />)}
-        </div>
-      )}
-
-      {!chatsLoading && chats.length === 0 && (
-        <div className="bg-white rounded-2xl border border-slate-100 p-10 text-center">
-          <MessageSquare size={24} className="text-slate-200 mx-auto mb-2" />
-          <p className="text-sm font-black text-slate-500">Belum ada pesan masuk</p>
-          <p className="text-xs text-slate-400 mt-1">Pesan dari calon penyewa akan muncul di sini</p>
-        </div>
-      )}
-
-      {!chatsLoading && chats.map((chat) => (
-        <button
-          key={chat.id}
-          onClick={() => handleOpenChat(chat.id)}  // ✅ FIX
-          className="w-full flex items-center gap-3 bg-white rounded-2xl border border-slate-100 px-4 py-4 active:scale-[0.98] transition-transform text-left shadow-sm hover:border-blue-100"
-        >
-          <div className="relative flex-shrink-0">
-            <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-white font-black text-sm"
-              style={{ background: avatarGradient(chat.id) }}>
-              {chat.name?.[0]?.toUpperCase() || "?"}
-            </div>
-            {chat.unread > 0 && <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-500 border-2 border-white" />}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between mb-0.5">
-              <p className={`text-sm ${chat.unread > 0 ? "font-black text-slate-900" : "font-semibold text-slate-600"} truncate`}>
-                {chat.name}
-              </p>
-              <span className="text-[10px] text-slate-400 ml-2 flex-shrink-0">{chat.time}</span>
-            </div>
-            <p className="text-[11px] text-blue-500 font-bold truncate mb-0.5">{chat.kost}</p>
-            <div className="flex items-center justify-between gap-2">
-              <p className={`text-[11px] truncate flex-1 ${chat.unread > 0 ? "text-slate-700 font-medium" : "text-slate-400"}`}>
-                {chat.lastMessage}
-              </p>
-              <div className="flex-shrink-0">
-                {chat.unread > 0
-                  ? <div className="w-2 h-2 rounded-full bg-red-500" />
-                  : chat.isRead
-                    ? <CheckCheck size={13} className="text-blue-400" />
-                    : <Check size={13} className="text-slate-300" />}
-              </div>
-            </div>
-          </div>
-        </button>
-      ))}
     </div>
   );
 
@@ -526,7 +341,6 @@ export default function DashboardOwnerPage() {
       {[
         { icon: User,      label: "Edit Profil",       sub: user.name || "-",                               action: () => navigate("/owner/profil") },
         { icon: Building2, label: "Properti Saya",     sub: `${summary?.totalListings ?? listings.length} listing`, action: () => navigate("/owner/properti") },
-        { icon: Zap,       label: "Fitur Promosi",     sub: "Upgrade paket kamu",                           action: () => navigate("/owner/promosi") },
         { icon: BarChart3, label: "Laporan Statistik", sub: "Lihat performa listing",                       action: () => navigate("/owner/statistik") },
         { icon: Settings,  label: "Pengaturan",        sub: "Notifikasi & preferensi",                      action: () => {} },
       ].map(({ icon: Icon, label, sub, action }) => (
@@ -583,7 +397,6 @@ export default function DashboardOwnerPage() {
 
         <main className="flex-1 px-4 sm:px-6 py-5 sm:py-6 overflow-y-auto pb-24 md:pb-6">
           {activeNav === "home"      && renderHome()}
-          {activeNav === "pesan"     && renderPesan()}
           {activeNav === "statistik" && renderStatistik()}
           {activeNav === "akun"      && renderAkun()}
         </main>
@@ -591,8 +404,7 @@ export default function DashboardOwnerPage() {
 
       <BottomNav
         active={activeNav}
-        unreadCount={totalUnread}
-        onNavClick={setActiveNav}  // ✅ FIX: bottom nav pesan/akun bisa switch tab
+        onNavClick={setActiveNav}
       />
     </div>
   );

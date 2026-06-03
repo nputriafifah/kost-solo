@@ -5,10 +5,11 @@ import "leaflet/dist/leaflet.css";
 import {
   Search, Navigation2, X, SlidersHorizontal,
   Loader2, User, Settings, LogOut, Heart, MessageCircle, Map, Home,
-  MapPin, Star, ChevronRight, Moon, Sun,
+  MapPin, Star, ChevronRight,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { formatPublicLocation, obfuscateCoordinates } from "../../utils/publicLocation";
+import { createPriceIcon } from "../../utils/mapPriceIcon";
 
 // Fix Leaflet default icon
 delete L.Icon.Default.prototype._getIconUrl;
@@ -21,92 +22,16 @@ L.Icon.Default.mergeOptions({
 const BASE_URL = "http://localhost:3000";
 const SOLO_CENTER = [-7.5755, 110.8243];
 
-const formatPrice = (price) => {
-  if (!price) return "—";
-  if (price >= 1_000_000) return `${(price / 1_000_000).toFixed(1).replace(".0", "")}jt`;
-  return `${Math.round(price / 1_000)}rb`;
-};
-
 const NAV_ITEMS = [
   { label: "Home", path: "/", icon: Home, desktop: true, mobile: true, guestMobile: true },
   { label: "Search", path: "/search", icon: Search, desktop: true, mobile: true, guestMobile: true },
-  { label: "Peta", path: "/map", icon: Map, desktop: true, mobile: true, guestMobile: true },
-  { label: "Favorit", path: "/like", icon: Heart, desktop: true, mobile: true, guestMobile: false },
-  { label: "Chat", path: "/chat", icon: MessageCircle, desktop: false, mobile: true, guestMobile: false },
+  { label: "My List", path: "/like", icon: Heart, desktop: true, mobile: true, guestMobile: false },
   { label: "Profil", path: "/profil", icon: User, desktop: false, mobile: true, guestMobile: false },
 ];
 
 const DESKTOP_LINKS = NAV_ITEMS.filter((n) => n.desktop);
 const MOBILE_NAV = NAV_ITEMS.filter((n) => n.mobile);
 const GUEST_MOBILE = NAV_ITEMS.filter((n) => n.guestMobile);
-
-/* ─── Custom Price Marker ───────────────────────────────────────────────── */
-function createPriceIcon(price, active = false) {
-  const label = `Rp ${formatPrice(price)}`;
-  const bg = active ? "#2563EB" : "#ffffff";
-  const color = active ? "#ffffff" : "#1A1A1A";
-  const border = active ? "#1D4ED8" : "#CBD5E1";
-  const shadow = active
-    ? "0 4px 18px rgba(37,99,235,.55)"
-    : "0 2px 10px rgba(0,0,0,.20)";
-  const tip = active ? "#2563EB" : "#ffffff";
-  const tipBorder = active ? "#1D4ED8" : "#CBD5E1";
-
-  return L.divIcon({
-    className: "",
-    html: `
-      <div style="
-        position:relative;
-        display:inline-flex;
-        align-items:center;
-        justify-content:center;
-        background:${bg};
-        color:${color};
-        padding:5px 12px;
-        border-radius:999px;
-        font-size:12px;
-        font-weight:800;
-        font-family:system-ui,-apple-system,'Segoe UI',sans-serif;
-        white-space:nowrap;
-        cursor:pointer;
-        box-shadow:${shadow};
-        border:2px solid ${border};
-        line-height:1.2;
-        user-select:none;
-        letter-spacing:-0.2px;
-      ">
-        ${label}
-        <span style="
-          position:absolute;
-          bottom:-7px;
-          left:50%;
-          transform:translateX(-50%);
-          width:0;
-          height:0;
-          border-left:6px solid transparent;
-          border-right:6px solid transparent;
-          border-top:7px solid ${border};
-          display:block;
-        "></span>
-        <span style="
-          position:absolute;
-          bottom:-5px;
-          left:50%;
-          transform:translateX(-50%);
-          width:0;
-          height:0;
-          border-left:5px solid transparent;
-          border-right:5px solid transparent;
-          border-top:6px solid ${tip};
-          display:block;
-        "></span>
-      </div>
-    `,
-    iconSize: [90, 32],
-    iconAnchor: [45, 39],
-    popupAnchor: [0, -42],
-  });
-}
 
 /* ─── Fly to user location ──────────────────────────────────────────────── */
 function FlyToLocation({ coords }) {
@@ -136,7 +61,6 @@ export default function MapPage() {
   const [showMenu, setShowMenu] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [unreadChat, setUnreadChat] = useState(0);
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem("atap_theme") === "dark");
 
   const user = JSON.parse(localStorage.getItem("user") || "null");
   const isLoggedIn = !!user;
@@ -145,17 +69,6 @@ export default function MapPage() {
   const initials = isLoggedIn
     ? userName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
     : "GU";
-
-  /* ── Dark mode sync ── */
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark-mode");
-      localStorage.setItem("atap_theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark-mode");
-      localStorage.setItem("atap_theme", "light");
-    }
-  }, [darkMode]);
 
   /* ── Notif ── */
   useEffect(() => {
@@ -337,28 +250,27 @@ export default function MapPage() {
   .dark-mode .mp-navbar-dropdown button.danger:hover { background:rgba(239,68,68,0.15); }
 
   /* ── MAP AREA ── */
-  .mp-map-area { flex:1; position:relative; overflow:hidden; }
+  .mp-main { flex:1; min-height:0; display:flex; flex-direction:column; }
+  @media (min-width: 900px) {
+    .mp-main { flex-direction:row; }
+    .mp-sidebar { width:400px; max-width:42%; flex-shrink:0; border-right:1px solid var(--border-color); overflow-y:auto; background:var(--bg-secondary); display:flex; flex-direction:column; }
+    .mp-sidebar-list { padding:12px; display:flex; flex-direction:column; gap:10px; }
+    .mp-sidebar-item { display:flex; gap:12px; padding:10px; border-radius:14px; border:1px solid var(--border-color); background:var(--bg-secondary); cursor:pointer; transition:border-color .15s, box-shadow .15s; }
+    .mp-sidebar-item:hover, .mp-sidebar-item.active { border-color:#2563EB; box-shadow:0 0 0 1px #BFDBFE; }
+    .mp-sidebar-item img, .mp-sidebar-ph { width:72px; height:72px; border-radius:10px; object-fit:cover; flex-shrink:0; background:#EFF6FF; display:flex; align-items:center; justify-content:center; }
+    .mp-sidebar-body { flex:1; min-width:0; }
+    .mp-sidebar-name { font-size:14px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .mp-sidebar-addr { font-size:11px; color:var(--text-secondary); margin-top:2px; }
+    .mp-sidebar-price { font-size:14px; font-weight:800; color:#2563EB; margin-top:6px; }
+    .mp-map-area { flex:1; }
+    .mp-card { display:none; }
+  }
+  @media (max-width: 899px) {
+    .mp-sidebar { display:none; }
+  }
+
+  .mp-map-area { flex:1; position:relative; overflow:hidden; min-height:0; }
   .mp-map-area .leaflet-container { width:100%; height:100%; }
-  .mp-map-blur-mask {
-    position: absolute;
-    inset: 0;
-    z-index: 250;
-    pointer-events: none;
-    backdrop-filter: blur(10px) saturate(0.9);
-    -webkit-backdrop-filter: blur(10px) saturate(0.9);
-    background:
-      radial-gradient(circle at 18% 22%, rgba(59,130,246,.20), transparent 34%),
-      radial-gradient(circle at 82% 34%, rgba(14,165,233,.18), transparent 30%),
-      radial-gradient(circle at 42% 82%, rgba(96,165,250,.22), transparent 36%),
-      rgba(255,255,255,.12);
-  }
-  .dark-mode .mp-map-blur-mask {
-    background:
-      radial-gradient(circle at 18% 22%, rgba(96,165,250,.18), transparent 34%),
-      radial-gradient(circle at 82% 34%, rgba(14,165,233,.15), transparent 30%),
-      radial-gradient(circle at 42% 82%, rgba(59,130,246,.20), transparent 36%),
-      rgba(15,23,42,.22);
-  }
 
   /* ── FLOATING UI ── */
   .mp-search-bar { position:absolute; top:16px; left:16px; right:16px; z-index:400; display:flex; gap:10px; }
@@ -459,13 +371,6 @@ export default function MapPage() {
                   </span>
                 ))}
                 <div className="mp-navbar-divider" />
-                <div className="mp-chat-btn-wrap" onClick={() => navigate("/chat")} title="Chat">
-                  <div className="mp-chat-btn"><MessageCircle size={16} /></div>
-                  {unreadChat > 0 && <span className="mp-chat-badge">{unreadChat > 99 ? "99+" : unreadChat}</span>}
-                </div>
-                <button className="mp-theme-toggle" onClick={() => setDarkMode(!darkMode)} title={darkMode ? "Mode Terang" : "Mode Gelap"}>
-                  {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-                </button>
                 <div className="mp-dropdown-wrap" ref={menuRef}>
                   <div className="mp-avatar-wrap">
                     <div className="mp-navbar-avatar" onClick={() => setShowMenu((p) => !p)} title={userName}>{initials}</div>
@@ -494,24 +399,47 @@ export default function MapPage() {
               <>
                 <span className="mp-navbar-link" onClick={() => navigate("/")}>Home</span>
                 <span className="mp-navbar-link" onClick={() => navigate("/search")}>Search</span>
-                <span className="mp-navbar-link" onClick={() => navigate("/map")}>Peta</span>
                 <div className="mp-navbar-divider" />
-                <button className="mp-theme-toggle" onClick={() => setDarkMode(!darkMode)} title={darkMode ? "Mode Terang" : "Mode Gelap"}>
-                  {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-                </button>
                 <span className="mp-navbar-login" onClick={() => navigate("/auth")}>Masuk</span>
                 <button className="mp-navbar-cta" onClick={() => navigate("/auth")}>Daftar Gratis</button>
               </>
             )}
           </div>
 
-          {isLoggedIn && (
-            <div className="mp-chat-btn-wrap mp-mobile-chat" onClick={() => navigate("/chat")}>
-              <div className="mp-chat-btn"><MessageCircle size={16} /></div>
-              {unreadChat > 0 && <span className="mp-chat-badge">{unreadChat > 99 ? "99+" : unreadChat}</span>}
-            </div>
-          )}
         </nav>
+
+        <div className="mp-main">
+        {kosData.length > 0 && (
+          <aside className="mp-sidebar">
+            <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--border-color)", fontSize: 13, fontWeight: 600, color: "var(--text-secondary)" }}>
+              <strong style={{ color: "#2563EB" }}>{kosData.length}</strong> kost di peta
+            </div>
+            <div className="mp-sidebar-list">
+              {kosData.map((kost) => (
+                <div
+                  key={kost.id}
+                  className={`mp-sidebar-item${selectedKost?.id === kost.id ? " active" : ""}`}
+                  onMouseEnter={() => setSelectedKost(kost)}
+                  onClick={() => navigate(`/detail/${kost.id}`)}
+                >
+                  {kost.image ? (
+                    <img src={kost.image} alt="" />
+                  ) : (
+                    <div className="mp-sidebar-ph"><Home size={22} color="#93C5FD" /></div>
+                  )}
+                  <div className="mp-sidebar-body">
+                    <p className="mp-sidebar-name">{kost.name}</p>
+                    <p className="mp-sidebar-addr">{kost.address}</p>
+                    <p className="mp-sidebar-price">
+                      {kost.price ? `Rp ${Number(kost.price).toLocaleString("id-ID")}` : "—"}
+                      <span style={{ fontSize: 11, fontWeight: 500, color: "var(--text-secondary)" }}> /bln</span>
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </aside>
+        )}
 
         {/* ── MAP AREA ── */}
         <div className="mp-map-area">
@@ -542,7 +470,6 @@ export default function MapPage() {
               />
             ))}
           </MapContainer>
-          <div className="mp-map-blur-mask" />
 
           {/* Search bar */}
           <div className="mp-search-bar">
@@ -647,6 +574,7 @@ export default function MapPage() {
               </div>
             </div>
           )}
+        </div>
         </div>
 
         {/* ── BOTTOM NAV ── */}

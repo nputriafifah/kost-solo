@@ -1,76 +1,23 @@
 // pages/user/SearchPage.jsx
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
-import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import {
   Search, Clock, TrendingUp, X, MapPin, Home,
-  ChevronLeft, ChevronDown, Check, Users, ArrowUpDown,
-  List, Map as MapIcon, Crown,
+  ChevronDown, Check, Users, ArrowUpDown,
+  List, Map as MapIcon,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getApiBase, resolveMediaUrl } from "../../config/apiBase";
-import { formatPublicLocation } from "../../utils/publicLocation";
+import { buildAreaSearchQuery, formatPublicLocation, obfuscateCoordinates } from "../../utils/publicLocation";
 import { GENDER_OPTIONS } from "../../constants/listing";
+import { KABUPATEN_OPTIONS, getKecamatanOptions } from "../../constants/soloRegions";
+import { CAMPUS_PRESETS, QUICK_KECAMATAN } from "../../constants/searchLocations";
+import SearchSplitMap from "../../components/user/SearchSplitMap";
+import UserNavbar, { USER_NAVBAR_CSS } from "../../components/user/UserNavbar";
 
 const API = getApiBase();
 const GENDER_FILTERS = GENDER_OPTIONS;
-
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-});
-
-function createPriceIcon(price, active = false) {
-  const label = price >= 1_000_000
-    ? `Rp ${(price / 1_000_000).toFixed(1).replace(".0", "")}jt`
-    : `Rp ${Math.round(price / 1_000)}rb`;
-  const bg = active ? "#4F46E5" : "#ffffff";
-  const color = active ? "#ffffff" : "#1A1A1A";
-  const border = active ? "#4338CA" : "#CBD5E1";
-  const shadow = active ? "0 4px 18px rgba(79,70,229,.55)" : "0 2px 10px rgba(0,0,0,.20)";
-  const tip = active ? "#4F46E5" : "#ffffff";
-  return L.divIcon({
-    className: "",
-    html: `<div style="position:relative;display:inline-flex;align-items:center;justify-content:center;background:${bg};color:${color};padding:5px 12px;border-radius:999px;font-size:12px;font-weight:800;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;white-space:nowrap;cursor:pointer;box-shadow:${shadow};border:2px solid ${border};line-height:1.2;user-select:none;letter-spacing:-0.2px;">${label}<span style="position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:7px solid ${border};display:block;"></span><span style="position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid ${tip};display:block;"></span></div>`,
-    iconSize: [90, 32], iconAnchor: [45, 39], popupAnchor: [0, -42],
-  });
-}
-
-function FitBounds({ results }) {
-  const map = useMap();
-  useEffect(() => {
-    const pts = results.filter((r) => r.latitude && r.longitude);
-    if (!pts.length) return;
-    if (pts.length === 1) map.setView([pts[0].latitude, pts[0].longitude], 15, { animate: true });
-    else map.fitBounds(L.latLngBounds(pts.map((r) => [r.latitude, r.longitude])), { padding: [48, 48], animate: true });
-  }, [results, map]);
-  return null;
-}
-
-const SOLO_CENTER = [-7.5755, 110.8243];
-
-function LeafletMap({ results, activePinId, onPinClick }) {
-  return (
-    <div style={{ position: "relative", width: "100%", height: 240, flexShrink: 0 }}>
-      <MapContainer center={SOLO_CENTER} zoom={13} style={{ width: "100%", height: "100%" }} zoomControl={false}>
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-          subdomains="abcd"
-          maxZoom={19}
-        />
-        <FitBounds results={results} />
-        {results.map((item) => item.latitude && item.longitude ? (
-          <Marker key={item.id} position={[item.latitude, item.longitude]} icon={createPriceIcon(item.price, activePinId === item.id)} eventHandlers={{ click: () => onPinClick(item.id) }} />
-        ) : null)}
-      </MapContainer>
-    </div>
-  );
-}
 
 function DropdownPortal({ anchorRef, children, onClose }) {
   const [pos, setPos] = useState({ top: 0, left: 0 });
@@ -89,7 +36,7 @@ function DropdownPortal({ anchorRef, children, onClose }) {
 }
 
 const HISTORY_KEY = "atap_search_history";
-const TRENDS = ["Kost dekat UNS", "Kost Laweyan murah", "Kost AC wifi", "Kost Nusukan putri"];
+const TRENDS = ["Kost dekat UNS", "Kost dekat UMS", "Kost Laweyan murah", "Kost Kartasura"];
 const SORT_OPTIONS = [
   { value: "relevance", label: "Rekomendasi" },
   { value: "lowest_price", label: "Harga termurah" },
@@ -98,6 +45,10 @@ const SORT_OPTIONS = [
 ];
 
 function mapSearchResult(item) {
+  const obf =
+    item.latitude != null && item.longitude != null
+      ? obfuscateCoordinates(item.latitude, item.longitude, String(item.id))
+      : null;
   return {
     id: item.id,
     name: item.name,
@@ -105,14 +56,13 @@ function mapSearchResult(item) {
     location: formatPublicLocation(item.address ?? ""),
     gender: (item.genderType || "").toLowerCase(),
     isPremium: Boolean(item.isPremium),
-    latitude: item.latitude ?? null,
-    longitude: item.longitude ?? null,
+    latitude: obf?.lat ?? item.latitude ?? null,
+    longitude: obf?.lng ?? item.longitude ?? null,
     distanceKm: item.distanceKm ?? null,
     image: resolveMediaUrl(item.thumbnailUrl),
     facilities: Array.isArray(item.facilities) ? item.facilities : [],
   };
 }
-const UNS_COORDS = { lat: -7.5583, lng: 110.8572 };
 const PRICE_PRESETS = [{ label: "< Rp 1jt", min: "", max: "1000000" }, { label: "Rp 1–2jt", min: "1000000", max: "2000000" }, { label: "> Rp 2jt", min: "2000000", max: "" }];
 
 const css = `
@@ -120,7 +70,6 @@ const css = `
 
 *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
-/* ── DARK MODE VARIABLES ── */
 :root {
   --bg-primary: #F8FAFC;
   --bg-secondary: #FFFFFF;
@@ -130,15 +79,6 @@ const css = `
   --border-color: #E2E8F0;
   --card-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
-.dark-mode {
-  --bg-primary: #0F172A;
-  --bg-secondary: #1E293B;
-  --bg-tertiary: #334155;
-  --text-primary: #F8FAFC;
-  --text-secondary: #CBD5E1;
-  --border-color: #334155;
-  --card-shadow: 0 1px 3px rgba(0,0,0,0.3);
-}
 
 body { font-family:'DM Sans',sans-serif; color:var(--text-primary); background:var(--bg-primary); }
 
@@ -146,13 +86,11 @@ body { font-family:'DM Sans',sans-serif; color:var(--text-primary); background:v
 .leaflet-marker-pane { overflow:visible !important; }
 .leaflet-div-icon    { background:transparent !important; border:none !important; overflow:visible !important; }
 
-.sp-root { min-height:100vh; background:var(--bg-primary); display:flex; flex-direction:column; transition:background 0.3s; }
+.sp-root { min-height:100vh; height:100vh; background:var(--bg-primary); display:flex; flex-direction:column; transition:background 0.3s; overflow:hidden; }
 
-/* ── HEADER ── */
-.sp-header { position:sticky; top:0; z-index:200; background:var(--bg-secondary); border-bottom:1px solid var(--border-color); transition:background 0.3s, border-color 0.3s; }
-.sp-header-top { display:flex; align-items:center; gap:10px; padding:12px 16px; }
-.sp-back-btn { width:36px; height:36px; border:none; background:none; display:flex; align-items:center; justify-content:center; cursor:pointer; border-radius:50%; color:var(--text-primary); flex-shrink:0; transition:background .15s; }
-.sp-back-btn:hover { background:var(--bg-tertiary); }
+/* ── TOOLBAR (search + filter) ── */
+.sp-toolbar { flex-shrink:0; z-index:50; background:var(--bg-secondary); border-bottom:1px solid var(--border-color); transition:background 0.3s, border-color 0.3s; }
+.sp-toolbar-top { display:flex; align-items:center; gap:10px; padding:12px 16px; }
 
 .sp-search-bar { flex:1; display:flex; align-items:center; gap:10px; height:44px; border:1.5px solid var(--border-color); border-radius:10px; padding:0 14px; background:var(--bg-tertiary); transition:border-color .15s, background .15s; }
 .sp-search-bar:focus-within { border-color:#4F46E5; background:var(--bg-secondary); }
@@ -169,8 +107,6 @@ body { font-family:'DM Sans',sans-serif; color:var(--text-primary); background:v
 .sp-chip:hover { border-color:var(--text-secondary); }
 .sp-chip.active   { border-color:var(--text-primary); background:var(--text-primary); color:var(--bg-secondary); }
 .sp-chip.filtered { border-color:#4F46E5; color:#4F46E5; background:#EEF2FF; }
-.dark-mode .sp-chip.filtered { background:rgba(79,70,229,0.15); }
-
 /* ── DROPDOWN ── */
 .sp-dropdown { min-width:260px; background:var(--bg-secondary); border-radius:14px; border:1px solid var(--border-color); box-shadow:0 8px 32px rgba(0,0,0,.15); overflow:hidden; animation:dropIn .15s ease; }
 @keyframes dropIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
@@ -186,6 +122,12 @@ body { font-family:'DM Sans',sans-serif; color:var(--text-primary); background:v
 .sp-price-input { flex:1; height:40px; border-radius:8px; border:1.5px solid var(--border-color); background:var(--bg-tertiary); padding:0 12px; outline:none; font-size:13px; font-family:'Plus Jakarta Sans',sans-serif; color:var(--text-primary); transition:border-color .15s, background .15s; }
 .sp-price-input:focus { background:var(--bg-secondary); border-color:#4F46E5; }
 .sp-price-input::placeholder { color:var(--text-secondary); }
+.sp-area-field { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+.sp-area-label { font-size:11px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.06em; }
+.sp-area-select { width:100%; height:40px; border-radius:8px; border:1.5px solid var(--border-color); background:var(--bg-tertiary); padding:0 12px; outline:none; font-size:13px; font-family:'DM Sans',sans-serif; color:var(--text-primary); }
+.sp-area-select:disabled { opacity:0.5; cursor:not-allowed; }
+.sp-area-quick { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+.sp-area-quick .sp-chip { height:30px; padding:0 12px; font-size:11px; }
 .sp-sort-list { display:flex; flex-direction:column; }
 .sp-sort-item { height:46px; border:none; background:none; display:flex; align-items:center; justify-content:space-between; padding:0 4px; cursor:pointer; font-size:14px; font-weight:500; color:var(--text-primary); font-family:'Plus Jakarta Sans',sans-serif; border-bottom:1px solid var(--border-color); transition:color .15s; }
 .sp-sort-item:last-child { border-bottom:none; }
@@ -206,14 +148,45 @@ body { font-family:'DM Sans',sans-serif; color:var(--text-primary); background:v
 .sp-suggest-del { border:none; background:none; cursor:pointer; color:var(--text-secondary); display:flex; padding:4px; transition:color .12s; }
 .sp-suggest-del:hover { color:var(--text-primary); }
 
-/* ── MAP WRAPPER ── */
-.sp-map-wrapper { position:relative; flex-shrink:0; }
-.sp-view-toggle { position:absolute; bottom:12px; right:12px; display:flex; background:#1A1A1A; border-radius:999px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,.25); }
+/* ── SPLIT LAYOUT (desktop — mirip Airbnb) ── */
+.sp-body { flex:1; min-height:0; display:flex; flex-direction:column; }
+.sp-list-panel { flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column; }
+.sp-map-panel { display:none; }
+
+.sp-map-wrapper { position:relative; flex-shrink:0; height:220px; }
+.sp-view-toggle { position:absolute; bottom:12px; right:12px; z-index:500; display:flex; background:#1A1A1A; border-radius:999px; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,.25); }
 .sp-view-btn { display:flex; align-items:center; gap:6px; padding:8px 14px; border:none; background:transparent; cursor:pointer; font-size:12px; font-weight:700; color:#fff; opacity:.55; font-family:'Plus Jakarta Sans',sans-serif; transition:all .15s; }
 .sp-view-btn.active { opacity:1; background:rgba(255,255,255,.15); }
 
+.search-split-map .leaflet-container { width:100% !important; height:100% !important; font-family:'DM Sans',sans-serif; }
+.search-split-map .leaflet-control-zoom { border:none !important; box-shadow:0 2px 8px rgba(0,0,0,.15) !important; border-radius:10px !important; overflow:hidden; }
+.search-split-map .leaflet-control-zoom a { width:36px !important; height:36px !important; line-height:36px !important; font-size:18px !important; color:#222 !important; border-bottom:1px solid #eee !important; }
+.search-split-map .leaflet-control-zoom a:last-child { border-bottom:none !important; }
+
+@media (min-width: 900px) {
+  .sp-body.has-split { flex-direction:row; }
+  .sp-list-panel { width:52%; max-width:760px; flex-shrink:0; border-right:1px solid var(--border-color); }
+  .sp-map-panel {
+    display:block;
+    flex:1;
+    min-width:0;
+    position:relative;
+    height:100%;
+    background:#e8edf2;
+  }
+  .sp-mobile-map { display:none !important; }
+  .sp-content { padding:20px 24px 32px; }
+  .sp-card { border-radius:16px; }
+  .sp-card-inner { flex-direction:row; padding:14px; gap:16px; align-items:stretch; }
+  .sp-card-img, .sp-card-img-placeholder { width:280px; height:200px; border-radius:12px; }
+  .sp-card-img-wrap { flex-shrink:0; }
+  .sp-card-name { font-size:16px; -webkit-line-clamp:1; }
+  .sp-card-price { font-size:18px; }
+  .sp-mobile-view-toggle { display:none !important; }
+}
+
 /* ── CONTENT ── */
-.sp-content { flex:1; padding:14px 16px; display:flex; flex-direction:column; gap:10px; }
+.sp-content { flex:1; padding:14px 16px 24px; display:flex; flex-direction:column; gap:10px; }
 .sp-result-header { display:flex; align-items:center; justify-content:space-between; }
 .sp-result-count { font-size:13px; color:var(--text-secondary); font-weight:500; }
 .sp-result-count strong { color:var(--text-primary); }
@@ -235,7 +208,6 @@ body { font-family:'DM Sans',sans-serif; color:var(--text-primary); background:v
 .sp-card { background:var(--bg-secondary); border-radius:14px; border:1px solid var(--border-color); overflow:hidden; cursor:pointer; transition:box-shadow .15s, transform .15s, border-color .15s; }
 .sp-card:hover { box-shadow:0 6px 24px rgba(79,70,229,.1); transform:translateY(-1px); }
 .sp-card.highlighted { border-color:#4F46E5; box-shadow:0 0 0 2px #EEF2FF; }
-.dark-mode .sp-card.highlighted { box-shadow:0 0 0 2px rgba(79,70,229,.3); }
 .sp-card-inner { display:flex; gap:12px; padding:12px; }
 .sp-card-img-wrap { position:relative; flex-shrink:0; }
 .sp-card-img { width:108px; height:108px; border-radius:10px; object-fit:cover; }
@@ -282,10 +254,14 @@ export default function SearchPage() {
   const [maxPrice, setMaxPrice] = useState("");
   const [sort, setSort] = useState("relevance");
   const [pricePreset, setPricePreset] = useState(null);
+  const [campusPreset, setCampusPreset] = useState(null);
+  const [areaKabupaten, setAreaKabupaten] = useState("");
+  const [areaKecamatan, setAreaKecamatan] = useState("");
 
   const genderAnchorRef = useRef(null);
   const priceAnchorRef = useRef(null);
   const sortAnchorRef = useRef(null);
+  const areaAnchorRef = useRef(null);
 
   const minPriceRef = useRef(minPrice);
   const maxPriceRef = useRef(maxPrice);
@@ -336,6 +312,30 @@ export default function SearchPage() {
     doSearch();
   };
 
+  const clearLocationFilters = () => {
+    setCampusPreset(null);
+    setAreaKabupaten("");
+    setAreaKecamatan("");
+  };
+
+  const applyCampusFilter = (preset) => {
+    clearLocationFilters();
+    setCampusPreset(preset.id);
+    setQuery("");
+    queryRef.current = "";
+    doSearch("", { lat: preset.lat, lng: preset.lng, radiusKm: preset.radiusKm });
+  };
+
+  const applyAreaFilter = (kabupaten, kecamatan) => {
+    setCampusPreset(null);
+    setAreaKabupaten(kabupaten);
+    setAreaKecamatan(kecamatan);
+    const qArea = buildAreaSearchQuery(kecamatan, kabupaten);
+    setQuery(qArea);
+    queryRef.current = qArea;
+    doSearch(qArea, null);
+  };
+
   const doSearch = useCallback(async (customQuery, customCoords) => {
     const q = (customQuery ?? queryRef.current).trim();
     if (q) saveHistory(q);
@@ -359,6 +359,7 @@ export default function SearchPage() {
   const handleInput = (e) => {
     const val = e.target.value;
     setQuery(val);
+    clearLocationFilters();
     if (!val.trim()) { setResults([]); setSearched(false); return; }
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => doSearch(val), 400);
@@ -370,16 +371,25 @@ export default function SearchPage() {
   const priceFiltered = minPrice || maxPrice;
   const activeSortLabel = SORT_OPTIONS.find((o) => o.value === sort)?.label;
   const hasResults = searched && !loading && results.length > 0;
+  const areaFiltered = Boolean(areaKabupaten || areaKecamatan);
+  const areaChipLabel = areaKecamatan
+    ? areaKecamatan
+    : areaKabupaten
+      ? areaKabupaten.replace(/^Kab\.\s*/i, "").replace(/^Kota\s*/i, "Kota ")
+      : "Wilayah";
+  const kecamatanOptions = getKecamatanOptions(areaKabupaten);
+  const isQuickKecamatanActive = (item) =>
+    areaKabupaten === item.kabupaten && areaKecamatan === item.kecamatan && !campusPreset;
 
   return (
     <>
+      <style>{USER_NAVBAR_CSS}</style>
       <style>{css}</style>
       <div className="sp-root">
+        <UserNavbar activePath="/search" />
 
-        {/* HEADER */}
-        <div className="sp-header">
-          <div className="sp-header-top">
-            <button className="sp-back-btn" onClick={() => navigate(-1)}><ChevronLeft size={20} /></button>
+        <div className="sp-toolbar">
+          <div className="sp-toolbar-top">
             <div className="sp-search-bar">
               <Search size={15} color="#4F46E5" style={{ flexShrink: 0 }} />
               <input
@@ -387,7 +397,7 @@ export default function SearchPage() {
                 onFocus={() => setFocused(true)}
                 onBlur={() => setTimeout(() => setFocused(false), 150)}
                 onKeyDown={(e) => e.key === "Enter" && doSearch()}
-                placeholder="Cari kos dekat UNS, Laweyan…"
+                placeholder="Cari kos, kecamatan, atau kabupaten…"
                 className="sp-search-input"
               />
               {query && (
@@ -398,7 +408,6 @@ export default function SearchPage() {
             </div>
           </div>
 
-          {/* FILTER CHIPS */}
           <div className="sp-filter-bar">
             <div className="sp-filter-row">
               <button className={`sp-chip${(selectedGenders.length > 0 || priceFiltered || sort !== "relevance") ? " filtered" : ""}`} style={{ gap: 6 }}>
@@ -423,9 +432,27 @@ export default function SearchPage() {
                   <ArrowUpDown size={13} />{activeSortLabel}<ChevronDown size={13} />
                 </button>
               </div>
-              <button className="sp-chip" onClick={() => { setQuery(""); doSearch("", { ...UNS_COORDS, radiusKm: 2 }); }}>
-                <MapPin size={12} /> Dekat UNS
-              </button>
+              {CAMPUS_PRESETS.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  className={`sp-chip${campusPreset === preset.id ? " filtered" : ""}`}
+                  onClick={() => applyCampusFilter(preset)}
+                >
+                  <MapPin size={12} /> {preset.label}
+                </button>
+              ))}
+              <div ref={areaAnchorRef}>
+                <button
+                  type="button"
+                  className={`sp-chip${activeDropdown === "area" ? " active" : areaFiltered ? " filtered" : ""}`}
+                  onClick={() => setActiveDropdown((p) => (p === "area" ? null : "area"))}
+                >
+                  <MapPin size={12} />
+                  {areaChipLabel}
+                  <ChevronDown size={13} />
+                </button>
+              </div>
             </div>
           </div>
 
@@ -480,9 +507,104 @@ export default function SearchPage() {
               </div>
             </DropdownPortal>
           )}
+          {activeDropdown === "area" && (
+            <DropdownPortal anchorRef={areaAnchorRef} onClose={() => setActiveDropdown(null)}>
+              <div className="sp-dropdown-body">
+                <p className="sp-dropdown-subtitle">Filter kabupaten / kecamatan</p>
+                <div className="sp-area-field" style={{ marginBottom: 8 }}>
+                  <span className="sp-area-label">Kecamatan populer</span>
+                  <div className="sp-area-quick">
+                    {QUICK_KECAMATAN.map((item) => (
+                      <button
+                        key={`${item.kabupaten}-${item.kecamatan}`}
+                        type="button"
+                        className={`sp-chip${isQuickKecamatanActive(item) ? " filtered" : ""}`}
+                        onClick={() => {
+                          setAreaKabupaten(item.kabupaten);
+                          setAreaKecamatan(item.kecamatan);
+                          setCampusPreset(null);
+                          applyAreaFilter(item.kabupaten, item.kecamatan);
+                          setActiveDropdown(null);
+                        }}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="sp-area-field">
+                  <span className="sp-area-label">Kabupaten / Kota</span>
+                  <select
+                    className="sp-area-select"
+                    value={areaKabupaten}
+                    onChange={(e) => {
+                      setAreaKabupaten(e.target.value);
+                      setAreaKecamatan("");
+                    }}
+                  >
+                    <option value="">Semua wilayah</option>
+                    {KABUPATEN_OPTIONS.map((kab) => (
+                      <option key={kab} value={kab}>{kab}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="sp-area-field">
+                  <span className="sp-area-label">Kecamatan</span>
+                  <select
+                    className="sp-area-select"
+                    value={areaKecamatan}
+                    disabled={!areaKabupaten || kecamatanOptions.length === 0}
+                    onChange={(e) => setAreaKecamatan(e.target.value)}
+                  >
+                    <option value="">
+                      {!areaKabupaten
+                        ? "Pilih kabupaten dulu"
+                        : kecamatanOptions.length === 0
+                          ? "Isi lewat kolom cari"
+                          : "Semua kecamatan"}
+                    </option>
+                    {kecamatanOptions.map((kec) => (
+                      <option key={kec} value={kec}>{kec}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="sp-dropdown-footer">
+                <button
+                  type="button"
+                  className="sp-dd-reset"
+                  onClick={() => {
+                    setAreaKabupaten("");
+                    setAreaKecamatan("");
+                    setCampusPreset(null);
+                    setQuery("");
+                    queryRef.current = "";
+                    setResults([]);
+                    setSearched(false);
+                    setActiveDropdown(null);
+                  }}
+                >
+                  Hapus
+                </button>
+                <button
+                  type="button"
+                  className="sp-dd-save"
+                  onClick={() => {
+                    if (!areaKabupaten && !areaKecamatan) {
+                      setActiveDropdown(null);
+                      return;
+                    }
+                    applyAreaFilter(areaKabupaten, areaKecamatan);
+                    setActiveDropdown(null);
+                  }}
+                >
+                  Terapkan
+                </button>
+              </div>
+            </DropdownPortal>
+          )}
         </div>
 
-        {/* SUGGESTIONS */}
         {focused && !query && (
           <div className="sp-suggestions">
             {history.length > 0 && (
@@ -507,47 +629,56 @@ export default function SearchPage() {
           </div>
         )}
 
-        {/* MAP */}
-        {hasResults && view === "map" && (
-          <div className="sp-map-wrapper">
-            <LeafletMap results={results} activePinId={activePinId} onPinClick={(id) => setActivePinId((prev) => prev === id ? null : id)} />
-            <div className="sp-view-toggle">
-              <button className={`sp-view-btn${view === "map" ? " active" : ""}`} onClick={() => setView("map")}><MapIcon size={13} /> Peta</button>
-              <button className={`sp-view-btn${view === "list" ? " active" : ""}`} onClick={() => setView("list")}><List size={13} /> Daftar</button>
-            </div>
-          </div>
-        )}
-
-        {/* RESULTS */}
-        <div className="sp-content">
-          {loading && (
-            <div className="sp-loading">
-              <span className="sp-loading-dot" /><span className="sp-loading-dot" /><span className="sp-loading-dot" />
-            </div>
-          )}
-          {searched && !loading && results.length === 0 && (
-            <div className="sp-empty"><Search size={36} color="var(--text-secondary)" /><p>Kost tidak ditemukan</p><small>Coba kata kunci atau filter lain</small></div>
-          )}
-          {hasResults && (
-            <div className="sp-result-header">
-              <p className="sp-result-count"><strong>{results.length}</strong> hunian ditemukan</p>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span className="sp-sort-label">{activeSortLabel}</span>
-                {view === "list" && (
-                  <div className="sp-view-toggle" style={{ position: "static", boxShadow: "none", background: "var(--bg-tertiary)", borderRadius: 999 }}>
-                    <button className={`sp-view-btn${view === "map" ? " active" : ""}`} onClick={() => setView("map")} style={{ color: "var(--text-secondary)", padding: "5px 10px" }}><MapIcon size={12} /> Peta</button>
-                    <button className={`sp-view-btn${view === "list" ? " active" : ""}`} onClick={() => setView("list")} style={{ color: "var(--text-secondary)", padding: "5px 10px" }}><List size={12} /> Daftar</button>
-                  </div>
-                )}
+        <div className={`sp-body${hasResults ? " has-split" : ""}`}>
+          <div className="sp-list-panel">
+            {/* Peta strip — mobile saja */}
+            {hasResults && view === "map" && (
+              <div className="sp-map-wrapper sp-mobile-map">
+                <SearchSplitMap
+                  results={results}
+                  activePinId={activePinId}
+                  onPinClick={(id) => setActivePinId((prev) => (prev === id ? null : id))}
+                />
+                <div className="sp-view-toggle">
+                  <button type="button" className={`sp-view-btn${view === "map" ? " active" : ""}`} onClick={() => setView("map")}><MapIcon size={13} /> Peta</button>
+                  <button type="button" className={`sp-view-btn${view === "list" ? " active" : ""}`} onClick={() => setView("list")}><List size={13} /> Daftar</button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {results.map((item) => {
+            <div className="sp-content">
+              {loading && (
+                <div className="sp-loading">
+                  <span className="sp-loading-dot" /><span className="sp-loading-dot" /><span className="sp-loading-dot" />
+                </div>
+              )}
+              {searched && !loading && results.length === 0 && (
+                <div className="sp-empty"><Search size={36} color="var(--text-secondary)" /><p>Kost tidak ditemukan</p><small>Coba kata kunci atau filter lain</small></div>
+              )}
+              {hasResults && (
+                <div className="sp-result-header">
+                  <p className="sp-result-count"><strong>{results.length}</strong> hunian ditemukan</p>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span className="sp-sort-label">{activeSortLabel}</span>
+                    <div className="sp-view-toggle sp-mobile-view-toggle" style={{ position: "static", boxShadow: "none", background: "var(--bg-tertiary)", borderRadius: 999 }}>
+                      <button type="button" className={`sp-view-btn${view === "map" ? " active" : ""}`} onClick={() => setView("map")} style={{ color: view === "map" ? "#fff" : "var(--text-secondary)", padding: "5px 10px", opacity: view === "map" ? 1 : 0.7 }}><MapIcon size={12} /> Peta</button>
+                      <button type="button" className={`sp-view-btn${view === "list" ? " active" : ""}`} onClick={() => setView("list")} style={{ color: view === "list" ? "#fff" : "var(--text-secondary)", padding: "5px 10px", opacity: view === "list" ? 1 : 0.7 }}><List size={12} /> Daftar</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {hasResults && results.map((item) => {
             const g = (item.gender || "").toLowerCase();
             const genderBadgeClass = g === "putri" ? "sp-badge-gender-putri" : g === "putra" ? "sp-badge-gender-putra" : g === "campur" ? "sp-badge-gender-campur" : "";
             return (
-              <div key={item.id} className={`sp-card${activePinId === item.id ? " highlighted" : ""}`} onClick={() => navigate(`/detail/${item.id}`)}>
+              <div
+                key={item.id}
+                className={`sp-card${activePinId === item.id ? " highlighted" : ""}`}
+                onMouseEnter={() => setActivePinId(item.id)}
+                onMouseLeave={() => setActivePinId(null)}
+                onClick={() => navigate(`/detail/${item.id}`)}
+              >
                 <div className="sp-card-inner">
                   <div className="sp-card-img-wrap">
                     {item.image ? <img src={item.image} alt={item.name} className="sp-card-img" /> : <div className="sp-card-img-placeholder"><Home size={28} strokeWidth={1.5} /></div>}
@@ -555,7 +686,6 @@ export default function SearchPage() {
                   <div className="sp-card-body">
                     <div>
                       <div className="sp-card-badges">
-                        {item.isPremium && <span className="sp-badge sp-badge-unggulan"><Crown size={9} /> Premium</span>}
                         {item.gender && genderBadgeClass && (
                           <span className={`sp-badge ${genderBadgeClass}`}>
                             {item.gender.charAt(0).toUpperCase() + item.gender.slice(1)}
@@ -585,6 +715,18 @@ export default function SearchPage() {
               </div>
             );
           })}
+            </div>
+          </div>
+
+          {hasResults && (
+            <div className="sp-map-panel">
+              <SearchSplitMap
+                results={results}
+                activePinId={activePinId}
+                onPinClick={(id) => setActivePinId((prev) => (prev === id ? null : id))}
+              />
+            </div>
+          )}
         </div>
       </div>
     </>

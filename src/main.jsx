@@ -5,6 +5,9 @@ import "./index.css";
 import App from "./App.jsx";
 import "leaflet/dist/leaflet.css";
 
+document.documentElement.classList.remove("dark-mode");
+localStorage.setItem("atap_theme", "light");
+
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>

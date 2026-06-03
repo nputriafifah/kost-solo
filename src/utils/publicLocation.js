@@ -1,3 +1,5 @@
+import { matchKabupatenOption, matchKecamatanOption } from "../constants/soloRegions.js";
+
 /** Bangun alamat publik yang disimpan ke BE (tanpa Jl/No) */
 export function buildListingAddress(desa, kecamatan, kabupaten) {
   const d = String(desa || "").trim();
@@ -8,6 +10,11 @@ export function buildListingAddress(desa, kecamatan, kabupaten) {
   if (k) parts.push(/^Kec/i.test(k) ? k : `Kec. ${k}`);
   if (b) parts.push(/^(Kab\.|Kota)/i.test(b) ? b : `Kab. ${b}`);
   return parts.join(", ");
+}
+
+/** Query pencarian listing berdasarkan kabupaten / kecamatan (format sama dengan alamat listing) */
+export function buildAreaSearchQuery(kecamatan, kabupaten) {
+  return buildListingAddress("", kecamatan, kabupaten);
 }
 
 /** Parse alamat lama / gabungan untuk form edit */
@@ -70,6 +77,29 @@ export function formatPublicLocation(address) {
 
   if (segments.length > 0) return segments.slice(-3).join(", ");
   return "Lokasi umum";
+}
+
+/** Hitung kabupaten / kecamatan unik yang punya listing (dari field address API) */
+export function countListingAreas(listings) {
+  const kabupaten = new Set();
+  const kecamatan = new Set();
+
+  for (const item of listings) {
+    const raw = item?.address ?? item?.location ?? "";
+    const { kabupaten: kabRaw, kecamatan: kecRaw } = parseListingAddress(raw);
+    const kabMatched = matchKabupatenOption(kabRaw) || String(kabRaw || "").trim();
+    const kecMatched = matchKecamatanOption(kabMatched, kecRaw) || String(kecRaw || "").trim();
+
+    if (kabMatched) kabupaten.add(kabMatched);
+    if (kecMatched) {
+      kecamatan.add(kabMatched ? `${kabMatched}\u0000${kecMatched}` : kecMatched);
+    }
+  }
+
+  return {
+    kabupatenCount: kabupaten.size,
+    kecamatanCount: kecamatan.size,
+  };
 }
 
 /** Koordinat perkiraan untuk peta user (~±1 km, konsisten per listing) */

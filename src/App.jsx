@@ -1,5 +1,4 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import { useDarkMode } from "./hooks/useDarkMode";
 // AUTH
 import AuthPage from "./pages/auth/AuthPage";
 import OtpPage from "./pages/auth/OtpPage";
@@ -66,7 +65,6 @@ function QueryRedirect() {
 }
 
 export default function App() {
-  useDarkMode();
   return (
     <>
       <QueryRedirect />

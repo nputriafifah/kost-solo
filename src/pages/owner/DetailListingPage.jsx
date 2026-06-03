@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  ArrowLeft, MapPin, Phone, Edit3, BedDouble, Crown, AlertCircle,
+  ArrowLeft, MapPin, Phone, Edit3, BedDouble, AlertCircle,
   ChevronLeft, ChevronRight, Wifi, Users, Wind, Zap, Droplets,
   ImageOff, Shield, Ruler, Building2, Sparkles,
 } from "lucide-react";
@@ -194,11 +194,6 @@ export default function DetailListingPage() {
                   <span className={`inline-flex items-center px-3 py-1 rounded-full text-[11px] font-black border ${gn.cls}`}>
                     {gn.label}
                   </span>
-                  {data.isPremium && (
-                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-black bg-amber-400/20 text-amber-200 border border-amber-300/40">
-                      <Crown size={12} /> Premium
-                    </span>
-                  )}
                 </div>
 
                 <div className="grid grid-cols-3 gap-3">

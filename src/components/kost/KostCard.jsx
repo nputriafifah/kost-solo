@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Heart, MapPin, Crown, ImageOff } from "lucide-react";
+import { Heart, MapPin, ImageOff } from "lucide-react";
 import { resolveMediaUrl } from "../../config/apiBase";
 
 function buildImageCandidates(rawUrl) {
@@ -77,10 +77,12 @@ export default function KostCard({ item, onClick, onLike, isLiked }) {
           />
         </button>
 
-        {item.isPremium && (
-          <span className="absolute top-1.5 left-1.5 flex items-center gap-0.5 text-[9px] font-bold px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-sm">
-            <Crown size={9} strokeWidth={2.5} />
-            Premium
+        {item.distanceKm != null && (
+          <span className="absolute bottom-1.5 right-1.5 z-[2] flex items-center gap-0.5 text-[9px] font-bold px-2 py-0.5 rounded-full bg-slate-900/80 text-white shadow-sm backdrop-blur-sm">
+            <MapPin size={9} strokeWidth={2.5} />
+            {item.distanceKm < 1
+              ? `${Math.round(item.distanceKm * 1000)} m`
+              : `${item.distanceKm.toFixed(1)} km`}
           </span>
         )}
 

@@ -4,12 +4,6 @@ import { getApiBase } from "../config/apiBase";
 
 const API = getApiBase();
 
-function readDarkMode() {
-  const theme = localStorage.getItem("atap_theme");
-  if (theme) return theme === "dark";
-  return localStorage.getItem("atap_dark_mode") === "true";
-}
-
 export function useUserNavBadges() {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user") || "null");
@@ -22,17 +16,6 @@ export function useUserNavBadges() {
 
   const [unreadChat, setUnreadChat] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [darkMode, setDarkMode] = useState(readDarkMode);
-
-  useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark-mode");
-      localStorage.setItem("atap_theme", "dark");
-    } else {
-      document.documentElement.classList.remove("dark-mode");
-      localStorage.setItem("atap_theme", "light");
-    }
-  }, [darkMode]);
 
   useEffect(() => {
     const saved = localStorage.getItem("atap_notifications");
@@ -89,8 +72,6 @@ export function useUserNavBadges() {
     initials,
     unreadChat,
     unreadCount,
-    darkMode,
-    setDarkMode,
     doLogout,
   };
 }

@@ -10,12 +10,6 @@ const TYPE_META = {
     iconColor: "text-amber-600",
     path: "/admin/listings",
   },
-  REACTIVATION_REQUEST: {
-    icon: Building2,
-    iconBg: "bg-emerald-50",
-    iconColor: "text-emerald-600",
-    path: "/admin/listings",
-  },
   REPORT_NEW: {
     icon: Flag,
     iconBg: "bg-red-50",

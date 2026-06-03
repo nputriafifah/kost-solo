@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  Building2, CheckCircle, XCircle, Star, StarOff,
+  Building2, CheckCircle, XCircle,
   RefreshCw, AlertTriangle, Search, X, ChevronLeft,
   ChevronRight, MapPin, User, Mail, Phone, Home,
   Calendar, Image as ImageIcon, Layers,
@@ -9,11 +9,6 @@ import {
 
 import { adminApiFetch, handleAdminAuthError } from "./adminApi";
 import { resolveMediaUrl } from "../../config/apiBase";
-import {
-  getReactivationRequests,
-  removeReactivationRequest,
-} from "../../utils/reactivationRequests";
-
 /** Tanpa endpoint admin “semua status” — aktif dari GET /listings (publik), nonaktif dari analytics */
 const STATUS_TABS = [
   { key: "ACTIVE", label: "Disetujui (Aktif)" },
@@ -177,7 +172,7 @@ function PhotoCarousel({ photos }) {
 }
 
 // ─── Detail Modal ───────────────────────────────────────────────────────────
-function DetailModal({ listing, onClose, onApprove, onReject, onPremium, actionLoading }) {
+function DetailModal({ listing, onClose, onApprove, onReject, actionLoading }) {
   // Collect all photos across all room types
   const allPhotos = (listing.roomTypes ?? []).flatMap(rt =>
     (rt.photos ?? []).map(p => p.url ?? p)
@@ -195,7 +190,6 @@ function DetailModal({ listing, onClose, onApprove, onReject, onPremium, actionL
 
   const isAppLoading = actionLoading === `approve-${listing.id}`;
   const isRejLoading = actionLoading?.startsWith(`reject-${listing.id}`);
-  const isPreLoading = actionLoading === `premium-${listing.id}`;
 
   return (
     <div style={{
@@ -217,11 +211,6 @@ function DetailModal({ listing, onClose, onApprove, onReject, onPremium, actionL
             <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#0f172a" }}>{listing.name ?? "-"}</h2>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
               <Badge status={listing.status} />
-              {listing.isPremium && (
-                <span style={{ fontSize: 10, fontWeight: 700, color: "#d97706", background: "#fffbeb", padding: "2px 7px", borderRadius: 99 }}>
-                  ★ PREMIUM
-                </span>
-              )}
             </div>
           </div>
           <button onClick={onClose} style={{
@@ -281,22 +270,6 @@ function DetailModal({ listing, onClose, onApprove, onReject, onPremium, actionL
 
           {/* Actions */}
           <div style={{ marginTop: 24, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button
-              onClick={() => onPremium(listing.id, !listing.isPremium)}
-              disabled={isPreLoading}
-              style={{
-                display: "flex", alignItems: "center", gap: 6,
-                padding: "9px 16px", fontSize: 13, fontWeight: 600,
-                border: listing.isPremium ? "1.5px solid #fde68a" : "1.5px solid #e2e8f0",
-                background: listing.isPremium ? "#fffbeb" : "#f8fafc",
-                color: listing.isPremium ? "#d97706" : "#475569",
-                borderRadius: 9, cursor: "pointer", opacity: isPreLoading ? 0.6 : 1,
-              }}
-            >
-              {listing.isPremium ? <Star size={14} fill="#f59e0b" color="#f59e0b" /> : <StarOff size={14} />}
-              {listing.isPremium ? "Hapus Premium" : "Set Premium"}
-            </button>
-
             {(listing.status ?? "").toUpperCase() === "PENDING" && (
               <>
                 <button
@@ -332,20 +305,9 @@ function DetailModal({ listing, onClose, onApprove, onReject, onPremium, actionL
             )}
 
             {(listing.status ?? "").toUpperCase() === "INACTIVE" && (
-              <button
-                onClick={() => onApprove(listing.id)}
-                disabled={isAppLoading}
-                style={{
-                  flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                  padding: "9px 16px", fontSize: 13, fontWeight: 600,
-                  border: "1.5px solid #bbf7d0", background: "#f0fdf4",
-                  color: "#16a34a", borderRadius: 9, cursor: "pointer",
-                  opacity: isAppLoading ? 0.6 : 1,
-                }}
-              >
-                <CheckCircle size={14} />
-                {isAppLoading ? "Memproses..." : "Approve (aktifkan lagi)"}
-              </button>
+              <p style={{ flex: 1, margin: 0, fontSize: 12, color: "#64748b", textAlign: "center", lineHeight: 1.5 }}>
+                Nonaktif — setelah owner ajukan aktifkan, listing muncul di tab Menunggu untuk di-approve.
+              </p>
             )}
           </div>
         </div>
@@ -369,19 +331,6 @@ export default function AdminListings() {
     const tab = searchParams.get("tab")?.toUpperCase();
     return ["ACTIVE", "PENDING", "INACTIVE", "ALL"].includes(tab) ? tab : "ACTIVE";
   });
-  const [reactivationQueue, setReactivationQueue] = useState(() => getReactivationRequests());
-
-  const refreshReactivationQueue = () => setReactivationQueue(getReactivationRequests());
-
-  useEffect(() => {
-    const onUpdate = () => refreshReactivationQueue();
-    window.addEventListener("atap-reactivation-updated", onUpdate);
-    window.addEventListener("storage", (e) => {
-      if (e.key === "atap_reactivation_requests") onUpdate();
-    });
-    return () => window.removeEventListener("atap-reactivation-updated", onUpdate);
-  }, []);
-
   const load = async () => {
     setLoading(true);
     setError("");
@@ -423,8 +372,6 @@ export default function AdminListings() {
     setActionLoading(`approve-${id}`);
     try {
       await apiFetch(`/admin/listings/${id}/approve`, { method: "PATCH" });
-      removeReactivationRequest(id);
-      refreshReactivationQueue();
       setListings((prev) =>
         statusTab === "INACTIVE" || statusTab === "ALL"
           ? prev.filter((l) => l.id !== id)
@@ -447,19 +394,6 @@ export default function AdminListings() {
         method: "PATCH", body: JSON.stringify({ rejectionReason: reason }),
       });
       setRejectTarget(null); await load();
-    } catch (err) { alert(err.message); }
-    finally { setActionLoading(null); }
-  };
-
-  const handlePremium = async (id, isPremium) => {
-    setActionLoading(`premium-${id}`);
-    try {
-      await apiFetch(`/admin/listings/${id}/premium`, {
-        method: "PATCH", body: JSON.stringify({ isPremium }),
-      });
-      await load();
-      // update detailTarget jika sedang dibuka
-      setDetailTarget(prev => prev?.id === id ? { ...prev, isPremium } : prev);
     } catch (err) { alert(err.message); }
     finally { setActionLoading(null); }
   };
@@ -524,56 +458,6 @@ export default function AdminListings() {
           <RefreshCw size={14} /> Refresh
         </button>
       </div>
-
-      {reactivationQueue.length > 0 && (
-        <div style={{
-          marginBottom: 16, padding: "16px 18px", background: "#fffbeb",
-          border: "1px solid #fde68a", borderRadius: 14,
-        }}>
-          <p style={{ margin: "0 0 10px", fontSize: 14, fontWeight: 700, color: "#92400e" }}>
-            Permintaan aktivasi dari owner ({reactivationQueue.length})
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {reactivationQueue.map((req) => {
-              const loading = actionLoading === `approve-${req.listingId}`;
-              return (
-                <div
-                  key={req.listingId}
-                  style={{
-                    display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10,
-                    padding: "10px 12px", background: "#fff", borderRadius: 10,
-                    border: "1px solid #fef3c7",
-                  }}
-                >
-                  <div style={{ flex: 1, minWidth: 180 }}>
-                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#0f172a" }}>
-                      {req.listingName}
-                    </p>
-                    <p style={{ margin: "2px 0 0", fontSize: 12, color: "#64748b" }}>
-                      {req.ownerName} · {new Date(req.requestedAt).toLocaleString("id-ID")}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleApprove(req.listingId)}
-                    disabled={loading}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 6,
-                      padding: "8px 14px", fontSize: 12, fontWeight: 600,
-                      border: "1px solid #bbf7d0", background: "#f0fdf4",
-                      color: "#16a34a", borderRadius: 8, cursor: "pointer",
-                      opacity: loading ? 0.6 : 1,
-                    }}
-                  >
-                    <CheckCircle size={14} />
-                    {loading ? "Memproses..." : "Approve"}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* Filter status */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
@@ -640,7 +524,6 @@ export default function AdminListings() {
                 <th style={thStyle}>Tipe Kamar</th>
                 <th style={thStyle}>Foto</th>
                 <th style={thStyle}>Status</th>
-                <th style={thStyle}>Premium</th>
                 <th style={thStyle}>Terdaftar</th>
                 <th style={thStyle}>Aksi</th>
               </tr>
@@ -654,7 +537,6 @@ export default function AdminListings() {
                 const isInactive = statusUpper === "INACTIVE";
                 const isAppLoading = actionLoading === `approve-${l.id}`;
                 const isRejLoading = actionLoading === `reject-${l.id}`;
-                const isPreLoading = actionLoading === `premium-${l.id}`;
 
                 return (
                   <tr key={l.id}
@@ -676,12 +558,7 @@ export default function AdminListings() {
                             : <Building2 size={16} color="#94a3b8" />
                           }
                         </div>
-                        <div>
-                          <div>{l.name ?? "-"}</div>
-                          {l.isPremium && (
-                            <span style={{ fontSize: 10, fontWeight: 700, color: "#d97706", background: "#fffbeb", padding: "1px 6px", borderRadius: 99 }}>PREMIUM</span>
-                          )}
-                        </div>
+                        <div>{l.name ?? "-"}</div>
                       </div>
                     </td>
                     <td style={tdStyle}>
@@ -705,19 +582,6 @@ export default function AdminListings() {
                       </span>
                     </td>
                     <td style={tdStyle}><Badge status={l.status} /></td>
-                    <td style={{ ...tdStyle, textAlign: "center" }}>
-                      <button
-                        onClick={e => { e.stopPropagation(); handlePremium(l.id, !l.isPremium); }}
-                        disabled={isPreLoading}
-                        title={l.isPremium ? "Hapus Premium" : "Set Premium"}
-                        style={{ background: "none", border: "none", cursor: "pointer", padding: 4, opacity: isPreLoading ? 0.5 : 1 }}
-                      >
-                        {l.isPremium
-                          ? <Star size={18} color="#f59e0b" fill="#f59e0b" />
-                          : <StarOff size={18} color="#cbd5e1" />
-                        }
-                      </button>
-                    </td>
                     <td style={{ ...tdStyle, color: "#94a3b8", fontSize: 12 }}>
                       {l.createdAt ? new Date(l.createdAt).toLocaleDateString("id-ID") : "-"}
                     </td>
@@ -754,20 +618,7 @@ export default function AdminListings() {
                             </button>
                           </>
                         ) : isInactive ? (
-                          <button
-                            onClick={() => handleApprove(l.id)}
-                            disabled={isAppLoading}
-                            style={{
-                              display: "flex", alignItems: "center", gap: 5,
-                              padding: "6px 12px", fontSize: 12, fontWeight: 600,
-                              border: "1px solid #bbf7d0", background: "#f0fdf4",
-                              color: "#16a34a", borderRadius: 8, cursor: "pointer",
-                              fontFamily: "inherit", opacity: isAppLoading ? 0.6 : 1,
-                            }}
-                          >
-                            <CheckCircle size={13} />
-                            {isAppLoading ? "..." : "Approve"}
-                          </button>
+                          <span style={{ fontSize: 12, color: "#94a3b8" }}>Menunggu pengajuan owner</span>
                         ) : (
                           <span style={{ fontSize: 12, color: "#94a3b8" }}>—</span>
                         )}
@@ -788,7 +639,6 @@ export default function AdminListings() {
           onClose={() => setDetailTarget(null)}
           onApprove={handleApprove}
           onReject={(l) => setRejectTarget(l)}
-          onPremium={handlePremium}
           actionLoading={actionLoading}
         />
       )}

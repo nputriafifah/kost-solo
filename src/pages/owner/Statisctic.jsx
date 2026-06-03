@@ -19,7 +19,6 @@ function BottomNav({ active, unreadCount, onNavClick }) {
   const items = [
     { id: "home",      icon: Building2,     label: "Beranda",  path: "/owner/dashboard" },
     { id: "properti",  icon: Building2,     label: "Properti", path: "/owner/properti"  },
-    { id: "pesan",     icon: MessageSquare, label: "Pesan",    path: "/owner/chat", badge: true },
     { id: "akun",      icon: Users,         label: "Profil",   path: "/owner/profil"    },
   ];
   return (

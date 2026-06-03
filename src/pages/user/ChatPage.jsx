@@ -19,7 +19,7 @@ const NAV_ITEMS = [
   { label: "Home",    path: "/",       icon: Home,          desktop: true,  mobile: true,  guestMobile: true  },
   { label: "Search",  path: "/search", icon: Search,        desktop: true,  mobile: true,  guestMobile: true  },
   { label: "Peta",    path: "/map",    icon: Map,           desktop: true,  mobile: true,  guestMobile: true  },
-  { label: "Favorit", path: "/like",   icon: Heart,         desktop: true,  mobile: true,  guestMobile: false },
+  { label: "My List", path: "/like",   icon: Heart,         desktop: true,  mobile: true,  guestMobile: false },
   { label: "Chat",    path: "/chat",   icon: MessageCircle, desktop: false, mobile: false, guestMobile: false },
   { label: "Profil",  path: "/profil", icon: User,          desktop: false, mobile: true,  guestMobile: false },
 ];

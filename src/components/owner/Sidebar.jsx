@@ -1,6 +1,6 @@
 import {
   Home, Building2, TrendingUp, User,
-  MessageSquare, ChevronRight, X, LogOut,
+  ChevronRight, X, LogOut,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -8,7 +8,6 @@ import { useNavigate } from "react-router-dom";
 export const NAV_ITEMS = [
   { id: "home",      icon: Home,          label: "Beranda",           sub: "Ringkasan & aktivitas", path: "/owner/dashboard" },
   { id: "properti",  icon: Building2,     label: "Properti Saya",     sub: "Kelola listing kos",    path: "/owner/properti"  },
-  { id: "pesan",     icon: MessageSquare, label: "Pesan",             sub: "Chat dengan penyewa",   path: "/owner/chat",      badge: true },
   { id: "statistik", icon: TrendingUp,    label: "Laporan Statistik", sub: "Performa & tayangan",   path: "/owner/statistik" },
   { id: "akun",      icon: User,          label: "Akun",              sub: "Profil & pengaturan",   path: "/owner/profil"    },
 ];

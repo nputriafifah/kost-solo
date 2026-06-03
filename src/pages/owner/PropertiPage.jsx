@@ -1,17 +1,12 @@
 import { useEffect, useState } from "react";
 import {
-  Building2, Crown, AlertCircle, Edit3, Eye, PowerOff, Power,
+  Building2, AlertCircle, Edit3, Eye, PowerOff, Power,
   MapPin, Search, ChevronLeft,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../../components/owner/Sidebar";
 import { getApiBase, resolveMediaUrl } from "../../config/apiBase";
 import { GENDER_LABELS } from "../../constants/listing";
-import {
-  addReactivationRequest,
-  getReactivationRequests,
-  hasReactivationRequest,
-} from "../../utils/reactivationRequests";
 
 const listingId = (item) => item?.id ?? item?._id;
 
@@ -28,13 +23,14 @@ const GENDER_STYLE = {
   CAMPUR: { label: GENDER_LABELS.CAMPUR, style: "bg-violet-50 text-violet-600" },
 };
 
-function OwnerCard({ item, onEdit, onDeactivate, onReactivate, reactivationPending, onDetail }) {
+function OwnerCard({ item, onEdit, onDeactivate, onReactivate, onDetail, activatingId }) {
   const id = listingId(item);
   const st = STATUS_CONFIG[item.status] ?? STATUS_CONFIG.PENDING;
   const gn = GENDER_STYLE[item.genderType] ?? { label: item.genderType, style: "bg-slate-50 text-slate-500" };
   const hargaMin   = item.roomTypes?.length ? Math.min(...item.roomTypes.map((r) => r.price)) : null;
   const kamarAvail = item.roomTypes?.reduce((a, r) => a + (r.availableCount || 0), 0) ?? 0;
   const coverUrl = resolveMediaUrl(item.roomTypes?.[0]?.photos?.[0]?.url);
+  const isActivating = activatingId === id;
 
   const openDetail = () => {
     if (id) onDetail(id);
@@ -53,11 +49,6 @@ function OwnerCard({ item, onEdit, onDeactivate, onReactivate, reactivationPendi
 
         <div className="px-4 pt-3 pb-3">
           <div className="flex items-center gap-1.5 flex-wrap mb-2">
-            {item.isPremium && (
-              <span className="flex items-center gap-1 text-[10px] font-black text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100">
-                <Crown size={9} /> Premium
-              </span>
-            )}
             <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${gn.style}`}>{gn.label}</span>
             <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full ${st.bg}`}>
               <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
@@ -72,12 +63,19 @@ function OwnerCard({ item, onEdit, onDeactivate, onReactivate, reactivationPendi
           </div>
 
           {item.status === "INACTIVE" && (
+            <div className="flex gap-2 bg-emerald-50 rounded-xl px-3 py-2 mb-3 border border-emerald-100">
+              <AlertCircle size={11} className="text-emerald-600 flex-shrink-0 mt-0.5" />
+              <p className="text-[11px] text-emerald-800 leading-snug">
+                Kost nonaktif — tidak tampil di pencarian. Ajukan aktifkan lagi; admin akan menyetujui di tab Menunggu.
+              </p>
+            </div>
+          )}
+
+          {item.status === "PENDING" && (
             <div className="flex gap-2 bg-amber-50 rounded-xl px-3 py-2 mb-3 border border-amber-100">
-              <AlertCircle size={11} className="text-amber-500 flex-shrink-0 mt-0.5" />
-              <p className="text-[11px] text-amber-700 leading-snug">
-                {reactivationPending
-                  ? "Pengajuan aktivasi sudah dikirim ke admin. Menunggu Approve."
-                  : "Klik Aktifkan lagi — permintaan akan muncul di panel admin untuk di-Approve."}
+              <AlertCircle size={11} className="text-amber-600 flex-shrink-0 mt-0.5" />
+              <p className="text-[11px] text-amber-800 leading-snug">
+                Menunggu persetujuan admin — belum tampil di pencarian penyewa.
               </p>
             </div>
           )}
@@ -119,22 +117,21 @@ function OwnerCard({ item, onEdit, onDeactivate, onReactivate, reactivationPendi
           className="flex-1 flex items-center justify-center gap-1.5 py-3 text-blue-600 font-black text-xs border-r border-slate-100 hover:bg-blue-50 transition-colors">
           <Eye size={12} /> Detail
         </button>
-        {(item.status === "ACTIVE" || item.status === "PENDING") && (
+        {item.status === "ACTIVE" && (
           <button type="button" onClick={() => id && onDeactivate(id)}
             className="flex-1 flex items-center justify-center gap-1.5 py-3 text-slate-500 font-black text-xs hover:bg-slate-50 transition-colors">
             <PowerOff size={12} /> Nonaktifkan
           </button>
         )}
-        {item.status === "INACTIVE" && !reactivationPending && (
-          <button type="button" onClick={() => id && onReactivate(id)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-3 text-emerald-600 font-black text-xs hover:bg-emerald-50 transition-colors">
-            <Power size={12} /> Aktifkan lagi
+        {item.status === "INACTIVE" && (
+          <button
+            type="button"
+            onClick={() => id && onReactivate(id)}
+            disabled={isActivating}
+            className="flex-1 flex items-center justify-center gap-1.5 py-3 text-emerald-600 font-black text-xs hover:bg-emerald-50 transition-colors disabled:opacity-60"
+          >
+            <Power size={12} /> {isActivating ? "Mengajukan..." : "Ajukan aktifkan"}
           </button>
-        )}
-        {item.status === "INACTIVE" && reactivationPending && (
-          <div className="flex-1 flex items-center justify-center py-3 px-2 border-l border-slate-100">
-            <p className="text-[10px] font-semibold text-amber-600 text-center leading-snug">Menunggu approve</p>
-          </div>
         )}
       </div>
     </div>
@@ -147,49 +144,15 @@ export default function PropertiPage() {
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [deactivateId, setDeactivateId] = useState(null);
-  const [reactivateTarget, setReactivateTarget] = useState(null);
+  const [reactivateId, setReactivateId] = useState(null);
   const [deactivating, setDeactivating] = useState(false);
-  const [, setPendingRequests] = useState(() => getReactivationRequests());
+  const [activatingId, setActivatingId] = useState(null);
   const navigate = useNavigate();
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const initials = user.name
     ? user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
     : "U";
-
-  const refreshRequests = () => setPendingRequests(getReactivationRequests());
-
-  const refetchListings = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${getApiBase()}/listings/owner`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const text = await res.text();
-      let data;
-      try { data = JSON.parse(text); } catch { data = {}; }
-      if (Array.isArray(data)) setListings(data);
-      else if (Array.isArray(data?.data)) setListings(data.data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  useEffect(() => {
-    const onUpdate = () => {
-      refreshRequests();
-      refetchListings();
-    };
-    const onStorage = (e) => {
-      if (e.key === "atap_reactivation_requests") onUpdate();
-    };
-    window.addEventListener("atap-reactivation-updated", onUpdate);
-    window.addEventListener("storage", onStorage);
-    return () => {
-      window.removeEventListener("atap-reactivation-updated", onUpdate);
-      window.removeEventListener("storage", onStorage);
-    };
-  }, []);
 
   useEffect(() => {
     (async () => {
@@ -234,7 +197,7 @@ export default function PropertiPage() {
       const updated = data.data ?? data;
       setListings((prev) =>
         prev.map((l) =>
-          l.id === deactivateId
+          listingId(l) === deactivateId
             ? { ...l, ...updated, status: updated.status ?? "INACTIVE" }
             : l
         )
@@ -247,15 +210,33 @@ export default function PropertiPage() {
     }
   };
 
-  const handleSendReactivation = () => {
-    if (!reactivateTarget) return;
-    addReactivationRequest({
-      listingId: reactivateTarget.id,
-      listingName: reactivateTarget.name,
-      ownerName: user.name || "Owner",
-    });
-    refreshRequests();
-    setReactivateTarget(null);
+  const handleRequestReactivation = async () => {
+    if (!reactivateId) return;
+    setActivatingId(reactivateId);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${getApiBase()}/listings/owner/${reactivateId}/reactivate`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { data = { message: text }; }
+      if (!res.ok) throw new Error(data.message || "Gagal mengajukan aktivasi kost");
+      const updated = data.data ?? data;
+      setListings((prev) =>
+        prev.map((l) =>
+          listingId(l) === reactivateId
+            ? { ...l, ...updated, status: updated.status ?? "PENDING" }
+            : l
+        )
+      );
+      setReactivateId(null);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setActivatingId(null);
+    }
   };
 
   const filtered = listings.filter((l) => l.name?.toLowerCase().includes(search.toLowerCase()));
@@ -329,31 +310,22 @@ export default function PropertiPage() {
 
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="bg-white rounded-2xl border border-slate-100 p-4 animate-pulse">
-                  <div className="h-36 bg-slate-100 rounded-xl mb-3" />
-                  <div className="h-4 bg-slate-100 rounded-full mb-2 w-3/4" />
-                  <div className="h-3 bg-slate-100 rounded-full w-1/2" />
-                </div>
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-2xl border border-slate-100 h-64 animate-pulse" />
               ))}
             </div>
           ) : filtered.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-16 text-center">
-              <div className="w-16 h-16 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto mb-4">
-                <Building2 size={26} className="text-indigo-200" />
-              </div>
-              <h3 className="text-base font-black text-slate-700 mb-1">
-                {search ? "Tidak ditemukan" : "Belum ada kost"}
-              </h3>
-              <p className="text-sm text-slate-400 mb-5">
-                {search ? `Tidak ada kost "${search}"` : "Tambahkan kost pertama kamu!"}
+            <div className="text-center py-16">
+              <Building2 size={40} className="text-slate-200 mx-auto mb-3" />
+              <p className="text-sm font-bold text-slate-400">
+                {search ? "Kost tidak ditemukan" : "Belum ada kost"}
               </p>
               {!search && (
                 <button
                   onClick={() => navigate("/owner/create")}
-                  className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-black text-sm shadow-lg shadow-indigo-100"
+                  className="mt-4 bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-black"
                 >
-                  Tambah Kost Pertama
+                  + Tambah Kost Pertama
                 </button>
               )}
             </div>
@@ -367,14 +339,11 @@ export default function PropertiPage() {
                   <OwnerCard
                     key={item.id}
                     item={item}
-                    reactivationPending={item.status === "INACTIVE" && hasReactivationRequest(item.id)}
+                    activatingId={activatingId}
                     onEdit={(lid) => navigate(`/owner/edit/${lid}`)}
                     onDetail={(lid) => navigate(`/owner/listing/${lid}`)}
                     onDeactivate={(lid) => setDeactivateId(lid)}
-                    onReactivate={(lid) => {
-                      const found = listings.find((l) => l.id === lid);
-                      setReactivateTarget({ id: lid, name: found?.name ?? "Kost" });
-                    }}
+                    onReactivate={(lid) => setReactivateId(lid)}
                   />
                 ))}
               </div>
@@ -383,28 +352,30 @@ export default function PropertiPage() {
         </main>
       </div>
 
-      {reactivateTarget && (
+      {reactivateId && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl">
             <div className="w-14 h-14 bg-emerald-50 rounded-3xl flex items-center justify-center mx-auto mb-4">
               <Power size={24} className="text-emerald-600" />
             </div>
-            <h3 className="text-xl font-black text-slate-900 text-center mb-2">Aktifkan lagi?</h3>
+            <h3 className="text-xl font-black text-slate-900 text-center mb-2">Ajukan aktifkan lagi?</h3>
             <p className="text-sm text-slate-400 text-center mb-6 leading-relaxed">
-              Permintaan untuk <span className="font-semibold text-slate-600">{reactivateTarget.name}</span> akan dikirim ke admin. Admin akan Approve lewat panel Kelola Listing.
+              Status kost menjadi menunggu review. Admin harus menyetujui sebelum kost tampil lagi di pencarian.
             </p>
             <div className="flex gap-3">
               <button
-                onClick={() => setReactivateTarget(null)}
+                onClick={() => setReactivateId(null)}
+                disabled={!!activatingId}
                 className="flex-1 py-3.5 rounded-2xl border border-slate-200 text-slate-500 font-black text-sm hover:bg-slate-50 transition-colors"
               >
                 Batal
               </button>
               <button
-                onClick={handleSendReactivation}
-                className="flex-1 py-3.5 rounded-2xl bg-emerald-600 text-white font-black text-sm shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-colors"
+                onClick={handleRequestReactivation}
+                disabled={!!activatingId}
+                className="flex-1 py-3.5 rounded-2xl bg-emerald-600 text-white font-black text-sm shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-colors disabled:opacity-60"
               >
-                Kirim ke admin
+                {activatingId ? "Mengajukan..." : "Ajukan"}
               </button>
             </div>
           </div>

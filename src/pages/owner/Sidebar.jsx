@@ -1,5 +1,5 @@
 import { X, ChevronRight, Building2, LogOut } from "lucide-react";
-import { Home, MessageSquare, BarChart3, User } from "lucide-react";
+import { Home, BarChart3, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 // ─── NAV ITEMS ────────────────────────────────────────────────────────────────
@@ -7,8 +7,7 @@ import { useNavigate } from "react-router-dom";
 export const NAV_ITEMS = [
   { id: "home",      icon: Home,          label: "Beranda",       path: "/owner/dashboard" },
   { id: "properti",  icon: Building2,     label: "Properti Saya", path: "/owner/properti"  },
-  { id: "pesan",     icon: MessageSquare, label: "Pesan",         path: null, badge: 3     },
-  { id: "statistik", icon: BarChart3,     label: "Statistik",     path: null               },
+  { id: "statistik", icon: BarChart3,     label: "Statistik",     path: "/owner/statistik" },
   { id: "akun",      icon: User,          label: "Profil",        path: null               },
 ];
 
