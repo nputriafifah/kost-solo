@@ -1,5 +1,5 @@
 // pages/user/SearchPage.jsx
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useRef, useCallback, useEffect, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import "leaflet/dist/leaflet.css";
 import {
@@ -15,21 +15,75 @@ import { KABUPATEN_OPTIONS, getKecamatanOptions } from "../../constants/soloRegi
 import { CAMPUS_PRESETS, QUICK_KECAMATAN } from "../../constants/searchLocations";
 import SearchSplitMap from "../../components/user/SearchSplitMap";
 import UserNavbar, { USER_NAVBAR_CSS } from "../../components/user/UserNavbar";
+import UserBottomNav, { USER_BOTTOM_NAV_CSS } from "../../components/user/UserBottomNav";
 
 const API = getApiBase();
 const GENDER_FILTERS = GENDER_OPTIONS;
 
+const DROPDOWN_MARGIN = 12;
+const DROPDOWN_GAP = 8;
+const DROPDOWN_MAX_W = 320;
+const MOBILE_DROPDOWN_BP = 768;
+
 function DropdownPortal({ anchorRef, children, onClose }) {
-  const [pos, setPos] = useState({ top: 0, left: 0 });
-  useEffect(() => {
-    if (!anchorRef?.current) return;
-    const r = anchorRef.current.getBoundingClientRect();
-    setPos({ top: r.bottom + window.scrollY + 8, left: r.left + window.scrollX });
+  const [style, setStyle] = useState(null);
+
+  const updatePosition = useCallback(() => {
+    const anchor = anchorRef?.current;
+    if (!anchor) return;
+
+    const rect = anchor.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const bottomReserve = vw <= MOBILE_DROPDOWN_BP ? 88 : 16;
+
+    if (vw <= MOBILE_DROPDOWN_BP) {
+      setStyle({
+        position: "fixed",
+        top: rect.bottom + DROPDOWN_GAP,
+        left: DROPDOWN_MARGIN,
+        width: vw - DROPDOWN_MARGIN * 2,
+        maxHeight: `calc(100dvh - ${rect.bottom + DROPDOWN_GAP + bottomReserve}px)`,
+        overflowY: "auto",
+        zIndex: 9999,
+      });
+      return;
+    }
+
+    const panelW = Math.min(DROPDOWN_MAX_W, vw - DROPDOWN_MARGIN * 2);
+    let left = rect.left;
+    if (left + panelW > vw - DROPDOWN_MARGIN) {
+      left = vw - DROPDOWN_MARGIN - panelW;
+    }
+    if (left < DROPDOWN_MARGIN) left = DROPDOWN_MARGIN;
+
+    setStyle({
+      position: "fixed",
+      top: rect.bottom + DROPDOWN_GAP,
+      left,
+      width: panelW,
+      maxHeight: `calc(100dvh - ${rect.bottom + DROPDOWN_GAP + bottomReserve}px)`,
+      overflowY: "auto",
+      zIndex: 9999,
+    });
   }, [anchorRef]);
+
+  useLayoutEffect(() => {
+    updatePosition();
+    const onReposition = () => updatePosition();
+    window.addEventListener("resize", onReposition);
+    window.addEventListener("scroll", onReposition, true);
+    return () => {
+      window.removeEventListener("resize", onReposition);
+      window.removeEventListener("scroll", onReposition, true);
+    };
+  }, [updatePosition]);
+
+  if (!style) return null;
+
   return createPortal(
     <>
-      <div style={{ position: "fixed", inset: 0, zIndex: 9998 }} onClick={onClose} />
-      <div className="sp-dropdown" style={{ position: "absolute", top: pos.top, left: pos.left, zIndex: 9999 }}>{children}</div>
+      <div style={{ position: "fixed", inset: 0, zIndex: 9998 }} onClick={onClose} aria-hidden />
+      <div className="sp-dropdown" style={style}>{children}</div>
     </>,
     document.body
   );
@@ -108,7 +162,7 @@ body { font-family:'DM Sans',sans-serif; color:var(--text-primary); background:v
 .sp-chip.active   { border-color:var(--text-primary); background:var(--text-primary); color:var(--bg-secondary); }
 .sp-chip.filtered { border-color:#4F46E5; color:#4F46E5; background:#EEF2FF; }
 /* ── DROPDOWN ── */
-.sp-dropdown { min-width:260px; background:var(--bg-secondary); border-radius:14px; border:1px solid var(--border-color); box-shadow:0 8px 32px rgba(0,0,0,.15); overflow:hidden; animation:dropIn .15s ease; }
+.sp-dropdown { min-width:260px; background:var(--bg-secondary); border-radius:14px; border:1px solid var(--border-color); box-shadow:0 8px 32px rgba(0,0,0,.15); overflow:hidden; animation:dropIn .15s ease; -webkit-overflow-scrolling:touch; }
 @keyframes dropIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
 .sp-dropdown-body { padding:16px 18px 10px; }
 .sp-dropdown-subtitle { font-size:12px; color:var(--text-secondary); margin-bottom:12px; }
@@ -229,6 +283,14 @@ body { font-family:'DM Sans',sans-serif; color:var(--text-primary); background:v
 .sp-card-rating { display:flex; align-items:center; gap:3px; font-size:11px; font-weight:600; color:#F59E0B; font-family:'Plus Jakarta Sans',sans-serif; }
 .sp-card-rating span { color:var(--text-secondary); font-weight:400; }
 
+@media (max-width: 768px) {
+  .sp-toolbar-top { padding: 10px 12px; }
+  .sp-filter-bar { padding: 6px 12px 10px; }
+  .sp-dropdown { min-width: 0; box-sizing: border-box; }
+  .sp-content { padding: 12px 12px 16px; }
+  .sp-map-wrapper { height: 200px; }
+  .sp-card-inner { padding: 10px; gap: 10px; }
+}
 @media(max-width:480px) {
   .sp-card-img, .sp-card-img-placeholder { width:92px; height:92px; }
   .sp-card-price { font-size:15px; }
@@ -384,8 +446,9 @@ export default function SearchPage() {
   return (
     <>
       <style>{USER_NAVBAR_CSS}</style>
+      <style>{USER_BOTTOM_NAV_CSS}</style>
       <style>{css}</style>
-      <div className="sp-root">
+      <div className="sp-root user-page-shell">
         <UserNavbar activePath="/search" />
 
         <div className="sp-toolbar">
@@ -728,6 +791,7 @@ export default function SearchPage() {
             </div>
           )}
         </div>
+        <UserBottomNav />
       </div>
     </>
   );

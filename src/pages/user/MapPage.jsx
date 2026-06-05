@@ -10,6 +10,7 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import { formatPublicLocation, obfuscateCoordinates } from "../../utils/publicLocation";
 import { createPriceIcon } from "../../utils/mapPriceIcon";
+import UserBottomNav, { USER_BOTTOM_NAV_CSS } from "../../components/user/UserBottomNav";
 
 // Fix Leaflet default icon
 delete L.Icon.Default.prototype._getIconUrl;
@@ -320,32 +321,18 @@ export default function MapPage() {
   .mp-card-detail-btn { display:flex; align-items:center; gap:4px; padding:7px 14px; background:#2563EB; color:white; border:none; border-radius:10px; font-size:12px; font-weight:700; cursor:pointer; transition:.15s; font-family:'DM Sans',sans-serif; }
   .mp-card-detail-btn:hover { background:#1D4ED8; }
 
-  /* ── BOTTOM NAV ── */
-  .mp-bottom-nav { display:none; }
-  .mp-bn-avatar-wrap { position:relative; display:inline-flex; }
-  .mp-bn-notif-dot { position:absolute; top:-2px; right:-2px; width:7px; height:7px; background:#EF4444; border-radius:50%; border:1.5px solid var(--bg-secondary); }
-  .mp-bn-icon-wrap { position:relative; display:inline-flex; }
-  .mp-bn-chat-badge { position:absolute; top:-4px; right:-6px; min-width:14px; height:14px; background:#EF4444; border-radius:999px; border:1.5px solid var(--bg-secondary); display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:800; color:white; padding:0 3px; line-height:1; pointer-events:none; }
-
   /* ── RESPONSIVE ── */
   @media(max-width:900px) { .mp-navbar { padding:0 20px; } }
-  @media(max-width:768px) { .mp-navbar-links { display:none; } .mp-mobile-chat { display:flex; } }
+  @media(max-width:768px) {
+    .mp-navbar-links { display:none; }
+    .mp-mobile-chat { display:flex; }
+    .mp-root.user-page-shell { padding-bottom: 0; }
+    .mp-card, .mp-result-count {
+      bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    }
+  }
   @media(max-width:640px) {
     .mp-navbar { height:60px; padding:0 16px; }
-    .mp-bottom-nav {
-      display:flex; flex-shrink:0; position:relative; z-index:300;
-      background:rgba(255,255,255,.97); backdrop-filter:blur(20px);
-      border-top:1px solid var(--border-color);
-      padding:6px 0 calc(6px + env(safe-area-inset-bottom));
-      justify-content:space-around; align-items:center;
-    }
-    .dark-mode .mp-bottom-nav { background:rgba(30,41,59,0.97); }
-    .mp-bn-item { display:flex; flex-direction:column; align-items:center; gap:3px; padding:6px 10px; border:none; background:none; border-radius:12px; cursor:pointer; color:var(--text-secondary); transition:color .15s; min-width:52px; font-family:'DM Sans',sans-serif; }
-    .mp-bn-item.active { color:#2563EB; }
-    .mp-bn-item span { font-size:10px; font-weight:700; }
-    .mp-bn-item.active::after { content:''; display:block; width:4px; height:4px; background:#2563EB; border-radius:50%; margin-top:1px; }
-    .mp-bn-avatar { width:24px; height:24px; border-radius:50%; background:#DBEAFE; color:#1D4ED8; font-size:8px; font-weight:800; display:flex; align-items:center; justify-content:center; border:2px solid #BFDBFE; font-family:'DM Sans',sans-serif; }
-    .mp-bn-item.active .mp-bn-avatar { background:#BFDBFE; border-color:#2563EB; }
   }
 
   @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
@@ -354,7 +341,8 @@ export default function MapPage() {
   return (
     <>
       <style>{css}</style>
-      <div className="mp-root">
+      <style>{USER_BOTTOM_NAV_CSS}</style>
+      <div className="mp-root user-page-shell">
 
         {/* ── NAVBAR ── */}
         <nav className="mp-navbar">
@@ -577,38 +565,7 @@ export default function MapPage() {
         </div>
         </div>
 
-        {/* ── BOTTOM NAV ── */}
-        <nav className="mp-bottom-nav">
-          {(isLoggedIn ? MOBILE_NAV : GUEST_MOBILE).map(({ label, path, icon: Icon }) => {
-            const isActive = currentPath === path;
-            const isProfil = path === "/profil";
-            const isChat = path === "/chat";
-            return (
-              <button key={path} className={`mp-bn-item${isActive ? " active" : ""}`} onClick={() => navigate(path)}>
-                {isProfil && isLoggedIn ? (
-                  <div className="mp-bn-avatar-wrap">
-                    <div className="mp-bn-avatar">{initials}</div>
-                    {unreadCount > 0 && <span className="mp-bn-notif-dot" />}
-                  </div>
-                ) : isChat && isLoggedIn ? (
-                  <div className="mp-bn-icon-wrap">
-                    <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
-                    {unreadChat > 0 && <span className="mp-bn-chat-badge">{unreadChat > 99 ? "99+" : unreadChat}</span>}
-                  </div>
-                ) : (
-                  <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
-                )}
-                <span>{label}</span>
-              </button>
-            );
-          })}
-          {!isLoggedIn && (
-            <button className={`mp-bn-item${currentPath === "/auth" ? " active" : ""}`} onClick={() => navigate("/auth")}>
-              <User size={20} />
-              <span>Masuk</span>
-            </button>
-          )}
-        </nav>
+        <UserBottomNav />
 
       </div>
     </>

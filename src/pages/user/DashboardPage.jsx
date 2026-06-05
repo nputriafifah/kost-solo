@@ -7,6 +7,7 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import KostCard from "../../components/kost/KostCard";
 import NotificationPanel from "../../components/ui/NotificationPanel";
+import UserBottomNav, { USER_BOTTOM_NAV_CSS } from "../../components/user/UserBottomNav";
 import { getApiBase, resolveMediaUrl } from "../../config/apiBase";
 import { GENDER_OPTIONS } from "../../constants/listing";
 import { formatPublicLocation, countListingAreas } from "../../utils/publicLocation";
@@ -518,7 +519,6 @@ export default function DashboardPage() {
   .atap-footer-bottom-links span { cursor: pointer; transition: 0.13px; }
   .atap-footer-bottom-links span:hover { color: #94A3B8; }
 
-  .atap-bottom-nav { display: none; }
   .atap-bn-avatar-wrap { position: relative; display: inline-flex; }
   .atap-bn-notif-dot { position: absolute; top: -2px; right: -2px; width: 7px; height: 7px; background: #EF4444; border-radius: 50%; border: 1.5px solid var(--bg-secondary); }
   .atap-bn-icon-wrap { position: relative; display: inline-flex; }
@@ -541,7 +541,6 @@ export default function DashboardPage() {
     .atap-search-btn { width: 100%; justify-content: center; }
     .atap-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
     .atap-sec-header { flex-direction: column; align-items: flex-start; gap: 10px; }
-    .atap-section { padding-bottom: 96px; }
     .atap-why-grid { grid-template-columns: 1fr; gap: 12px; } .atap-why-card { padding: 20px 16px; }
     .atap-stats-section { margin-top: -32px; padding: 0 16px; }
     .atap-stats-grid { grid-template-columns: 1fr !important; }
@@ -552,26 +551,14 @@ export default function DashboardPage() {
     .atap-cta-banner { padding: 0 16px 40px; } .atap-cta-inner { padding: 32px 20px; border-radius: 18px; }
     .atap-cta-text h2 { font-size: 20px; } .atap-cta-btns { flex-direction: column; width: 100%; }
     .atap-cta-btn-primary, .atap-cta-btn-ghost { width: 100%; text-align: center; }
-    .atap-bottom-nav {
-      display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 300;
-      background: rgba(255,255,255,0.97); backdrop-filter: blur(20px);
-      border-top: 1px solid var(--border-color); padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
-      justify-content: space-around; align-items: center; box-shadow: 0 -4px 20px rgba(0,0,0,.07);
-    }
-    .dark-mode .atap-bottom-nav { background: rgba(30,41,59,0.97); }
-    .atap-bn-item { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 10px; border: none; background: none; border-radius: 12px; cursor: pointer; color: var(--text-secondary); transition: color 0.15s; min-width: 52px; font-family: 'DM Sans', sans-serif; }
-    .atap-bn-item.active { color: #2563EB; }
-    .atap-bn-item span { font-size: 10px; font-weight: 700; letter-spacing: 0.1px; }
-    .atap-bn-item.active::after { content: ''; display: block; width: 4px; height: 4px; background: #2563EB; border-radius: 50%; margin-top: 1px; }
-    .atap-bn-avatar { width: 24px; height: 24px; border-radius: 50%; background: #DBEAFE; color: #1D4ED8; font-size: 8px; font-weight: 800; display: flex; align-items: center; justify-content: center; border: 2px solid #BFDBFE; font-family: 'DM Sans', sans-serif; }
-    .atap-bn-item.active .atap-bn-avatar { background: #BFDBFE; border-color: #2563EB; }
   }
   `;
 
   return (
     <>
       <style>{css}</style>
-      <div className="atap-root">
+      <style>{USER_BOTTOM_NAV_CSS}</style>
+      <div className="atap-root user-page-shell">
 
         {/* NAVBAR */}
         <nav className="atap-navbar">
@@ -787,39 +774,7 @@ export default function DashboardPage() {
           </div>
         </footer>
 
-        {/* MOBILE BOTTOM NAV */}
-        <nav className="atap-bottom-nav">
-          {(isLoggedIn ? MOBILE_NAV : GUEST_MOBILE).map(({ label, path, icon: Icon }) => {
-            const isActive = isNavActive(path);
-            const isProfil = path === "/profil";
-            const isChat = path === "/chat";
-            return (
-              <button key={path} className={`atap-bn-item${isActive ? " active" : ""}`} onClick={() => navigate(path)}>
-                {isProfil && isLoggedIn ? (
-                  <div className="atap-bn-avatar-wrap">
-                    <div className="atap-bn-avatar">{initials}</div>
-                    {unreadCount > 0 && <span className="atap-bn-notif-dot" />}
-                  </div>
-                ) : isChat && isLoggedIn ? (
-                  <div className="atap-bn-icon-wrap">
-                    <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
-                    {unreadChat > 0 && <span className="atap-bn-chat-badge">{unreadChat > 99 ? "99+" : unreadChat}</span>}
-                  </div>
-                ) : (
-                  <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
-                )}
-                <span>{label}</span>
-              </button>
-            );
-          })}
-          {!isLoggedIn && (
-            <button className={`atap-bn-item${currentPath === "/auth" ? " active" : ""}`} onClick={() => navigate("/auth")}>
-              <User size={20} strokeWidth={currentPath === "/auth" ? 2.5 : 1.8} />
-              <span>Masuk</span>
-            </button>
-          )}
-        </nav>
-
+        <UserBottomNav />
       </div>
     </>
   );

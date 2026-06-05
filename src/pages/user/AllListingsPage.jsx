@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import KostCard from "../../components/kost/KostCard";
+import UserBottomNav, { USER_BOTTOM_NAV_CSS } from "../../components/user/UserBottomNav";
 import { getApiBase, resolveMediaUrl } from "../../config/apiBase";
 import { formatPublicLocation } from "../../utils/publicLocation";
 
@@ -741,9 +742,6 @@ export default function AllListingsPage() {
   .al-footer-bottom-links span { cursor: pointer; transition: .13s; }
   .al-footer-bottom-links span:hover { color: #94A3B8; }
 
-  /* ── BOTTOM NAV — hidden by default ── */
-  .al-bottom-nav { display: none; }
-
   /* ── RESPONSIVE ── */
   @media(max-width: 1100px) { .al-grid { grid-template-columns: repeat(3, 1fr); } }
   @media(max-width: 900px) {
@@ -771,7 +769,7 @@ export default function AllListingsPage() {
     .al-sort-row { padding: 14px 16px 0; flex-direction: column; align-items: stretch; }
     .al-sort-wrap { width: 100%; }
     .al-sort-trigger { width: 100%; justify-content: space-between; }
-    .al-content { padding: 12px 12px 96px; }
+    .al-content { padding: 12px 12px 32px; }
     .al-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
     .al-skeleton-img { height: 130px; }
     .al-drawer { border-radius: 20px 20px 0 0; }
@@ -783,38 +781,6 @@ export default function AllListingsPage() {
     .al-footer-bottom { flex-direction: column; gap: 10px; text-align: center; }
     .al-footer-bottom-links { flex-wrap: wrap; justify-content: center; gap: 12px; }
 
-    /* BOTTOM NAV */
-    .al-bottom-nav {
-      display: flex;
-      position: fixed; bottom: 0; left: 0; right: 0; z-index: 300;
-      background: rgba(255,255,255,.97); backdrop-filter: blur(20px);
-      border-top: 1px solid var(--border-color);
-      padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
-      justify-content: space-around; align-items: center;
-      box-shadow: 0 -4px 20px rgba(0,0,0,.07);
-    }
-    .dark-mode .al-bottom-nav { background: rgba(30,41,59,.97); }
-    .al-bn-item {
-      display: flex; flex-direction: column; align-items: center; gap: 3px;
-      padding: 6px 10px; border: none; background: none;
-      border-radius: 12px; cursor: pointer;
-      color: var(--text-secondary); transition: color .15s;
-      min-width: 52px; font-family: 'DM Sans', sans-serif;
-    }
-    .al-bn-item.active { color: #2563EB; }
-    .al-bn-item span   { font-size: 10px; font-weight: 700; letter-spacing: .1px; }
-    .al-bn-item.active::after {
-      content: ''; display: block; width: 4px; height: 4px;
-      background: #2563EB; border-radius: 50%; margin-top: 1px;
-    }
-    .al-bn-avatar {
-      width: 24px; height: 24px; border-radius: 50%;
-      background: #DBEAFE; color: #1D4ED8;
-      font-size: 8px; font-weight: 800;
-      display: flex; align-items: center; justify-content: center;
-      border: 2px solid #BFDBFE; font-family: 'DM Sans', sans-serif;
-    }
-    .al-bn-item.active .al-bn-avatar { background: #BFDBFE; border-color: #2563EB; }
   }
   `;
 
@@ -824,7 +790,8 @@ export default function AllListingsPage() {
   return (
     <>
       <style>{css}</style>
-      <div className="al-root">
+      <style>{USER_BOTTOM_NAV_CSS}</style>
+      <div className="al-root user-page-shell">
 
         {/* ── NAVBAR ── */}
         <nav className="al-navbar">
@@ -1079,37 +1046,7 @@ export default function AllListingsPage() {
           </div>
         </footer>
 
-        {/* ── MOBILE BOTTOM NAV ── */}
-        <nav className="al-bottom-nav">
-          {(isLoggedIn ? MOBILE_NAV : GUEST_MOBILE).map(({ label, path, icon: Icon }) => {
-            const isActive = currentPath === path;
-            const isProfil = path === "/profil";
-            return (
-              <button
-                key={path}
-                className={`al-bn-item${isActive ? " active" : ""}`}
-                onClick={() => navigate(path)}
-              >
-                {isProfil && isLoggedIn ? (
-                  <div className="al-bn-avatar">{initials}</div>
-                ) : (
-                  <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
-                )}
-                <span>{label}</span>
-              </button>
-            );
-          })}
-          {!isLoggedIn && (
-            <button
-              className={`al-bn-item${currentPath === "/auth" ? " active" : ""}`}
-              onClick={() => navigate("/auth")}
-            >
-              <User size={20} strokeWidth={currentPath === "/auth" ? 2.5 : 1.8} />
-              <span>Masuk</span>
-            </button>
-          )}
-        </nav>
-
+        <UserBottomNav />
       </div>
     </>
   );

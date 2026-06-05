@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getApiBase } from "../../config/apiBase";
+import UserBottomNav, { USER_BOTTOM_NAV_CSS } from "../../components/user/UserBottomNav";
 
 const API = getApiBase();
 
@@ -176,15 +177,6 @@ const css = `
   .chat-safety { margin-top:32px; padding:20px; background:#0F172A; border-radius:20px; display:flex; gap:12px; align-items:flex-start; }
   .dark-mode .chat-safety { background:#0F172A; border:1px solid var(--border-color); }
 
-  /* ── dot & badge di bottom nav ── */
-  .chat-bn-avatar-wrap { position:relative; display:inline-flex; }
-  .chat-bn-notif-dot { position:absolute; top:-2px; right:-2px; width:7px; height:7px; background:#EF4444; border-radius:50%; border:1.5px solid var(--bg-secondary); }
-  .chat-bn-icon-wrap { position:relative; display:inline-flex; }
-  .chat-bn-chat-badge { position:absolute; top:-4px; right:-6px; min-width:14px; height:14px; background:#EF4444; border-radius:999px; border:1.5px solid var(--bg-secondary); display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:800; color:white; padding:0 3px; line-height:1; pointer-events:none; }
-
-  /* ── BOTTOM NAV ── */
-  .chat-bottom-nav { display:none; }
-
   /* ── RESPONSIVE ── */
   @media(max-width:768px) {
     .chat-navbar-links { display:none; }
@@ -193,29 +185,7 @@ const css = `
   @media(max-width:640px) {
     .chat-navbar { height:60px; padding:0 16px; }
     .chat-hero { padding:24px 16px !important; }
-    .chat-content { padding:20px 16px 96px !important; }
-
-    .chat-bottom-nav {
-      display:flex; position:fixed; bottom:0; left:0; right:0; z-index:300;
-      background:rgba(255,255,255,.97); backdrop-filter:blur(20px);
-      border-top:1px solid var(--border-color);
-      padding:6px 0 calc(6px + env(safe-area-inset-bottom));
-      justify-content:space-around; align-items:center;
-      box-shadow:0 -4px 20px rgba(0,0,0,.07);
-      transition: background 0.3s;
-    }
-    .dark-mode .chat-bottom-nav { background:rgba(30,41,59,.97); }
-    .chat-bn-item {
-      display:flex; flex-direction:column; align-items:center; gap:3px;
-      padding:6px 10px; border:none; background:none; border-radius:12px;
-      cursor:pointer; color:var(--text-secondary); transition:color .15s;
-      min-width:52px; font-family:'DM Sans',sans-serif;
-    }
-    .chat-bn-item.active { color:#2563EB; }
-    .chat-bn-item span { font-size:10px; font-weight:700; letter-spacing:.1px; }
-    .chat-bn-item.active::after { content:''; display:block; width:4px; height:4px; background:#2563EB; border-radius:50%; margin-top:1px; }
-    .chat-bn-avatar { width:24px; height:24px; border-radius:50%; background:#DBEAFE; color:#1D4ED8; font-size:8px; font-weight:800; display:flex; align-items:center; justify-content:center; border:2px solid #BFDBFE; font-family:'DM Sans',sans-serif; }
-    .chat-bn-item.active .chat-bn-avatar { background:#BFDBFE; border-color:#2563EB; }
+    .chat-content { padding:20px 16px 32px !important; }
   }
 `;
 
@@ -334,7 +304,8 @@ export default function ChatPage() {
   return (
     <>
       <style>{css}</style>
-      <div className="chat-root">
+      <style>{USER_BOTTOM_NAV_CSS}</style>
+      <div className="chat-root user-page-shell">
 
         {/* ── NAVBAR ── */}
         <nav className="chat-navbar">
@@ -561,38 +532,7 @@ export default function ChatPage() {
           </div>
         </div>
 
-        {/* ── MOBILE BOTTOM NAV ── */}
-        <nav className="chat-bottom-nav">
-          {(isLoggedIn ? MOBILE_NAV : GUEST_MOBILE).map(({ label, path, icon: Icon }) => {
-            const isActive = currentPath === path;
-            const isProfil = path === "/profil";
-            const isChat   = path === "/chat";
-            return (
-              <button key={path} className={`chat-bn-item${isActive ? " active" : ""}`} onClick={() => navigate(path)}>
-                {isProfil && isLoggedIn ? (
-                  <div className="chat-bn-avatar-wrap">
-                    <div className="chat-bn-avatar">{initials}</div>
-                    {unreadCount > 0 && <span className="chat-bn-notif-dot" />}
-                  </div>
-                ) : isChat && isLoggedIn ? (
-                  <div className="chat-bn-icon-wrap">
-                    <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
-                    {unreadChat > 0 && <span className="chat-bn-chat-badge">{unreadChat > 99 ? "99+" : unreadChat}</span>}
-                  </div>
-                ) : (
-                  <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
-                )}
-                <span>{label}</span>
-              </button>
-            );
-          })}
-          {!isLoggedIn && (
-            <button className={`chat-bn-item${currentPath === "/auth" ? " active" : ""}`} onClick={() => navigate("/auth")}>
-              <User size={20} strokeWidth={currentPath === "/auth" ? 2.5 : 1.8} />
-              <span>Masuk</span>
-            </button>
-          )}
-        </nav>
+        <UserBottomNav />
 
       </div>
     </>

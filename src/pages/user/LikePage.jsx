@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import {
-  Heart, AlertCircle, RefreshCw,
-  Home, User, Settings, LogOut, Search,
-} from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Heart, AlertCircle, RefreshCw } from "lucide-react";
 import KostCard from "../../components/kost/KostCard";
+import UserNavbar, { USER_NAVBAR_CSS } from "../../components/user/UserNavbar";
+import UserBottomNav, { USER_BOTTOM_NAV_CSS } from "../../components/user/UserBottomNav";
 import { getApiBase, resolveMediaUrl } from "../../config/apiBase";
 import { formatPublicLocation } from "../../utils/publicLocation";
 
@@ -27,8 +26,20 @@ const setLocalFavorites = (arr) => {
 const getFavoriteListingId = (fav) =>
   String(fav?.listingId ?? fav?.listing?.id ?? fav?.id ?? "");
 
+function getListingStatus(item) {
+  if (!item) return "";
+  return String(item.status ?? item.listing?.status ?? "").toUpperCase();
+}
+
+/** Hanya kost aktif yang boleh tampil di My List (publik). */
+function isPublicActiveListing(item) {
+  const status = getListingStatus(item);
+  if (!status) return true;
+  return status === "ACTIVE";
+}
+
 function toCardItem(item) {
-  if (!item) return null;
+  if (!item || !isPublicActiveListing(item)) return null;
   const roomTypes = Array.isArray(item.roomTypes) ? item.roomTypes : [];
   const cheapestFromRooms = roomTypes.length
     ? Math.min(...roomTypes.map((r) => Number(r?.price) || Infinity))
@@ -53,17 +64,6 @@ function toCardItem(item) {
   };
 }
 
-const NAV_ITEMS = [
-  { label: "Home",    path: "/",       icon: Home,          desktop: true,  mobile: true,  guestMobile: true  },
-  { label: "Search",  path: "/search", icon: Search,        desktop: true,  mobile: true,  guestMobile: true  },
-  { label: "My List", path: "/like",   icon: Heart,         desktop: true,  mobile: true,  guestMobile: false },
-  { label: "Profil",  path: "/profil", icon: User,          desktop: false, mobile: true,  guestMobile: false },
-];
-
-const DESKTOP_LINKS = NAV_ITEMS.filter((n) => n.desktop);
-const MOBILE_NAV    = NAV_ITEMS.filter((n) => n.mobile);
-const GUEST_MOBILE  = NAV_ITEMS.filter((n) => n.guestMobile);
-
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;700&display=swap');
   * { box-sizing: border-box; }
@@ -71,259 +71,116 @@ const css = `
   :root {
     --bg-primary: #F8FAFC;
     --bg-secondary: #FFFFFF;
-    --bg-tertiary: #F1F5F9;
     --text-primary: #0F172A;
     --text-secondary: #64748B;
     --border-color: #E2E8F0;
-    --card-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  }
-  .dark-mode {
-    --bg-primary: #0F172A;
-    --bg-secondary: #1E293B;
-    --bg-tertiary: #334155;
-    --text-primary: #F8FAFC;
-    --text-secondary: #CBD5E1;
-    --border-color: #334155;
-    --card-shadow: 0 1px 3px rgba(0,0,0,0.3);
   }
 
-  body { margin: 0; background: var(--bg-primary); transition: background 0.3s, color 0.3s; }
+  body { margin: 0; background: var(--bg-primary); }
 
-  .fav-root { min-height: 100vh; background: var(--bg-primary); color: var(--text-primary); transition: background 0.3s, color 0.3s; }
+  .fav-root { min-height: 100vh; background: var(--bg-primary); color: var(--text-primary); }
 
-  /* ── NAVBAR ── */
-  .fav-navbar { position:sticky; top:0; z-index:100; height:72px; background:rgba(255,255,255,.92); backdrop-filter:blur(16px); border-bottom:1px solid var(--border-color); display:flex; align-items:center; justify-content:space-between; padding:0 42px; transition:background 0.3s, border-color 0.3s; }
-  .dark-mode .fav-navbar { background:rgba(30,41,59,.92); }
-  .fav-navbar-logo { font-family:'Plus Jakarta Sans',sans-serif; font-size:25px; font-weight:800; letter-spacing:-1px; color:var(--text-primary); cursor:pointer; }
-  .fav-navbar-logo span { color:#2563EB; }
-  .fav-navbar-links { display:flex; align-items:center; gap:4px; }
-  .fav-navbar-link { font-size:14px; font-weight:600; color:var(--text-secondary); cursor:pointer; padding:7px 11px; border-radius:9px; transition:.15s; font-family:'DM Sans',sans-serif; }
-  .fav-navbar-link:hover { color:#2563EB; background:#EFF6FF; }
-  .dark-mode .fav-navbar-link:hover { background:rgba(59,130,246,.15); }
-  .fav-navbar-link.active { color:#2563EB; }
-  .fav-navbar-divider { width:1px; height:22px; background:var(--border-color); margin:0 6px; }
-  .fav-navbar-login { font-size:14px; font-weight:700; color:var(--text-secondary); cursor:pointer; padding:8px 14px; border-radius:10px; transition:.15s; font-family:'DM Sans',sans-serif; }
-  .fav-navbar-login:hover { color:var(--text-primary); background:var(--bg-tertiary); }
-  .fav-navbar-cta { border:none; cursor:pointer; padding:11px 22px; border-radius:12px; background:linear-gradient(135deg,#2563EB,#3B82F6); color:#fff; font-size:13px; font-weight:700; transition:.2s; font-family:'DM Sans',sans-serif; }
-  .fav-navbar-cta:hover { transform:translateY(-1px); box-shadow:0 12px 25px rgba(37,99,235,.22); }
+  .fav-content { max-width: 900px; margin: 0 auto; padding: 28px 28px 40px; }
+  .fav-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  .fav-skeleton { height: 180px; border-radius: 18px; background: var(--bg-secondary); border: 1px solid var(--border-color); }
 
-  /* ── Theme toggle ── */
-  .mp-theme-toggle { width:36px; height:36px; border-radius:50%; background:var(--bg-tertiary); color:var(--text-secondary); display:flex; align-items:center; justify-content:center; border:1.5px solid var(--border-color); transition:.2s; cursor:pointer; margin-left:2px; }
-  .mp-theme-toggle:hover { background:#EFF6FF; color:#2563EB; border-color:#BFDBFE; }
-  .dark-mode .mp-theme-toggle:hover { background:rgba(59,130,246,.15); }
-
-  /* ── Chat button ── */
-  .fav-chat-btn-wrap { position:relative; display:inline-flex; margin-left:2px; cursor:pointer; }
-  .fav-chat-btn { width:36px; height:36px; border-radius:50%; background:var(--bg-tertiary); color:var(--text-secondary); display:flex; align-items:center; justify-content:center; border:1.5px solid var(--border-color); transition:.2s; }
-  .fav-chat-btn:hover { background:#EFF6FF; color:#2563EB; border-color:#BFDBFE; }
-  .dark-mode .fav-chat-btn:hover { background:rgba(59,130,246,.15); }
-  .fav-chat-badge { position:absolute; top:-3px; right:-3px; min-width:16px; height:16px; background:#EF4444; border-radius:999px; border:2px solid var(--bg-secondary); display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:800; color:white; padding:0 3px; line-height:1; pointer-events:none; box-shadow:0 0 0 2px rgba(239,68,68,.2); }
-  .fav-mobile-chat { display:none; }
-
-  /* ── Avatar ── */
-  .fav-dropdown-wrap { position:relative; }
-  .fav-avatar-wrap { position:relative; display:inline-block; margin-left:4px; }
-  .fav-notif-dot { position:absolute; top:-2px; right:-2px; width:10px; height:10px; background:#EF4444; border-radius:50%; border:2.5px solid var(--bg-secondary); box-shadow:0 0 0 2px rgba(239,68,68,.22); pointer-events:none; }
-  .fav-navbar-avatar { width:36px; height:36px; border-radius:50%; background:#DBEAFE; color:#1D4ED8; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; cursor:pointer; border:2px solid #BFDBFE; transition:.2s; font-family:'DM Sans',sans-serif; }
-  .fav-navbar-avatar:hover { background:#BFDBFE; transform:scale(1.05); }
-
-  /* ── Dropdown ── */
-  .fav-navbar-dropdown { position:absolute; top:calc(100% + 10px); right:0; background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:16px; padding:8px; min-width:175px; box-shadow:var(--card-shadow); display:flex; flex-direction:column; gap:2px; z-index:200; animation:ddFadeIn .15s ease; }
-  @keyframes ddFadeIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
-  .fav-navbar-dropdown button { display:flex; align-items:center; gap:10px; padding:10px 13px; border:none; background:none; border-radius:10px; font-size:13px; font-weight:600; color:var(--text-secondary); cursor:pointer; width:100%; text-align:left; transition:.13s; font-family:'DM Sans',sans-serif; }
-  .fav-navbar-dropdown button:hover { background:var(--bg-tertiary); color:var(--text-primary); }
-  .fav-navbar-dropdown .dd-divider { height:1px; background:var(--border-color); margin:4px 0; }
-  .fav-navbar-dropdown button.danger { color:#EF4444; }
-  .fav-navbar-dropdown button.danger:hover { background:#FEF2F2; }
-  .dark-mode .fav-navbar-dropdown button.danger:hover { background:rgba(239,68,68,.15); }
-
-  /* ── CONTENT ── */
-  .fav-content { max-width:900px; margin:0 auto; padding:28px 28px 40px; }
-  .fav-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:18px; }
-
-  /* ── SKELETON ── */
-  .fav-skeleton { height:180px; border-radius:18px; background:var(--bg-secondary); border:1px solid var(--border-color); }
-
-  /* ── dot & badge bottom nav ── */
-  .fav-bn-avatar-wrap { position:relative; display:inline-flex; }
-  .fav-bn-notif-dot { position:absolute; top:-2px; right:-2px; width:7px; height:7px; background:#EF4444; border-radius:50%; border:1.5px solid var(--bg-secondary); }
-  .fav-bn-icon-wrap { position:relative; display:inline-flex; }
-  .fav-bn-chat-badge { position:absolute; top:-4px; right:-6px; min-width:14px; height:14px; background:#EF4444; border-radius:999px; border:1.5px solid var(--bg-secondary); display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:800; color:white; padding:0 3px; line-height:1; pointer-events:none; }
-
-  /* ── BOTTOM NAV ── */
-  .fav-bottom-nav { display:none; }
-
-  @media(max-width:900px) { .fav-grid { grid-template-columns:repeat(2, 1fr); } }
-  @media(max-width:768px) { .fav-navbar-links { display:none; } .fav-mobile-chat { display:flex; } }
-  @media(max-width:640px) {
-    .fav-navbar { height:60px; padding:0 16px; }
-    .fav-content { padding:20px 16px 96px; }
-    .fav-grid { grid-template-columns:repeat(2, 1fr); gap:12px; }
-    .fav-bottom-nav {
-      display:flex; position:fixed; bottom:0; left:0; right:0; z-index:300;
-      background:rgba(255,255,255,.97); backdrop-filter:blur(20px);
-      border-top:1px solid var(--border-color);
-      padding:6px 0 calc(6px + env(safe-area-inset-bottom));
-      justify-content:space-around; align-items:center;
-      box-shadow:0 -4px 20px rgba(0,0,0,.07); transition:background 0.3s;
-    }
-    .dark-mode .fav-bottom-nav { background:rgba(30,41,59,.97); }
-    .fav-bn-item { display:flex; flex-direction:column; align-items:center; gap:3px; padding:6px 10px; border:none; background:none; border-radius:12px; cursor:pointer; color:var(--text-secondary); transition:color .15s; min-width:52px; font-family:'DM Sans',sans-serif; }
-    .fav-bn-item.active { color:#2563EB; }
-    .fav-bn-item span { font-size:10px; font-weight:700; letter-spacing:.1px; }
-    .fav-bn-item.active::after { content:''; display:block; width:4px; height:4px; background:#2563EB; border-radius:50%; margin-top:1px; }
-    .fav-bn-avatar { width:24px; height:24px; border-radius:50%; background:#DBEAFE; color:#1D4ED8; font-size:8px; font-weight:800; display:flex; align-items:center; justify-content:center; border:2px solid #BFDBFE; font-family:'DM Sans',sans-serif; }
-    .fav-bn-item.active .fav-bn-avatar { background:#BFDBFE; border-color:#2563EB; }
+  @media (max-width: 900px) { .fav-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 640px) {
+    .fav-content { padding: 20px 16px 32px; }
+    .fav-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
   }
 `;
 
 export default function LikePage() {
-  const navigate    = useNavigate();
-  const location    = useLocation();
-  const menuRef     = useRef(null);
-  const currentPath = location.pathname;
+  const navigate = useNavigate();
 
-  const [data,        setData]        = useState([]);
-  const [loading,     setLoading]     = useState(true);
-  const [error,       setError]       = useState(null);
-  const [showMenu,    setShowMenu]    = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [unreadChat,  setUnreadChat]  = useState(0);
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const token      = getToken();
-  const user       = JSON.parse(localStorage.getItem("user") || "null");
-  const isLoggedIn = !!user;
-  const userName   = user?.name || "Guest";
-  const initials   = isLoggedIn
-    ? userName.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
-    : "GU";
+  const token = getToken();
 
-  useEffect(() => {
-    const saved = localStorage.getItem("atap_notifications");
-    if (saved) {
-      try { setUnreadCount(JSON.parse(saved).filter((n) => n.unread).length); }
-      catch { setUnreadCount(0); }
-    } else { setUnreadCount(2); }
-  }, []);
+  const pruneStaleFavorites = async (staleIds) => {
+    const removed = [...new Set(staleIds.map(String).filter(Boolean))];
+    if (!removed.length) return;
+    setLocalFavorites(getLocalFavorites().filter((id) => !removed.includes(String(id))));
+    if (!token) return;
+    await Promise.allSettled(
+      removed.map((id) =>
+        fetch(`${API}/favorites/${id}`, { method: "DELETE", headers: authHeaders(token) })
+      )
+    );
+  };
 
-  useEffect(() => {
-    if (!isLoggedIn || !token) return;
-    const fetchUnreadChat = async () => {
-      try {
-        const res = await fetch(`${API}/chats`, {
-          headers: authHeaders(token),
-        });
-        if (!res.ok) return;
-        const json = await res.json();
-        const raw  = Array.isArray(json.data) ? json.data : [];
-        setUnreadChat(raw.reduce((acc, thread) => {
-          const lm = thread.lastMessage;
-          return (lm && !lm.readAt && lm.senderId !== user?.id) ? acc + 1 : acc;
-        }, 0));
-      } catch { }
-    };
-    fetchUnreadChat();
-    const interval = setInterval(fetchUnreadChat, 30_000);
-    return () => clearInterval(interval);
-  }, [isLoggedIn, token, user?.id]);
+  const resolveFavoriteCards = async (ids) => {
+    const uniqueIds = [...new Set(ids.map(String).filter(Boolean))];
+    if (!uniqueIds.length) return { cards: [], staleIds: [] };
 
-  useEffect(() => {
-    const h = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setShowMenu(false); };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, []);
+    const results = await Promise.allSettled(
+      uniqueIds.map(async (favId) => {
+        const detailRes = await fetch(`${API}/listings/${favId}`);
+        if (!detailRes.ok) return { id: favId, card: null };
+        const detailJson = await detailRes.json().catch(() => ({}));
+        const listing = detailJson?.data ?? detailJson;
+        const card = toCardItem(listing);
+        return { id: favId, card };
+      })
+    );
+
+    const cards = [];
+    const staleIds = [];
+    for (const result of results) {
+      if (result.status !== "fulfilled") continue;
+      const { id, card } = result.value;
+      if (card) cards.push(card);
+      else staleIds.push(String(id));
+    }
+    return { cards, staleIds };
+  };
 
   const fetchFavorites = async () => {
-    setLoading(true); setError(null);
+    setLoading(true);
+    setError(null);
     try {
-      if (!token) {
-        const localIds = getLocalFavorites().map(String).filter(Boolean);
-        if (!localIds.length) { setData([]); return; }
-        const localDetailResults = await Promise.allSettled(
-          localIds.map(async (favId) => {
-            const detailRes = await fetch(`${API}/listings/${favId}`);
-            if (!detailRes.ok) return null;
-            const detailJson = await detailRes.json().catch(() => ({}));
-            return toCardItem(detailJson?.data ?? detailJson);
-          })
-        );
-        setData(
-          localDetailResults
-            .map((r) => (r.status === "fulfilled" ? r.value : null))
-            .filter((x) => x?.id)
-        );
-        return;
+      let favoriteIds = [];
+
+      if (token) {
+        const res = await fetch(`${API}/favorites`, { headers: authHeaders(token) });
+        if (res.status === 401 || res.status === 403) {
+          favoriteIds = getLocalFavorites().map(String).filter(Boolean);
+        } else if (!res.ok) {
+          throw new Error("Gagal fetch favorites");
+        } else {
+          const json = await res.json();
+          const raw = Array.isArray(json.data)
+            ? json.data
+            : Array.isArray(json.favorites)
+              ? json.favorites
+              : Array.isArray(json)
+                ? json
+                : [];
+          favoriteIds = raw.map(getFavoriteListingId).filter(Boolean);
+        }
+      } else {
+        favoriteIds = getLocalFavorites().map(String).filter(Boolean);
       }
 
-      const res = await fetch(`${API}/favorites`, { headers: authHeaders(token) });
-      if (res.status === 401 || res.status === 403) {
-        // Untuk role yang tidak punya akses favorites, tetap biarkan halaman terbuka.
-        const localIds = getLocalFavorites().map(String);
-        const localDetailResults = await Promise.allSettled(
-          localIds.map(async (favId) => {
-            const detailRes = await fetch(`${API}/listings/${favId}`);
-            if (!detailRes.ok) return null;
-            const detailJson = await detailRes.json().catch(() => ({}));
-            return toCardItem(detailJson?.data ?? detailJson);
-          })
-        );
-        setData(
-          localDetailResults
-            .map((r) => (r.status === "fulfilled" ? r.value : null))
-            .filter((x) => x?.id)
-        );
-        setError(null);
-        return;
-      }
-      if (!res.ok) throw new Error("Gagal fetch favorites");
-      const json = await res.json();
-
-      const raw = Array.isArray(json.data)
-        ? json.data
-        : Array.isArray(json.favorites)
-          ? json.favorites
-          : Array.isArray(json)
-            ? json
-            : [];
-
-      // Case 1: backend already returns listing objects
-      const directCards = raw
-        .map((x) => toCardItem(x?.listing ?? x))
-        .filter((x) => x?.id && x?.name && x.name !== "Kost");
-
-      if (directCards.length === raw.length && raw.length > 0) {
-        setLocalFavorites(directCards.map((x) => String(x.id)));
-        setData(directCards);
-        return;
-      }
-
-      // Case 2: backend returns favorite rows / IDs -> fetch listing detail per id
-      const ids = raw
-        .map((x) => getFavoriteListingId(x))
-        .filter(Boolean)
-        .map(String);
-
-      if (!ids.length) {
+      if (!favoriteIds.length) {
         setData([]);
+        setLocalFavorites([]);
         return;
       }
 
-      const detailResults = await Promise.allSettled(
-        ids.map(async (favId) => {
-          const detailRes = await fetch(`${API}/listings/${favId}`);
-          if (!detailRes.ok) return null;
-          const detailJson = await detailRes.json().catch(() => ({}));
-          return toCardItem(detailJson?.data ?? detailJson);
-        })
-      );
-
-      const mapped = detailResults
-        .map((r) => (r.status === "fulfilled" ? r.value : null))
-        .filter((x) => x?.id);
-      setLocalFavorites(mapped.map((x) => String(x.id)));
-      setData(mapped);
-    } catch (err) { console.error(err); setError("Gagal memuat favorit"); }
-    finally { setLoading(false); }
+      const { cards, staleIds } = await resolveFavoriteCards(favoriteIds);
+      await pruneStaleFavorites(staleIds);
+      setLocalFavorites(cards.map((x) => String(x.id)));
+      setData(cards);
+    } catch (err) {
+      console.error(err);
+      setError("Gagal memuat favorit");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchFavorites(); }, []);
@@ -345,73 +202,14 @@ export default function LikePage() {
     } catch (err) { console.error(err); }
   };
 
-  const doLogout = () => { localStorage.removeItem("user"); localStorage.removeItem("token"); navigate("/auth"); };
-
   return (
     <>
+      <style>{USER_NAVBAR_CSS}</style>
+      <style>{USER_BOTTOM_NAV_CSS}</style>
       <style>{css}</style>
-      <div className="fav-root">
+      <div className="fav-root user-page-shell">
+        <UserNavbar activePath="/like" />
 
-        {/* NAVBAR */}
-        <nav className="fav-navbar">
-          <div className="fav-navbar-logo" onClick={() => navigate("/")}>Atap<span>.</span></div>
-
-          <div className="fav-navbar-links">
-            {isLoggedIn ? (
-              <>
-                {DESKTOP_LINKS.map(({ label, path }) => (
-                  <span
-                    key={path}
-                    className={`fav-navbar-link${currentPath === path ? " active" : ""}`}
-                    onClick={() => navigate(path)}
-                  >
-                    {label}
-                  </span>
-                ))}
-                <div className="fav-navbar-divider" />
-
-                <div className="fav-dropdown-wrap" ref={menuRef}>
-                  <div className="fav-avatar-wrap">
-                    <div className="fav-navbar-avatar" onClick={() => setShowMenu((p) => !p)} title={userName}>
-                      {initials}
-                    </div>
-                    {unreadCount > 0 && <span className="fav-notif-dot" />}
-                  </div>
-
-                  {showMenu && (
-                    <div className="fav-navbar-dropdown">
-                      <button onClick={() => { navigate("/profil"); setShowMenu(false); }}>
-                        <User size={14} /> Profil
-                        {unreadCount > 0 && (
-                          <span style={{ marginLeft: "auto", fontSize: 10, fontWeight: 700, color: "#EF4444", background: "#FEF2F2", padding: "2px 7px", borderRadius: 99 }}>
-                            {unreadCount} baru
-                          </span>
-                        )}
-                      </button>
-                      <button onClick={() => { navigate("/settings/account"); setShowMenu(false); }}>
-                        <Settings size={14} /> Pengaturan
-                      </button>
-                      <div className="dd-divider" />
-                      <button className="danger" onClick={doLogout}>
-                        <LogOut size={14} /> Logout
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </>
-            ) : (
-              <>
-                <span className="fav-navbar-link" onClick={() => navigate("/search")}>Search</span>
-                <div className="fav-navbar-divider" />
-                <span className="fav-navbar-login" onClick={() => navigate("/auth")}>Masuk</span>
-                <button className="fav-navbar-cta" onClick={() => navigate("/auth")}>Daftar Gratis</button>
-              </>
-            )}
-          </div>
-
-        </nav>
-
-        {/* CONTENT */}
         <div className="fav-content">
           {loading && (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -424,6 +222,7 @@ export default function LikePage() {
               <AlertCircle size={26} color="#F87171" />
               <p style={{ fontSize: 14, color: "var(--text-secondary)", margin: 0 }}>{error}</p>
               <button
+                type="button"
                 onClick={fetchFavorites}
                 style={{ display: "flex", alignItems: "center", gap: 8, background: "#2563EB", color: "white", border: "none", padding: "10px 18px", borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}
               >
@@ -440,7 +239,8 @@ export default function LikePage() {
               <p style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>Belum ada favorit</p>
               <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0 }}>Simpan kost yang kamu suka dari halaman pencarian</p>
               <button
-                onClick={() => navigate("/")}
+                type="button"
+                onClick={() => navigate("/search")}
                 style={{ marginTop: 4, background: "#0F172A", color: "white", border: "none", padding: "10px 24px", borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}
               >
                 Cari kost
@@ -463,39 +263,7 @@ export default function LikePage() {
           )}
         </div>
 
-        {/* MOBILE BOTTOM NAV */}
-        <nav className="fav-bottom-nav">
-          {(isLoggedIn ? MOBILE_NAV : GUEST_MOBILE).map(({ label, path, icon: Icon }) => {
-            const isActive = currentPath === path;
-            const isProfil = path === "/profil";
-            const isChat   = path === "/chat";
-            return (
-              <button key={path} className={`fav-bn-item${isActive ? " active" : ""}`} onClick={() => navigate(path)}>
-                {isProfil && isLoggedIn ? (
-                  <div className="fav-bn-avatar-wrap">
-                    <div className="fav-bn-avatar">{initials}</div>
-                    {unreadCount > 0 && <span className="fav-bn-notif-dot" />}
-                  </div>
-                ) : isChat && isLoggedIn ? (
-                  <div className="fav-bn-icon-wrap">
-                    <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
-                    {unreadChat > 0 && <span className="fav-bn-chat-badge">{unreadChat > 99 ? "99+" : unreadChat}</span>}
-                  </div>
-                ) : (
-                  <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
-                )}
-                <span>{label}</span>
-              </button>
-            );
-          })}
-          {!isLoggedIn && (
-            <button className={`fav-bn-item${currentPath === "/auth" ? " active" : ""}`} onClick={() => navigate("/auth")}>
-              <User size={20} strokeWidth={currentPath === "/auth" ? 2.5 : 1.8} />
-              <span>Masuk</span>
-            </button>
-          )}
-        </nav>
-
+        <UserBottomNav />
       </div>
     </>
   );

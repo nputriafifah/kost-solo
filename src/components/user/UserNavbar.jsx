@@ -3,11 +3,9 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { User, Settings, LogOut } from "lucide-react";
 import { useUserNavBadges } from "../../hooks/useUserNavBadges";
 
-const DESKTOP_LINKS = [
-  { label: "Home", path: "/" },
-  { label: "Search", path: "/search" },
-  { label: "My List", path: "/like" },
-];
+import { USER_DESKTOP_LINKS, isUserNavActive } from "../../constants/userNav";
+
+const DESKTOP_LINKS = USER_DESKTOP_LINKS.map(({ label, path }) => ({ label, path }));
 
 export const USER_NAVBAR_CSS = `
   :root {
@@ -142,10 +140,7 @@ export default function UserNavbar({ badges: badgesProp, activePath: activePathP
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
-  const isLinkActive = (path) => {
-    if (path === "/") return activePath === "/" || activePath === "/dashboard";
-    return activePath === path || activePath.startsWith(`${path}/`);
-  };
+  const isLinkActive = (path) => isUserNavActive(activePath, path);
 
   return (
     <nav className="atap-navbar">

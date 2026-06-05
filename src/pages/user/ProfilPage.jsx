@@ -3,20 +3,11 @@ import {
   User, Mail, Phone, ChevronRight, Settings,
   Bell, Shield, HelpCircle, X, Check, Camera,
   MapPin, Map as MapIcon, Globe, Navigation,
-  Home, Map, Heart, MessageCircle, Search,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { getApiBase } from "../../config/apiBase";
 import UserNavbar, { USER_NAVBAR_CSS } from "../../components/user/UserNavbar";
+import UserBottomNav, { USER_BOTTOM_NAV_CSS } from "../../components/user/UserBottomNav";
 import { useUserNavBadges } from "../../hooks/useUserNavBadges";
-
-const API = getApiBase();
-
-function authHeaders(token) {
-  const h = { "Content-Type": "application/json" };
-  if (token) h.Authorization = `Bearer ${token}`;
-  return h;
-}
 
 function normalizeProfile(parsed) {
   if (!parsed || typeof parsed !== "object") {
@@ -79,16 +70,6 @@ const menuItems = [
   { icon: HelpCircle, label: "Bantuan & FAQ",       sub: "Butuh bantuan? Kami siap",     color: "#7C3AED", bg: "#F5F3FF",  darkBg: "#4c1d9522", path: "/settings/faq" },
 ];
 
-const NAV_ITEMS = [
-  { label: "Home",    path: "/",       icon: Home,          mobile: true,  guestMobile: true  },
-  { label: "Search",  path: "/search", icon: Search,        mobile: true,  guestMobile: true  },
-  { label: "My List", path: "/like",   icon: Heart,         mobile: true,  guestMobile: false },
-  { label: "Profil",  path: "/profil", icon: User,          mobile: true,  guestMobile: false },
-];
-
-const MOBILE_NAV   = NAV_ITEMS.filter((n) => n.mobile);
-const GUEST_MOBILE = NAV_ITEMS.filter((n) => n.guestMobile);
-
 // ─── INPUT GROUP ───────────────────────────────────────────────────────────────
 function InputGroup({ label, icon, value, onChange, placeholder }) {
   const [focused, setFocused] = useState(false);
@@ -141,14 +122,11 @@ export default function ProfilPage() {
   const [photoUrl,          setPhotoUrl]          = useState(null);
   const [isSaving,          setIsSaving]          = useState(false);
   const [saveSuccess,       setSaveSuccess]       = useState(false);
-  const [stats,             setStats]             = useState({ favorites: 0, chats: 0 });
 
   const navBadges  = useUserNavBadges();
-  const { unreadCount, unreadChat } = navBadges;
+  const { unreadCount } = navBadges;
 
   const user       = JSON.parse(localStorage.getItem("user") || "null");
-  const isLoggedIn = !!user;
-  const token      = localStorage.getItem("token");
 
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
@@ -163,35 +141,6 @@ export default function ProfilPage() {
     if (savedPhoto) setPhotoUrl(savedPhoto);
 
   }, []);
-
-  useEffect(() => {
-    if (!isLoggedIn || !token) return;
-
-    const fetchActivity = async () => {
-      try {
-        const [favRes, chatRes] = await Promise.all([
-          fetch(`${API}/favorites`, { headers: authHeaders(token) }),
-          fetch(`${API}/chats`, { headers: authHeaders(token) }),
-        ]);
-
-        if (favRes.ok) {
-          const favJson = await favRes.json();
-          const favList = Array.isArray(favJson.data) ? favJson.data : [];
-          setStats((s) => ({ ...s, favorites: favList.length }));
-        }
-
-        if (chatRes.ok) {
-          const chatJson = await chatRes.json();
-          const raw = Array.isArray(chatJson.data) ? chatJson.data : [];
-          setStats((s) => ({ ...s, chats: raw.length }));
-        }
-      } catch { /* ignore */ }
-    };
-
-    fetchActivity();
-    const interval = setInterval(fetchActivity, 30_000);
-    return () => clearInterval(interval);
-  }, [isLoggedIn, token, user?.id]);
 
   const handleSaveProfile = () => {
     setIsSaving(true);
@@ -244,44 +193,21 @@ export default function ProfilPage() {
     @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .profil-bottom-nav { display: none; }
-    .profil-bn-avatar-wrap { position:relative; display:inline-flex; }
-    .profil-bn-notif-dot { position:absolute; top:-2px; right:-2px; width:7px; height:7px; background:#EF4444; border-radius:50%; border:1.5px solid ${cardBg}; }
-    .profil-bn-icon-wrap { position:relative; display:inline-flex; }
-    .profil-bn-chat-badge { position:absolute; top:-4px; right:-6px; min-width:14px; height:14px; background:#EF4444; border-radius:999px; border:1.5px solid ${cardBg}; display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:800; color:white; padding:0 3px; line-height:1; pointer-events:none; }
-
     .profil-menu-btn { display:flex; align-items:center; gap:14px; padding:16px 18px; background:${cardBg2}; border:1.5px solid ${border}; border-radius:20px; cursor:pointer; text-align:left; transition:border-color 0.2s, box-shadow 0.2s, background 0.2s; box-shadow: 0 2px 8px rgba(15,23,42,0.04); width:100%; }
-
-    @media(max-width: 640px) {
-      .profil-bottom-nav {
-        display: flex;
-        position: fixed; bottom: 0; left: 0; right: 0; z-index: 300;
-        background: ${bnBg}; backdrop-filter: blur(20px);
-        border-top: 1px solid ${bnBorder};
-        padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
-        justify-content: space-around; align-items: center;
-        box-shadow: 0 -4px 20px rgba(0,0,0,.07);
-        font-family: 'DM Sans', sans-serif;
-      }
-      .profil-bn-item {
-        display: flex; flex-direction: column; align-items: center; gap: 3px;
-        padding: 6px 10px; border: none; background: none; border-radius: 12px;
-        cursor: pointer; color: ${textMuted}; transition: color .15s;
-        min-width: 52px; font-family: 'DM Sans', sans-serif;
-      }
-      .profil-bn-item.active { color: #2563EB; }
-      .profil-bn-item span { font-size: 10px; font-weight: 700; letter-spacing: .1px; }
-      .profil-bn-item.active::after { content:''; display:block; width:4px; height:4px; background:#2563EB; border-radius:50%; margin-top:1px; }
-      .profil-bn-avatar { width:24px; height:24px; border-radius:50%; background:#DBEAFE; color:#1D4ED8; font-size:8px; font-weight:800; display:flex; align-items:center; justify-content:center; border:2px solid #BFDBFE; font-family:'DM Sans',sans-serif; }
-      .profil-bn-item.active .profil-bn-avatar { background:#BFDBFE; border-color:#2563EB; }
+    .profil-section-pad { max-width:1120px; margin-left:auto; margin-right:auto; padding-left:48px; padding-right:48px; width:100%; box-sizing:border-box; }
+    @media (max-width: 768px) {
+      .profil-section-pad { padding-left:16px; padding-right:16px; }
+      .profil-hero-pad { padding-left:16px !important; padding-right:16px !important; }
+      .profil-hero-title { font-size:26px !important; }
     }
   `;
 
   return (
     <>
       <style>{USER_NAVBAR_CSS}</style>
+      <style>{USER_BOTTOM_NAV_CSS}</style>
       <style>{css}</style>
-      <div style={{ minHeight:"100vh", background: bg, paddingBottom:80, fontFamily:"'DM Sans', sans-serif", transition:"background 0.3s" }}>
+      <div className="user-page-shell" style={{ minHeight:"100vh", background: bg, fontFamily:"'DM Sans', sans-serif", transition:"background 0.3s" }}>
 
         <UserNavbar badges={navBadges} activePath={currentPath} />
 
@@ -293,9 +219,9 @@ export default function ProfilPage() {
           <div style={{ position:"absolute", top:-40, right:-40, width:200, height:200, borderRadius:"50%", background:"rgba(255,255,255,0.05)" }} />
           <div style={{ position:"absolute", bottom:-20, left:-20, width:120, height:120, borderRadius:"50%", background:"rgba(255,255,255,0.05)" }} />
 
-          <div style={{ position:"relative", maxWidth:1120, margin:"0 auto", padding:"0 48px" }}>
+          <div className="profil-hero-pad" style={{ position:"relative", maxWidth:1120, margin:"0 auto", padding:"0 48px" }}>
             <div style={{ fontSize:12, fontWeight:600, color:"rgba(255,255,255,0.6)", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:4 }}>Akun Saya</div>
-            <h1 style={{ fontSize:32, fontWeight:800, color:"#fff", margin:0, letterSpacing:"-0.5px", fontFamily:"'Plus Jakarta Sans', sans-serif" }}>Profil</h1>
+            <h1 className="profil-hero-title" style={{ fontSize:32, fontWeight:800, color:"#fff", margin:0, letterSpacing:"-0.5px", fontFamily:"'Plus Jakarta Sans', sans-serif" }}>Profil</h1>
             <p style={{ margin:"8px 0 0", fontSize:15, color:"rgba(255,255,255,0.75)", maxWidth:480, lineHeight:1.55 }}>
               Kelola informasi akun, favorit, dan pengaturan keamananmu.
             </p>
@@ -303,7 +229,7 @@ export default function ProfilPage() {
         </div>
 
         {/* ── PROFILE CARD ── */}
-        <div style={{ margin:"0 auto", marginTop:-52, position:"relative", zIndex:10, maxWidth:1120, padding:"0 48px", width:"100%" }}>
+        <div className="profil-section-pad" style={{ margin:"0 auto", marginTop:-52, position:"relative", zIndex:10, maxWidth:1120, width:"100%" }}>
           <div style={{ background: cardBg, borderRadius:28, padding:"28px 24px 24px", boxShadow: "0 8px 40px rgba(15,23,42,0.12)", transition:"background 0.3s" }}>
             <div style={{ display:"flex", alignItems:"center", gap:18 }}>
               <div style={{ position:"relative", flexShrink:0 }}>
@@ -348,27 +274,8 @@ export default function ProfilPage() {
           </div>
         </div>
 
-        {/* ── STATS ROW ── */}
-        <div style={{ margin:"20px auto 0", maxWidth:1120, padding:"0 48px", width:"100%", display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12 }}>
-          {[
-            { label: "Favorit", value: stats.favorites, path: "/like" },
-            { label: "Chat", value: stats.chats, path: "/chat" },
-            { label: "Belum dibaca", value: unreadChat, path: "/chat" },
-          ].map(({ label, value, path }) => (
-            <button
-              key={label}
-              type="button"
-              onClick={() => navigate(path)}
-              style={{ background: cardBg, borderRadius:18, padding:"16px 12px", textAlign:"center", boxShadow: "0 2px 12px rgba(15,23,42,0.06)", transition:"background 0.3s", border:"none", cursor:"pointer", fontFamily:"inherit" }}
-            >
-              <div style={{ fontSize:22, fontWeight:800, color: textPri, fontFamily:"'Plus Jakarta Sans', sans-serif" }}>{value}</div>
-              <div style={{ fontSize:11, color: textMuted, fontWeight:600, marginTop:2 }}>{label}</div>
-            </button>
-          ))}
-        </div>
-
         {/* ── SETTINGS MENU ── */}
-        <div style={{ margin:"28px auto 0", maxWidth:1120, padding:"0 48px", width:"100%" }}>
+        <div className="profil-section-pad" style={{ margin:"28px auto 0", maxWidth:1120, width:"100%" }}>
           <div style={{ fontSize:11, fontWeight:800, color: textMuted, letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:12, paddingLeft:4 }}>Pengaturan Umum</div>
           <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
             {menuItems.map(({ icon:Icon, label, sub, color, bg: iconBg, path, showBadge }) => (
@@ -454,39 +361,7 @@ export default function ProfilPage() {
           </div>
         )}
 
-        {/* ── MOBILE BOTTOM NAV ── */}
-        <nav className="profil-bottom-nav">
-          {(isLoggedIn ? MOBILE_NAV : GUEST_MOBILE).map(({ label, path, icon:Icon }) => {
-            const isActive = currentPath === path;
-            const isProfil = path === "/profil";
-            const isChat   = path === "/chat";
-            return (
-              <button key={path} className={`profil-bn-item${isActive ? " active" : ""}`} onClick={() => navigate(path)}>
-                {isProfil && isLoggedIn ? (
-                  <div className="profil-bn-avatar-wrap">
-                    <div className="profil-bn-avatar">{initials}</div>
-                    {unreadCount > 0 && <span className="profil-bn-notif-dot" />}
-                  </div>
-                ) : isChat && isLoggedIn ? (
-                  <div className="profil-bn-icon-wrap">
-                    <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
-                    {unreadChat > 0 && <span className="profil-bn-chat-badge">{unreadChat > 99 ? "99+" : unreadChat}</span>}
-                  </div>
-                ) : (
-                  <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
-                )}
-                <span>{label}</span>
-              </button>
-            );
-          })}
-          {!isLoggedIn && (
-            <button className={`profil-bn-item${currentPath === "/auth" ? " active" : ""}`} onClick={() => navigate("/auth")}>
-              <User size={20} strokeWidth={currentPath === "/auth" ? 2.5 : 1.8} />
-              <span>Masuk</span>
-            </button>
-          )}
-        </nav>
-
+        <UserBottomNav />
       </div>
     </>
   );

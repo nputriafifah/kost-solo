@@ -2,6 +2,7 @@ import React from "react";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import UserNavbar, { USER_NAVBAR_CSS } from "./UserNavbar";
+import UserBottomNav, { USER_BOTTOM_NAV_CSS } from "./UserBottomNav";
 
 export const USER_SETTINGS_CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap');
@@ -228,8 +229,9 @@ export default function UserSettingsLayout({ title, subtitle, children }) {
   return (
     <>
       <style>{USER_NAVBAR_CSS}</style>
+      <style>{USER_BOTTOM_NAV_CSS}</style>
       <style>{USER_SETTINGS_CSS}</style>
-      <div className="uset-root">
+      <div className="uset-root user-page-shell">
         <UserNavbar />
 
         <div className="uset-hero">
@@ -243,6 +245,7 @@ export default function UserSettingsLayout({ title, subtitle, children }) {
         </div>
 
         <div className="uset-shell">{children}</div>
+        <UserBottomNav />
       </div>
     </>
   );

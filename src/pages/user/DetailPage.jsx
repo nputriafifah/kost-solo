@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getApiBase, postPublicJson, resolveMediaUrl } from "../../config/apiBase";
 import UserNavbar, { USER_NAVBAR_CSS } from "../../components/user/UserNavbar";
+import UserBottomNav, { USER_BOTTOM_NAV_CSS } from "../../components/user/UserBottomNav";
 import { useUserNavBadges } from "../../hooks/useUserNavBadges";
 import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import L from "leaflet";
@@ -103,15 +104,43 @@ const GLOBAL_CSS = `
   .detail-page { min-height:100vh; background:var(--surface); }
   .detail-shell { max-width:1120px; margin:0 auto; width:100%; }
   .detail-content { padding:20px 48px 0; }
-  .detail-bottom-inner { max-width:480px; margin:0 auto; }
+  .detail-bottom-inner { max-width:480px; margin:0 auto; display:flex; align-items:center; gap:10px; }
 
+  .detail-action-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 260;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 12px 16px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    backdrop-filter: blur(12px);
+  }
+
+  @media (min-width:769px) {
+    .detail-page.user-page-shell { padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+  }
   @media (min-width:900px) {
     .detail-gallery-grid { height:380px !important; border-radius:0 0 var(--radius-xl) var(--radius-xl); overflow:hidden; }
     .detail-gallery-overlay { padding:16px 48px 12px !important; }
   }
   @media (max-width:899px) {
-    .detail-content { padding:20px 20px 0; }
+    .detail-content { padding:16px 16px 0; }
     .detail-gallery-overlay { padding:44px 16px 12px !important; }
+    .detail-gallery-grid { height:260px !important; grid-template-columns:1fr !important; grid-template-rows:200px 80px !important; }
+    .detail-gallery-grid > div:first-child { grid-row:1 !important; grid-column:1 !important; }
+    .detail-gallery-grid > div:not(:first-child) { display:none !important; }
+  }
+  @media (max-width:768px) {
+    .detail-page.user-page-shell {
+      padding-bottom: calc(148px + env(safe-area-inset-bottom, 0px));
+    }
+    .detail-action-bar {
+      bottom: calc(58px + env(safe-area-inset-bottom, 0px));
+      z-index: 310;
+    }
   }
 `;
 
@@ -983,7 +1012,7 @@ export default function DetailPage() {
   const toggleLike = async () => {
     const token = getToken();
     if (!token) {
-      toggleLocalLike();
+      navigate("/auth", { state: { from: `/detail/${id}` } });
       return;
     }
     setLikeLoading(true);
@@ -1041,9 +1070,11 @@ export default function DetailPage() {
       <>
         <InjectStyles css={GLOBAL_CSS} />
         <style>{USER_NAVBAR_CSS}</style>
-        <div className="detail-page">
+        <style>{USER_BOTTOM_NAV_CSS}</style>
+        <div className="detail-page user-page-shell">
           <UserNavbar badges={navBadges} />
           <LoadingSkeleton />
+          <UserBottomNav />
         </div>
       </>
     );
@@ -1054,7 +1085,8 @@ export default function DetailPage() {
       <>
         <InjectStyles css={GLOBAL_CSS} />
         <style>{USER_NAVBAR_CSS}</style>
-        <div className="detail-page">
+        <style>{USER_BOTTOM_NAV_CSS}</style>
+        <div className="detail-page user-page-shell">
           <UserNavbar badges={navBadges} />
           <div style={{ fontFamily:"var(--ff)", minHeight:"60vh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", gap:16, padding:24 }}>
             <div style={{ width:64, height:64, borderRadius:"var(--radius-lg)", background:"var(--surface-2)", border:"1px solid var(--border)", display:"flex", alignItems:"center", justifyContent:"center" }}>
@@ -1067,6 +1099,7 @@ export default function DetailPage() {
               Cari kost lain
             </button>
           </div>
+          <UserBottomNav />
         </div>
       </>
     );
@@ -1081,7 +1114,8 @@ export default function DetailPage() {
     <>
       <InjectStyles css={GLOBAL_CSS} />
       <style>{USER_NAVBAR_CSS}</style>
-      <div className="detail-page" style={{ fontFamily:"var(--ff)", color:"var(--text-primary)", paddingBottom:96 }}>
+      <style>{USER_BOTTOM_NAV_CSS}</style>
+      <div className="detail-page user-page-shell" style={{ fontFamily:"var(--ff)", color:"var(--text-primary)" }}>
 
         <UserNavbar badges={navBadges} />
 
@@ -1360,9 +1394,11 @@ export default function DetailPage() {
         </div>
       </div>
 
-      {/* ══ BOTTOM BAR ══ */}
-      <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"var(--surface)", borderTop:"1px solid var(--border)", padding:"12px 16px", paddingBottom:"calc(12px + env(safe-area-inset-bottom))", zIndex:50, backdropFilter:"blur(12px)" }}>
-        <div className="detail-bottom-inner" style={{ display:"flex", alignItems:"center", gap:10 }}>
+      <UserBottomNav />
+
+      {/* ══ BOTTOM BAR (CTA) ══ */}
+      <div className="detail-action-bar">
+        <div className="detail-bottom-inner">
           {/* Like */}
           <button
             type="button"
