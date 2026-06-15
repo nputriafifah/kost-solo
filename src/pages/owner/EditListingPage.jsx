@@ -340,14 +340,16 @@ export default function EditListingPage() {
 
   const uploadFilesToRoom = async (roomId, fileArr) => {
     if (!fileArr?.length) return;
-    const fd = new FormData();
-    fileArr.forEach((f) => fd.append("photos", f));
-    const uploadRes = await fetch(`${api}/owner/room-types/${roomId}/photos`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${getToken()}` },
-      body: fd,
-    });
-    if (!uploadRes.ok) throw new Error(await parseApiError(uploadRes));
+    for (const file of fileArr) {
+      const fd = new FormData();
+      fd.append("photos", file);
+      const uploadRes = await fetch(`${api}/owner/room-types/${roomId}/photos`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${getToken()}` },
+        body: fd,
+      });
+      if (!uploadRes.ok) throw new Error(await parseApiError(uploadRes));
+    }
   };
 
   // ─── handleSaveInfo ──────────────────────────────────────────────────────────
@@ -644,14 +646,7 @@ export default function EditListingPage() {
     setPhotoErrors((prev) => ({ ...prev, [roomTypeId]: "" }));
 
     try {
-      const fd = new FormData();
-      fileArr.forEach((f) => fd.append("photos", f));
-      const uploadRes = await fetch(`${api}/owner/room-types/${roomTypeId}/photos`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${getToken()}` },
-        body: fd,
-      });
-      if (!uploadRes.ok) throw new Error(await parseApiError(uploadRes));
+      await uploadFilesToRoom(roomTypeId, fileArr);
       await refreshListing();
       setPhotoState((prev) => ({
         ...prev,

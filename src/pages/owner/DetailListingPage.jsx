@@ -89,11 +89,13 @@ export default function DetailListingPage() {
   const rentableRooms = getRentableRoomTypes(data.roomTypes);
   const sharedFacilityRoom = findSharedFacilityRoom(data.roomTypes);
 
-  const allImages = [
-    ...(data.photos || []),
-    ...(rentableRooms.flatMap((r) => r?.photos || [])),
-    ...(sharedFacilityRoom?.photos || []),
-  ].filter((p) => p?.url);
+  const allImages = (data.photos?.length
+    ? data.photos
+    : [
+        ...rentableRooms.flatMap((r) => r?.photos || []),
+        ...(sharedFacilityRoom?.photos || []),
+      ]
+  ).filter((p) => p?.url);
 
   const coverUrl = allImages[imgIdx]?.url ? resolveMediaUrl(allImages[imgIdx].url) : null;
   const totalRooms = rentableRooms.reduce((s, r) => s + (r?.availableCount || 0), 0) || 0;

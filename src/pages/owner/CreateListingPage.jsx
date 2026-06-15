@@ -240,14 +240,16 @@ export default function CreateListingPage() {
 
   const uploadPhotosToRoom = async (api, roomId, photos) => {
     if (!photos?.length) return;
-    const formData = new FormData();
-    photos.forEach((file) => formData.append("photos", file));
-    const resPhotos = await fetch(`${api}/owner/room-types/${roomId}/photos`, {
-      method: "POST",
-      headers: authHeaders(),
-      body: formData,
-    });
-    if (!resPhotos.ok) throw new Error(await parseApiError(resPhotos));
+    for (const file of photos) {
+      const formData = new FormData();
+      formData.append("photos", file);
+      const resPhotos = await fetch(`${api}/owner/room-types/${roomId}/photos`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: formData,
+      });
+      if (!resPhotos.ok) throw new Error(await parseApiError(resPhotos));
+    }
   };
 
   const createSharedFacilityRoomWithPhotos = async (api, listingId, fallbackPrice) => {
