@@ -37,7 +37,7 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
   const [success, setSuccess] = useState("");
 
   const inputClass =
-    "w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50/70 focus:bg-white focus:border-blue-400 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm text-slate-700 placeholder-slate-400";
+    "w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50/70 focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm text-slate-700 placeholder-slate-400";
 
   const formatPhone = (phone) =>
     phone?.startsWith("0") ? "+62" + phone.slice(1) : phone;
@@ -180,7 +180,7 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
       {/* BACK */}
       <button
         onClick={onBack}
-        className="flex items-center gap-1.5 text-sm font-semibold text-slate-400 hover:text-blue-600 mb-7"
+        className="flex items-center gap-1.5 text-sm font-semibold text-slate-400 hover:text-indigo-600 mb-7"
       >
         <ChevronLeft size={16} />
         Ganti Peran
@@ -188,10 +188,10 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
 
       {/* HEADER */}
       <div className="flex items-center gap-2.5 mb-1">
-        <div className="w-8 h-8 flex items-center justify-center bg-blue-50 border border-blue-100 rounded-xl">
-          <Search size={15} className="text-blue-600" />
+        <div className="w-8 h-8 flex items-center justify-center bg-indigo-50 border border-indigo-100 rounded-xl">
+          <Search size={15} className="text-indigo-600" />
         </div>
-        <span className="text-[11px] font-bold text-blue-500 uppercase tracking-widest">
+        <span className="text-[11px] font-bold text-indigo-600 uppercase tracking-widest">
           {role === "pencari" ? "Pencari Kost" : role === "pemilik" ? "Pemilik Kost" : "Admin"} — Atap
         </span>
       </div>
@@ -264,7 +264,7 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
                 setError("");
                 setOwnerStep(2);
               }}
-              className="w-full py-3 text-white bg-blue-600 rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+              className="w-full py-3 text-white bg-indigo-600 rounded-xl font-semibold hover:bg-indigo-700 transition-colors"
             >
               Lanjut
             </button>
@@ -286,7 +286,7 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
             <button
               type="button"
               onClick={() => setOwnerStep(1)}
-              className="text-sm text-blue-600 hover:underline"
+              className="text-sm text-indigo-600 hover:underline"
             >
               ← Kembali
             </button>
@@ -306,7 +306,7 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
             <button
               type="button"
               onClick={() => navigate("/forgot-password")}
-              className="text-xs text-blue-600 hover:underline"
+              className="text-xs text-indigo-600 hover:underline"
             >
               Lupa password?
             </button>
@@ -342,7 +342,7 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
               <button
                 type="button"
                 onClick={() => setShowTerms(true)}
-                className="text-blue-600 font-semibold hover:underline"
+                className="text-indigo-600 font-semibold hover:underline"
               >
                 syarat dan ketentuan
               </button>
@@ -355,7 +355,7 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 text-white bg-blue-600 rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-60 transition-colors"
+            className="w-full py-3 text-white bg-indigo-600 rounded-xl font-semibold hover:bg-indigo-700 disabled:opacity-60 transition-colors"
           >
             {loading ? "Memproses..." : isLogin ? "Masuk" : "Daftar"}
           </button>
@@ -391,7 +391,7 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
             <button
               type="button"
               onClick={() => setShowTerms(false)}
-              className="w-full py-2.5 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+              className="w-full py-2.5 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-colors"
             >
               Mengerti
             </button>

@@ -42,7 +42,7 @@ export default function AdminProfile() {
     <div
       style={{
         fontFamily: "'Inter', 'Segoe UI', sans-serif",
-        color: "#0f172a",
+        color: "#1e1b4b",
         width: "100%",
         maxWidth: "100%",
         padding: "0 0 40px",
@@ -70,7 +70,7 @@ export default function AdminProfile() {
               width: 72,
               height: 72,
               borderRadius: 18,
-              background: "linear-gradient(135deg, #3b82f6, #6366f1)",
+              background: "linear-gradient(135deg, #A78BFA, #6366f1)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -151,7 +151,7 @@ export default function AdminProfile() {
             Nama Tampilan
           </label>
           <div style={{ marginTop: 8 }}>
-            <span style={{ fontSize: 15, fontWeight: 600, color: "#0f172a" }}>{user.name || "—"}</span>
+            <span style={{ fontSize: 15, fontWeight: 600, color: "#1e1b4b" }}>{user.name || "—"}</span>
           </div>
           <p style={{ margin: "8px 0 0", fontSize: 11, color: "#94a3b8", lineHeight: 1.5 }}>
             Read-only. Perubahan profil admin memerlukan endpoint backend khusus profil admin.

@@ -89,8 +89,8 @@ export default function OtpForm({
     <div className="fade-in">
       {/* ICON */}
       <div className="flex justify-center mb-6">
-        <div className="w-16 h-16 flex items-center justify-center rounded-full bg-blue-100 border-4 border-blue-50">
-          <ShieldCheck size={32} className="text-blue-600" />
+        <div className="w-16 h-16 flex items-center justify-center rounded-full bg-indigo-100 border-4 border-indigo-50">
+          <ShieldCheck size={32} className="text-indigo-600" />
         </div>
       </div>
 
@@ -138,7 +138,7 @@ export default function OtpForm({
               onChange={(e) => handleChange(e.target, i)}
               onKeyDown={(e) => handleKeyDown(e, i)}
               onFocus={(e) => e.target.select()}
-              className="w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl font-bold rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all"
+              className="w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl font-bold rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-all"
             />
           ))}
         </div>
@@ -146,7 +146,7 @@ export default function OtpForm({
         <button
           type="submit"
           disabled={isLoading || otp.join("").length < 6}
-          className="w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-70"
+          className="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-70"
         >
           {isLoading ? (
             <>
@@ -173,7 +173,7 @@ export default function OtpForm({
           <button
             onClick={handleResendClick}
             disabled={isLoading}
-            className="mt-1 text-blue-600 hover:underline font-semibold"
+            className="mt-1 text-indigo-600 hover:underline font-semibold"
           >
             Kirim Ulang OTP
           </button>

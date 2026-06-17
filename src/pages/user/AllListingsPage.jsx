@@ -312,40 +312,40 @@ export default function AllListingsPage() {
      CSS
   ========================================================= */
   const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..900;1,9..144,400..900&family=Outfit:wght@400;500;600;700;800&display=swap');
 
   * { box-sizing: border-box; }
-  body { margin: 0; background: #F8FAFC; transition: background 0.3s, color 0.3s; }
+  body { margin: 0; background: #F5F3FF; transition: background 0.3s, color 0.3s; }
 
   /* ── CSS VARS (dark mode support) ── */
   :root {
-    --bg-primary: #F8FAFC;
+    --bg-primary: #F5F3FF;
     --bg-secondary: #FFFFFF;
-    --bg-tertiary: #F1F5F9;
-    --text-primary: #0F172A;
+    --bg-tertiary: #EEF2FF;
+    --text-primary: #1E1B4B;
     --text-secondary: #64748B;
-    --border-color: #E2E8F0;
+    --border-color: #E0E7FF;
     --card-shadow: 0 1px 3px rgba(0,0,0,0.1);
   }
   .dark-mode {
-    --bg-primary: #0F172A;
+    --bg-primary: #1E1B4B;
     --bg-secondary: #1E293B;
     --bg-tertiary: #334155;
-    --text-primary: #F8FAFC;
+    --text-primary: #F5F3FF;
     --text-secondary: #CBD5E1;
     --border-color: #334155;
     --card-shadow: 0 1px 3px rgba(0,0,0,0.3);
   }
 
   .al-root {
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Outfit', sans-serif;
     color: var(--text-primary);
     background: var(--bg-primary);
     min-height: 100vh;
     transition: background 0.3s, color 0.3s;
   }
   .al-root h1, .al-root h2, .al-root h3 {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: 'Outfit', sans-serif;
   }
 
   /* ── NAVBAR ── */
@@ -368,25 +368,25 @@ export default function AllListingsPage() {
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; color: var(--text-primary); transition: .15s; flex-shrink: 0;
   }
-  .al-back-btn:hover { background: #EFF6FF; color: #2563EB; border-color: #BFDBFE; }
-  .dark-mode .al-back-btn:hover { background: rgba(59,130,246,.15); }
+  .al-back-btn:hover { background: #F5F3FF; color: #4F46E5; border-color: #DDD6FE; }
+  .dark-mode .al-back-btn:hover { background: rgba(129,140,248,.15); }
 
   .al-navbar-logo {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: 'Outfit', sans-serif;
     font-size: 25px; font-weight: 800; letter-spacing: -1px;
     color: var(--text-primary); cursor: pointer;
   }
-  .al-navbar-logo span { color: #2563EB; }
+  .al-navbar-logo span { color: #4F46E5; }
 
   .al-navbar-links { display: flex; align-items: center; gap: 4px; }
   .al-navbar-link {
     font-size: 14px; font-weight: 600; color: var(--text-secondary);
     cursor: pointer; padding: 7px 11px; border-radius: 9px;
-    transition: .15s; font-family: 'DM Sans', sans-serif;
+    transition: .15s; font-family: 'Outfit', sans-serif;
   }
-  .al-navbar-link:hover { color: #2563EB; background: #EFF6FF; }
-  .dark-mode .al-navbar-link:hover { background: rgba(59,130,246,.15); }
-  .al-navbar-link.active { color: #2563EB; }
+  .al-navbar-link:hover { color: #4F46E5; background: #F5F3FF; }
+  .dark-mode .al-navbar-link:hover { background: rgba(129,140,248,.15); }
+  .al-navbar-link.active { color: #4F46E5; }
 
   .al-navbar-divider { width: 1px; height: 22px; background: var(--border-color); margin: 0 6px; }
 
@@ -400,8 +400,8 @@ export default function AllListingsPage() {
     display: flex; align-items: center; justify-content: center;
     border: 1.5px solid var(--border-color); transition: .2s;
   }
-  .al-chat-btn:hover { background: #EFF6FF; color: #2563EB; border-color: #BFDBFE; }
-  .dark-mode .al-chat-btn:hover { background: rgba(59,130,246,.15); }
+  .al-chat-btn:hover { background: #F5F3FF; color: #4F46E5; border-color: #DDD6FE; }
+  .dark-mode .al-chat-btn:hover { background: rgba(129,140,248,.15); }
   .al-chat-badge {
     position: absolute; top: -3px; right: -3px;
     min-width: 16px; height: 16px; background: #EF4444;
@@ -420,34 +420,34 @@ export default function AllListingsPage() {
     background: var(--bg-tertiary); border: 1.5px solid var(--border-color);
     cursor: pointer; transition: .2s; color: var(--text-primary); margin-left: 2px;
   }
-  .al-theme-toggle:hover { background: #EFF6FF; color: #2563EB; }
-  .dark-mode .al-theme-toggle:hover { background: rgba(59,130,246,.15); }
+  .al-theme-toggle:hover { background: #F5F3FF; color: #4F46E5; }
+  .dark-mode .al-theme-toggle:hover { background: rgba(129,140,248,.15); }
 
   .al-navbar-login {
     font-size: 14px; font-weight: 700; color: var(--text-secondary);
     cursor: pointer; padding: 8px 14px; border-radius: 10px; transition: .15s;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Outfit', sans-serif;
   }
   .al-navbar-login:hover { color: var(--text-primary); background: var(--bg-tertiary); }
   .al-navbar-cta {
     border: none; cursor: pointer; padding: 11px 22px; border-radius: 12px;
-    background: linear-gradient(135deg, #2563EB, #3B82F6);
+    background: linear-gradient(135deg, #4F46E5, #7C3AED);
     color: #fff; font-size: 13px; font-weight: 700; transition: .2s;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Outfit', sans-serif;
   }
-  .al-navbar-cta:hover { transform: translateY(-1px); box-shadow: 0 12px 25px rgba(37,99,235,.22); }
+  .al-navbar-cta:hover { transform: translateY(-1px); box-shadow: 0 12px 25px rgba(79,70,229,.22); }
 
   /* Dropdown (sama persis Dashboard) */
   .al-dropdown-wrap { position: relative; }
   .al-navbar-avatar {
     width: 36px; height: 36px; border-radius: 50%;
-    background: #DBEAFE; color: #1D4ED8;
+    background: #E0E7FF; color: #4F46E5;
     font-size: 12px; font-weight: 700;
     display: flex; align-items: center; justify-content: center;
-    cursor: pointer; border: 2px solid #BFDBFE; transition: .2s; margin-left: 4px;
-    font-family: 'DM Sans', sans-serif;
+    cursor: pointer; border: 2px solid #DDD6FE; transition: .2s; margin-left: 4px;
+    font-family: 'Outfit', sans-serif;
   }
-  .al-navbar-avatar:hover { background: #BFDBFE; transform: scale(1.05); }
+  .al-navbar-avatar:hover { background: #DDD6FE; transform: scale(1.05); }
   .al-navbar-dropdown {
     position: absolute; top: calc(100% + 10px); right: 0;
     background: var(--bg-secondary); border: 1px solid var(--border-color);
@@ -465,7 +465,7 @@ export default function AllListingsPage() {
     padding: 10px 13px; border: none; background: none;
     border-radius: 10px; font-size: 13px; font-weight: 600;
     color: var(--text-secondary); cursor: pointer; width: 100%;
-    text-align: left; transition: .13s; font-family: 'DM Sans', sans-serif;
+    text-align: left; transition: .13s; font-family: 'Outfit', sans-serif;
   }
   .al-navbar-dropdown button:hover { background: var(--bg-tertiary); color: var(--text-primary); }
   .al-navbar-dropdown .dd-divider { height: 1px; background: var(--border-color); margin: 4px 0; }
@@ -478,7 +478,7 @@ export default function AllListingsPage() {
     position: relative; overflow: hidden; padding: 64px 24px 72px;
     background:
       radial-gradient(circle at top left, rgba(255,255,255,.08), transparent 25%),
-      linear-gradient(135deg, #0F172A 0%, #1E3A8A 45%, #2563EB 100%);
+      linear-gradient(135deg, #1E1B4B 0%, #4338CA 38%, #4F46E5 72%, #7C3AED 100%);
   }
   .al-blob { position: absolute; border-radius: 50%; background: rgba(255,255,255,.06); filter: blur(2px); }
   .al-hero-inner { position: relative; z-index: 2; max-width: 680px; margin: auto; text-align: center; }
@@ -492,7 +492,7 @@ export default function AllListingsPage() {
     font-size: 42px; font-weight: 800; color: white;
     margin: 0 0 16px; letter-spacing: -1.5px; line-height: 1.12;
   }
-  .al-hero h1 em { font-style: normal; color: #93C5FD; }
+  .al-hero h1 em { font-style: normal; color: #C7D2FE; }
   .al-hero-sub { font-size: 16px; color: rgba(255,255,255,.72); line-height: 1.7; min-height: 28px; }
   .al-shimmer {
     display: inline-block; width: 300px; height: 20px;
@@ -521,10 +521,10 @@ export default function AllListingsPage() {
     font-size: 13px; font-weight: 700; color: var(--text-secondary);
     cursor: pointer; border: none; background: none;
     border-bottom: 2.5px solid transparent; transition: .15s;
-    white-space: nowrap; font-family: 'DM Sans', sans-serif; flex-shrink: 0;
+    white-space: nowrap; font-family: 'Outfit', sans-serif; flex-shrink: 0;
   }
-  .al-filter-chip:hover { color: #2563EB; }
-  .al-filter-chip.active { color: #2563EB; border-bottom-color: #2563EB; }
+  .al-filter-chip:hover { color: #4F46E5; }
+  .al-filter-chip.active { color: #4F46E5; border-bottom-color: #4F46E5; }
 
   .al-filter-btn {
     display: flex; align-items: center; justify-content: center; gap: 7px;
@@ -532,15 +532,15 @@ export default function AllListingsPage() {
     border-radius: 12px; border: 1px solid var(--border-color);
     background: var(--bg-secondary);
     font-size: 13px; font-weight: 700; color: var(--text-secondary);
-    cursor: pointer; transition: .15s; font-family: 'DM Sans', sans-serif;
+    cursor: pointer; transition: .15s; font-family: 'Outfit', sans-serif;
     position: relative; flex-shrink: 0;
   }
-  .al-filter-btn:hover { color: #2563EB; background: #EFF6FF; border-color: #BFDBFE; }
-  .dark-mode .al-filter-btn:hover { background: rgba(59,130,246,.15); }
-  .al-filter-btn.has-active { color: #2563EB; }
+  .al-filter-btn:hover { color: #4F46E5; background: #F5F3FF; border-color: #DDD6FE; }
+  .dark-mode .al-filter-btn:hover { background: rgba(129,140,248,.15); }
+  .al-filter-btn.has-active { color: #4F46E5; }
   .al-filter-badge {
     min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
-    background: #2563EB; color: white;
+    background: #4F46E5; color: white;
     display: flex; align-items: center; justify-content: center;
     font-size: 10px; font-weight: 700;
   }
@@ -560,10 +560,10 @@ export default function AllListingsPage() {
     background: var(--bg-secondary); border: 1.5px solid var(--border-color);
     border-radius: 12px; padding: 9px 14px;
     font-size: 13px; font-weight: 700; color: var(--text-primary);
-    font-family: 'DM Sans', sans-serif; cursor: pointer; transition: .15s; white-space: nowrap;
+    font-family: 'Outfit', sans-serif; cursor: pointer; transition: .15s; white-space: nowrap;
   }
-  .al-sort-trigger:hover { border-color: #BFDBFE; color: #2563EB; background: #EFF6FF; }
-  .dark-mode .al-sort-trigger:hover { background: rgba(59,130,246,.15); }
+  .al-sort-trigger:hover { border-color: #DDD6FE; color: #4F46E5; background: #F5F3FF; }
+  .dark-mode .al-sort-trigger:hover { background: rgba(129,140,248,.15); }
   .al-sort-trigger svg { transition: transform .2s; color: var(--text-secondary); }
   .al-sort-trigger svg.rotated { transform: rotate(180deg); }
 
@@ -581,14 +581,14 @@ export default function AllListingsPage() {
     display: flex; align-items: center; justify-content: space-between;
     width: 100%; padding: 10px 14px; border-radius: 10px;
     border: none; background: none; font-size: 13px; font-weight: 600;
-    color: var(--text-primary); font-family: 'DM Sans', sans-serif;
+    color: var(--text-primary); font-family: 'Outfit', sans-serif;
     cursor: pointer; text-align: left; transition: .12s;
   }
-  .al-sort-dropdown-item:hover { background: #EFF6FF; color: #2563EB; }
-  .dark-mode .al-sort-dropdown-item:hover { background: rgba(59,130,246,.15); }
-  .al-sort-dropdown-item.active { color: #2563EB; background: #EFF6FF; }
-  .dark-mode .al-sort-dropdown-item.active { background: rgba(59,130,246,.15); }
-  .al-sort-check { font-size: 13px; font-weight: 800; color: #2563EB; }
+  .al-sort-dropdown-item:hover { background: #F5F3FF; color: #4F46E5; }
+  .dark-mode .al-sort-dropdown-item:hover { background: rgba(129,140,248,.15); }
+  .al-sort-dropdown-item.active { color: #4F46E5; background: #F5F3FF; }
+  .dark-mode .al-sort-dropdown-item.active { background: rgba(129,140,248,.15); }
+  .al-sort-check { font-size: 13px; font-weight: 800; color: #4F46E5; }
 
   /* ── GRID ── */
   .al-content { max-width: 1180px; margin: 0 auto; padding: 20px 28px 60px; }
@@ -609,8 +609,8 @@ export default function AllListingsPage() {
   .al-empty p { font-size: 14px; color: var(--text-secondary); font-weight: 600; }
   .al-retry-btn {
     border: none; cursor: pointer; display: flex; align-items: center; gap: 8px;
-    background: #2563EB; color: white; padding: 10px 18px; border-radius: 12px;
-    font-weight: 700; font-family: 'DM Sans', sans-serif;
+    background: #4F46E5; color: white; padding: 10px 18px; border-radius: 12px;
+    font-weight: 700; font-family: 'Outfit', sans-serif;
   }
 
   /* ── FILTER DRAWER ── */
@@ -636,12 +636,12 @@ export default function AllListingsPage() {
     padding: 20px 22px 16px; border-bottom: 1px solid var(--border-color);
   }
   .al-drawer-title {
-    font-family: 'Plus Jakarta Sans', sans-serif; font-size: 16px; font-weight: 700;
+    font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 700;
     color: var(--text-primary);
   }
   .al-drawer-reset {
-    font-size: 13px; font-weight: 700; color: #2563EB; cursor: pointer;
-    border: none; background: none; font-family: 'DM Sans', sans-serif;
+    font-size: 13px; font-weight: 700; color: #4F46E5; cursor: pointer;
+    border: none; background: none; font-family: 'Outfit', sans-serif;
   }
   .al-drawer-section { padding: 20px 22px 0; }
   .al-drawer-label {
@@ -653,18 +653,18 @@ export default function AllListingsPage() {
     padding: 9px 18px; border-radius: 999px; border: 1.5px solid var(--border-color);
     background: var(--bg-secondary); font-size: 13px; font-weight: 700;
     color: var(--text-secondary); cursor: pointer; transition: .2s;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Outfit', sans-serif;
   }
-  .al-chip:hover { border-color: #93C5FD; color: #2563EB; }
-  .al-chip.active { background: linear-gradient(135deg, #1D4ED8, #2563EB); border-color: #2563EB; color: white; }
+  .al-chip:hover { border-color: #C7D2FE; color: #4F46E5; }
+  .al-chip.active { background: linear-gradient(135deg, #4F46E5, #7C3AED); border-color: #4F46E5; color: white; }
   .al-price-row { display: flex; align-items: center; gap: 10px; }
   .al-price-input {
     flex: 1; border: 1.5px solid var(--border-color); border-radius: 12px;
-    padding: 10px 14px; font-size: 13px; font-family: 'DM Sans', sans-serif;
+    padding: 10px 14px; font-size: 13px; font-family: 'Outfit', sans-serif;
     color: var(--text-primary); outline: none; transition: .15s;
     background: var(--bg-tertiary);
   }
-  .al-price-input:focus { border-color: #93C5FD; background: var(--bg-secondary); }
+  .al-price-input:focus { border-color: #C7D2FE; background: var(--bg-secondary); }
   .al-price-sep { color: var(--text-secondary); font-weight: 700; font-size: 14px; }
   .al-sort-opts { display: flex; flex-direction: column; gap: 2px; }
   .al-sort-opt {
@@ -672,42 +672,42 @@ export default function AllListingsPage() {
     padding: 12px 14px; border-radius: 12px; font-size: 14px; font-weight: 600;
     color: var(--text-primary); cursor: pointer; transition: .12s;
     border: none; background: none; width: 100%; text-align: left;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Outfit', sans-serif;
   }
-  .al-sort-opt:hover { background: #EFF6FF; color: #2563EB; }
-  .dark-mode .al-sort-opt:hover { background: rgba(59,130,246,.15); }
-  .al-sort-opt.active { color: #2563EB; background: #EFF6FF; }
-  .dark-mode .al-sort-opt.active { background: rgba(59,130,246,.15); }
+  .al-sort-opt:hover { background: #F5F3FF; color: #4F46E5; }
+  .dark-mode .al-sort-opt:hover { background: rgba(129,140,248,.15); }
+  .al-sort-opt.active { color: #4F46E5; background: #F5F3FF; }
+  .dark-mode .al-sort-opt.active { background: rgba(129,140,248,.15); }
   .al-radio {
     width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border-color);
     flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: .15s;
   }
-  .al-sort-opt.active .al-radio { border-color: #2563EB; background: #2563EB; }
+  .al-sort-opt.active .al-radio { border-color: #4F46E5; background: #4F46E5; }
   .al-sort-opt.active .al-radio::after {
     content: ''; width: 6px; height: 6px; border-radius: 50%; background: white;
   }
   .al-drawer-footer { padding: 20px 22px 0; }
   .al-apply-btn {
-    width: 100%; background: linear-gradient(135deg, #1D4ED8, #2563EB);
+    width: 100%; background: linear-gradient(135deg, #4F46E5, #7C3AED);
     color: white; border: none; border-radius: 12px; padding: 13px;
     font-size: 15px; font-weight: 700; cursor: pointer;
-    font-family: 'DM Sans', sans-serif; transition: .2s;
+    font-family: 'Outfit', sans-serif; transition: .2s;
   }
-  .al-apply-btn:hover { transform: translateY(-1px); box-shadow: 0 12px 25px rgba(37,99,235,.22); }
+  .al-apply-btn:hover { transform: translateY(-1px); box-shadow: 0 12px 25px rgba(79,70,229,.22); }
 
   /* ── FOOTER ── */
-  .al-footer { background: #0F172A; color: #94A3B8; }
+  .al-footer { background: #1E1B4B; color: #94A3B8; }
   .al-footer-inner {
     max-width: 1180px; margin: auto; padding: 52px 28px 44px;
     display: flex; gap: 60px;
   }
   .al-footer-brand { flex: 1.2; }
   .al-footer-logo {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: 'Outfit', sans-serif;
     font-size: 24px; font-weight: 800; color: white;
     letter-spacing: -1px; margin-bottom: 14px;
   }
-  .al-footer-logo span { color: #3B82F6; }
+  .al-footer-logo span { color: #A78BFA; }
   .al-footer-brand p {
     font-size: 13.5px; line-height: 1.7; color: #64748B;
     max-width: 270px; margin: 0 0 22px;
@@ -715,24 +715,24 @@ export default function AllListingsPage() {
   .al-footer-socials { display: flex; gap: 10px; }
   .al-footer-social {
     font-size: 12px; font-weight: 700; color: #475569;
-    background: #1E293B; border: 1px solid #334155;
+    background: #3730A3; border: 1px solid #4F46E5;
     padding: 6px 14px; border-radius: 999px; cursor: pointer; transition: .15s;
   }
-  .al-footer-social:hover { color: white; border-color: #3B82F6; }
+  .al-footer-social:hover { color: white; border-color: #A78BFA; }
   .al-footer-links { flex: 2; display: flex; gap: 40px; }
   .al-footer-col { display: flex; flex-direction: column; gap: 11px; flex: 1; }
   .al-footer-col-title {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: 'Outfit', sans-serif;
     font-size: 13px; font-weight: 700; color: white;
     margin-bottom: 4px; letter-spacing: .3px;
   }
   .al-footer-link {
     font-size: 13px; color: #64748B; cursor: pointer; transition: .13s;
     background: none; border: none; padding: 0; text-align: left;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Outfit', sans-serif;
   }
-  .al-footer-link:hover { color: #93C5FD; }
-  .al-footer-divider { border: none; border-top: 1px solid #1E293B; margin: 0; }
+  .al-footer-link:hover { color: #C7D2FE; }
+  .al-footer-divider { border: none; border-top: 1px solid #3730A3; margin: 0; }
   .al-footer-bottom {
     max-width: 1180px; margin: 0 auto; padding: 20px 28px;
     display: flex; align-items: center; justify-content: space-between;

@@ -20,12 +20,12 @@ export const USER_BOTTOM_NAV_CSS = `
       z-index: 300;
       background: rgba(255, 255, 255, 0.97);
       backdrop-filter: blur(20px);
-      border-top: 1px solid #E2E8F0;
+      border-top: 1px solid #E0E7FF;
       padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
       justify-content: space-around;
       align-items: center;
       box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.07);
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'Outfit', sans-serif;
     }
     .user-bn-item {
       flex: 1;
@@ -43,7 +43,7 @@ export const USER_BOTTOM_NAV_CSS = `
       transition: color 0.15s;
       font-family: inherit;
     }
-    .user-bn-item.active { color: #2563EB; background: #EFF6FF; }
+    .user-bn-item.active { color: #4F46E5; background: #F5F3FF; }
     .user-bn-item span {
       font-size: 10px;
       font-weight: 700;
@@ -56,7 +56,7 @@ export const USER_BOTTOM_NAV_CSS = `
       display: block;
       width: 4px;
       height: 4px;
-      background: #2563EB;
+      background: #4F46E5;
       border-radius: 50%;
       margin-top: 1px;
     }
@@ -65,19 +65,19 @@ export const USER_BOTTOM_NAV_CSS = `
       width: 24px;
       height: 24px;
       border-radius: 50%;
-      background: #DBEAFE;
-      color: #1D4ED8;
+      background: #E0E7FF;
+      color: #4F46E5;
       font-size: 8px;
       font-weight: 800;
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 2px solid #BFDBFE;
-      font-family: 'DM Sans', sans-serif;
+      border: 2px solid #DDD6FE;
+      font-family: 'Outfit', sans-serif;
     }
     .user-bn-item.active .user-bn-avatar {
-      background: #BFDBFE;
-      border-color: #2563EB;
+      background: #DDD6FE;
+      border-color: #4F46E5;
     }
     .user-bn-notif-dot {
       position: absolute;

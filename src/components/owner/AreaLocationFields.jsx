@@ -6,14 +6,14 @@ import {
 
 const selectStyle = {
   width: "100%",
-  background: "#f8faff",
+  background: "#FAFAFE",
   border: "1px solid #e2e8f4",
   borderRadius: 10,
   padding: "11px 14px",
   fontSize: 14,
   color: "#1e293b",
   outline: "none",
-  fontFamily: "'DM Sans', sans-serif",
+  fontFamily: "'Outfit', sans-serif",
   cursor: "pointer",
 };
 

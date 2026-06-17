@@ -16,7 +16,7 @@ const STATUS = {
 };
 
 const GENDER = {
-  PUTRA:  { label: GENDER_LABELS.PUTRA,  cls: "bg-blue-100 text-blue-700 border-blue-200" },
+  PUTRA:  { label: GENDER_LABELS.PUTRA,  cls: "bg-indigo-100 text-indigo-700 border-indigo-200" },
   PUTRI:  { label: GENDER_LABELS.PUTRI,  cls: "bg-pink-100 text-pink-700 border-pink-200" },
   CAMPUR: { label: GENDER_LABELS.CAMPUR, cls: "bg-violet-100 text-violet-700 border-violet-200" },
 };
@@ -35,10 +35,10 @@ const fmtPrice = (n) =>
 
 function Section({ icon: Icon, title, children, badge }) {
   return (
-    <section className="bg-white rounded-3xl border border-blue-100/80 shadow-sm shadow-blue-100/40 overflow-hidden">
-      <div className="flex items-center justify-between gap-3 px-5 sm:px-6 py-4 border-b border-blue-50 bg-gradient-to-r from-blue-50/80 to-white">
+    <section className="bg-white rounded-3xl border border-indigo-100/80 shadow-sm shadow-indigo-100/40 overflow-hidden">
+      <div className="flex items-center justify-between gap-3 px-5 sm:px-6 py-4 border-b border-indigo-50 bg-gradient-to-r from-indigo-50/80 to-white">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-sky-500 flex items-center justify-center text-white shadow-md shadow-blue-200">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-indigo-200">
             <Icon size={18} />
           </div>
           <h2 className="text-sm sm:text-base font-black text-slate-900">{title}</h2>
@@ -109,22 +109,22 @@ export default function DetailListingPage() {
 
   return (
     <div
-      className="min-h-screen bg-gradient-to-b from-blue-50 via-slate-50 to-white pb-12"
-      style={{ fontFamily: "'Plus Jakarta Sans','Inter',sans-serif" }}
+      className="min-h-screen bg-gradient-to-b from-indigo-50 via-slate-50 to-white pb-12"
+      style={{ fontFamily: "'Outfit','Inter',sans-serif" }}
     >
       {/* Top bar */}
-      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-blue-100">
+      <header className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-indigo-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
               onClick={() => navigate("/owner/properti")}
-              className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 hover:bg-blue-100 active:scale-95 transition-all flex-shrink-0"
+              className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 hover:bg-indigo-100 active:scale-95 transition-all flex-shrink-0"
             >
               <ArrowLeft size={18} />
             </button>
             <div className="min-w-0">
-              <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Properti</p>
+              <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Properti</p>
               <p className="text-sm font-black text-slate-900 truncate">Detail Listing</p>
             </div>
           </div>
@@ -132,7 +132,7 @@ export default function DetailListingPage() {
             <button
               type="button"
               onClick={() => navigate(`/owner/edit/${id}`)}
-              className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-sky-500 text-white text-xs sm:text-sm font-black px-4 py-2.5 rounded-2xl shadow-lg shadow-blue-200 active:scale-95 transition-all flex-shrink-0"
+              className="flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white text-xs sm:text-sm font-black px-4 py-2.5 rounded-2xl shadow-lg shadow-indigo-200 active:scale-95 transition-all flex-shrink-0"
             >
               <Edit3 size={16} /> Edit
             </button>
@@ -142,7 +142,7 @@ export default function DetailListingPage() {
 
       {loading && (
         <div className="flex flex-col items-center justify-center py-32 gap-4">
-          <div className="w-14 h-14 rounded-full border-4 border-blue-100 border-t-blue-600 animate-spin" />
+          <div className="w-14 h-14 rounded-full border-4 border-indigo-100 border-t-indigo-600 animate-spin" />
           <p className="text-sm font-bold text-slate-500">Memuat detail properti...</p>
         </div>
       )}
@@ -155,7 +155,7 @@ export default function DetailListingPage() {
             <button
               type="button"
               onClick={() => navigate("/owner/properti")}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-black"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-black"
             >
               <ArrowLeft size={14} /> Kembali ke Properti
             </button>
@@ -166,24 +166,24 @@ export default function DetailListingPage() {
       {!loading && has && (
         <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-5 sm:pt-8 space-y-6 sm:space-y-8">
           {/* Hero */}
-          <div className="relative rounded-[2rem] overflow-hidden shadow-xl shadow-blue-200/50 border border-blue-100">
+          <div className="relative rounded-[2rem] overflow-hidden shadow-xl shadow-indigo-200/50 border border-indigo-100">
             <div
               className="absolute inset-0"
-              style={{ background: "linear-gradient(135deg,#0F172A 0%,#1E3A8A 40%,#2563EB 70%,#38BDF8 100%)" }}
+              style={{ background: "linear-gradient(135deg,#1E1B4B 0%,#3730A3 40%,#4F46E5 70%,#38BDF8 100%)" }}
             />
-            <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-sky-400/20 blur-2xl" />
-            <div className="absolute -bottom-16 -left-16 w-48 h-48 rounded-full bg-blue-300/20 blur-2xl" />
+            <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-indigo-400/20 blur-2xl" />
+            <div className="absolute -bottom-16 -left-16 w-48 h-48 rounded-full bg-indigo-300/20 blur-2xl" />
 
             <div className="relative z-10 grid lg:grid-cols-2 gap-6 lg:gap-8 p-6 sm:p-8 lg:p-10">
               {/* Info */}
               <div className="flex flex-col justify-center order-2 lg:order-1">
-                <p className="text-blue-200 text-[11px] font-black uppercase tracking-[0.2em] mb-2">
+                <p className="text-indigo-200 text-[11px] font-black uppercase tracking-[0.2em] mb-2">
                   Detail Properti
                 </p>
                 <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white leading-tight tracking-tight mb-3">
                   {data.name}
                 </h1>
-                <div className="flex items-start gap-2 text-blue-100 mb-4">
+                <div className="flex items-start gap-2 text-indigo-100 mb-4">
                   <MapPin size={16} className="flex-shrink-0 mt-0.5" />
                   <p className="text-sm leading-relaxed">{data.address || "—"}</p>
                 </div>
@@ -209,8 +209,8 @@ export default function DetailListingPage() {
                       className="bg-white/15 backdrop-blur rounded-2xl px-3 py-4 border border-white/20 text-center"
                     >
                       <p className="text-xl sm:text-2xl font-black text-white leading-none">{s.value}</p>
-                      <p className="text-[10px] text-blue-200 font-bold mt-1">{s.label}</p>
-                      <p className="text-[9px] text-blue-300/80">{s.sub}</p>
+                      <p className="text-[10px] text-indigo-200 font-bold mt-1">{s.label}</p>
+                      <p className="text-[9px] text-indigo-300/80">{s.sub}</p>
                     </div>
                   ))}
                 </div>
@@ -218,11 +218,11 @@ export default function DetailListingPage() {
 
               {/* Gallery */}
               <div className="order-1 lg:order-2">
-                <div className="relative rounded-2xl overflow-hidden bg-blue-900/40 border-2 border-white/25 shadow-2xl aspect-[4/3] sm:aspect-[5/4] min-h-[220px] sm:min-h-[280px]">
+                <div className="relative rounded-2xl overflow-hidden bg-indigo-950/40 border-2 border-white/25 shadow-2xl aspect-[4/3] sm:aspect-[5/4] min-h-[220px] sm:min-h-[280px]">
                   {coverUrl ? (
                     <img src={coverUrl} alt={data.name} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center text-blue-200/60 gap-2">
+                    <div className="w-full h-full flex flex-col items-center justify-center text-indigo-200/60 gap-2">
                       <ImageOff size={48} strokeWidth={1.5} />
                       <span className="text-sm font-semibold">Belum ada foto</span>
                     </div>
@@ -292,7 +292,7 @@ export default function DetailListingPage() {
             <div className="space-y-5 sm:space-y-6">
               {data.description && (
                 <Section icon={Building2} title="Deskripsi">
-                  <p className="text-sm sm:text-base text-slate-600 leading-relaxed bg-blue-50/60 rounded-2xl p-4 sm:p-5 border border-blue-100">
+                  <p className="text-sm sm:text-base text-slate-600 leading-relaxed bg-indigo-50/60 rounded-2xl p-4 sm:p-5 border border-indigo-100">
                     {data.description}
                   </p>
                 </Section>
@@ -310,11 +310,11 @@ export default function DetailListingPage() {
                       key={label}
                       className={`rounded-2xl p-4 border ${
                         highlight
-                          ? "bg-gradient-to-br from-blue-600 to-sky-500 border-transparent text-white shadow-md shadow-blue-200"
-                          : "bg-white border-blue-100"
+                          ? "bg-gradient-to-br from-indigo-600 to-indigo-500 border-transparent text-white shadow-md shadow-indigo-200"
+                          : "bg-white border-indigo-100"
                       }`}
                     >
-                      <div className={`flex items-center gap-2 mb-2 ${highlight ? "text-blue-100" : "text-slate-400"}`}>
+                      <div className={`flex items-center gap-2 mb-2 ${highlight ? "text-indigo-100" : "text-slate-400"}`}>
                         <Icon size={14} />
                         <span className="text-[10px] font-black uppercase tracking-wider">{label}</span>
                       </div>
@@ -338,18 +338,18 @@ export default function DetailListingPage() {
               <Section icon={MapPin} title="Lokasi">
                 <p className="text-sm text-slate-600 leading-relaxed mb-3">{data.address}</p>
                 {(data.latitude != null || data.longitude != null) && (
-                  <div className="relative rounded-2xl overflow-hidden border border-blue-200 h-40">
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-100 via-sky-100 to-blue-50" />
+                  <div className="relative rounded-2xl overflow-hidden border border-indigo-200 h-40">
+                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-100 via-indigo-50 to-indigo-50" />
                     <div
                       className="absolute inset-0 opacity-60"
                       style={{
                         backgroundImage:
-                          "radial-gradient(circle at 20% 25%, rgba(59,130,246,0.45), transparent 38%), radial-gradient(circle at 82% 35%, rgba(14,165,233,0.4), transparent 36%), radial-gradient(circle at 45% 80%, rgba(96,165,250,0.45), transparent 40%)",
+                          "radial-gradient(circle at 20% 25%, rgba(129,140,248,0.45), transparent 38%), radial-gradient(circle at 82% 35%, rgba(14,165,233,0.4), transparent 36%), radial-gradient(circle at 45% 80%, rgba(96,165,250,0.45), transparent 40%)",
                       }}
                     />
                     <div className="absolute inset-0 backdrop-blur-xl" />
                     <div className="absolute inset-0 bg-white/25" />
-                    <div className="absolute right-3 bottom-3 text-[10px] font-bold text-blue-700/80 bg-white/70 px-2 py-1 rounded-lg">
+                    <div className="absolute right-3 bottom-3 text-[10px] font-bold text-indigo-700/80 bg-white/70 px-2 py-1 rounded-lg">
                       Lokasi disamarkan
                     </div>
                   </div>
@@ -362,7 +362,7 @@ export default function DetailListingPage() {
                     {kostFac.map((f, i) => (
                       <span
                         key={i}
-                        className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 text-xs font-bold"
+                        className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold"
                       >
                         {facIcon(f)}
                         {f}
@@ -378,9 +378,9 @@ export default function DetailListingPage() {
                     {data.rules.map((rule, i) => (
                       <li
                         key={i}
-                        className="flex items-center gap-3 text-sm text-slate-700 bg-blue-50/50 rounded-xl px-4 py-3 border border-blue-100"
+                        className="flex items-center gap-3 text-sm text-slate-700 bg-indigo-50/50 rounded-xl px-4 py-3 border border-indigo-100"
                       >
-                        <span className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                        <span className="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center flex-shrink-0">
                           <svg width="10" height="8" viewBox="0 0 9 7" fill="none">
                             <path d="M1 3.5L3.5 6L8 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                           </svg>
@@ -396,7 +396,7 @@ export default function DetailListingPage() {
                 icon={BedDouble}
                 title="Tipe Kamar"
                 badge={
-                  <span className="text-[11px] font-black text-blue-600 bg-blue-100 px-2.5 py-1 rounded-full">
+                  <span className="text-[11px] font-black text-indigo-600 bg-indigo-100 px-2.5 py-1 rounded-full">
                     {data.roomTypes?.length || 0} tipe
                   </span>
                 }
@@ -414,21 +414,21 @@ export default function DetailListingPage() {
                       return (
                         <article
                           key={room?.id}
-                          className="rounded-2xl border border-blue-100 overflow-hidden hover:border-blue-300 hover:shadow-md hover:shadow-blue-100/50 transition-all bg-white"
+                          className="rounded-2xl border border-indigo-100 overflow-hidden hover:border-indigo-300 hover:shadow-md hover:shadow-indigo-100/50 transition-all bg-white"
                         >
                           <div className="flex gap-4 p-4 sm:p-5">
-                            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden bg-blue-50 border border-blue-100 flex-shrink-0 flex items-center justify-center">
+                            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden bg-indigo-50 border border-indigo-100 flex-shrink-0 flex items-center justify-center">
                               {thumb ? (
                                 <img src={thumb} alt={room?.name} className="w-full h-full object-cover" />
                               ) : (
-                                <BedDouble size={28} className="text-blue-200" />
+                                <BedDouble size={28} className="text-indigo-200" />
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
                               <h3 className="text-base font-black text-slate-900 mb-1">{room?.name || "Kamar"}</h3>
                               <p className="text-xs text-slate-500 mb-2">
                                 {room?.size ? `${room.size} · ` : ""}
-                                <span className="text-blue-600 font-black">{fmtPrice(room?.price)}</span>
+                                <span className="text-indigo-600 font-black">{fmtPrice(room?.price)}</span>
                                 <span className="text-slate-400"> / bulan</span>
                               </p>
                               {facs.length > 0 && (
@@ -436,7 +436,7 @@ export default function DetailListingPage() {
                                   {facs.slice(0, 5).map((f, i) => (
                                     <span
                                       key={i}
-                                      className="inline-flex items-center gap-1 text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded-lg border border-blue-100"
+                                      className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-100"
                                     >
                                       {facIcon(f)} {f}
                                     </span>
@@ -445,11 +445,11 @@ export default function DetailListingPage() {
                               )}
                             </div>
                           </div>
-                          <div className="flex items-center justify-between px-4 sm:px-5 py-3 bg-gradient-to-r from-blue-50 to-sky-50 border-t border-blue-100">
+                          <div className="flex items-center justify-between px-4 sm:px-5 py-3 bg-gradient-to-r from-indigo-50 to-indigo-100 border-t border-indigo-100">
                             <span className="text-xs font-black text-emerald-600 flex items-center gap-1.5">
                               <Users size={14} /> {room?.availableCount ?? 0} kamar tersedia
                             </span>
-                            <span className="text-base font-black text-blue-700">{fmtPrice(room?.price)}</span>
+                            <span className="text-base font-black text-indigo-700">{fmtPrice(room?.price)}</span>
                           </div>
                         </article>
                       );
@@ -462,11 +462,11 @@ export default function DetailListingPage() {
             {/* Sidebar */}
             <aside className="lg:sticky lg:top-20 space-y-4">
               <div
-                className="rounded-3xl overflow-hidden shadow-xl shadow-blue-200/60 border border-blue-200"
-                style={{ background: "linear-gradient(160deg,#1E3A8A 0%,#2563EB 50%,#0EA5E9 100%)" }}
+                className="rounded-3xl overflow-hidden shadow-xl shadow-indigo-200/60 border border-indigo-200"
+                style={{ background: "linear-gradient(160deg,#3730A3 0%,#4F46E5 50%,#0EA5E9 100%)" }}
               >
                 <div className="p-5 sm:p-6 border-b border-white/15">
-                  <p className="text-[10px] font-black text-blue-200 uppercase tracking-widest mb-1">Ringkasan</p>
+                  <p className="text-[10px] font-black text-indigo-200 uppercase tracking-widest mb-1">Ringkasan</p>
                   <p className="text-lg font-black text-white leading-snug line-clamp-2">{data.name}</p>
                 </div>
                 <div className="p-5 sm:p-6 space-y-3">
@@ -480,7 +480,7 @@ export default function DetailListingPage() {
                       key={row.label}
                       className="rounded-2xl bg-white/10 border border-white/15 px-4 py-3 backdrop-blur-sm"
                     >
-                      <p className="text-[10px] font-bold text-blue-200 uppercase tracking-wide mb-0.5">{row.label}</p>
+                      <p className="text-[10px] font-bold text-indigo-200 uppercase tracking-wide mb-0.5">{row.label}</p>
                       <p className="text-sm font-black text-white">{row.value || "—"}</p>
                     </div>
                   ))}
@@ -489,7 +489,7 @@ export default function DetailListingPage() {
                   <button
                     type="button"
                     onClick={() => navigate(`/owner/edit/${id}`)}
-                    className="w-full py-3.5 rounded-2xl bg-white text-blue-700 font-black text-sm shadow-lg active:scale-[0.98] transition-transform flex items-center justify-center gap-2 hover:bg-blue-50"
+                    className="w-full py-3.5 rounded-2xl bg-white text-indigo-700 font-black text-sm shadow-lg active:scale-[0.98] transition-transform flex items-center justify-center gap-2 hover:bg-indigo-50"
                   >
                     <Edit3 size={16} /> Edit Properti
                   </button>

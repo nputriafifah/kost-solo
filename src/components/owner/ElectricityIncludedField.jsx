@@ -44,8 +44,8 @@ export default function ElectricityIncludedField({
                       gap: 12,
                       padding: "12px 14px",
                       borderRadius: 12,
-                      border: active ? "1.5px solid #bfdbfe" : "1px solid #e2e8f0",
-                      background: active ? "#eff6ff" : "#fff",
+                      border: active ? "1.5px solid #DDD6FE" : "1px solid #e2e8f0",
+                      background: active ? "#F5F3FF" : "#fff",
                       cursor: "pointer",
                       textAlign: "left",
                       width: "100%",
@@ -58,12 +58,12 @@ export default function ElectricityIncludedField({
                   width: 32,
                   height: 32,
                   borderRadius: 8,
-                  background: active ? "#dbeafe" : "#f1f5f9",
+                  background: active ? "#E0E7FF" : "#f1f5f9",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   flexShrink: 0,
-                  color: active ? "#1d4ed8" : "#64748b",
+                  color: active ? "#4F46E5" : "#64748b",
                 }}
               >
                 <Zap size={16} />
@@ -74,7 +74,7 @@ export default function ElectricityIncludedField({
                     display: "block",
                     fontSize: 13,
                     fontWeight: 700,
-                    color: active ? "#1d4ed8" : "#0f172a",
+                    color: active ? "#4F46E5" : "#1e1b4b",
                   }}
                 >
                   {opt.label}

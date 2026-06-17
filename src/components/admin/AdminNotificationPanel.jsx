@@ -18,8 +18,8 @@ const TYPE_META = {
   },
   OWNER_REGISTERED: {
     icon: UserPlus,
-    iconBg: "bg-blue-50",
-    iconColor: "text-blue-600",
+    iconBg: "bg-indigo-50",
+    iconColor: "text-indigo-600",
     path: "/admin/listings",
   },
 };

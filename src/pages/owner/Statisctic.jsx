@@ -30,15 +30,15 @@ function BottomNav({ active, unreadCount, onNavClick }) {
           <button key={id}
             onClick={() => path ? navigate(path) : onNavClick(id)}
             className="flex-1 flex flex-col items-center justify-center py-3 gap-0.5 relative active:scale-95 transition-transform">
-            {isActive && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-blue-600 rounded-full" />}
+            {isActive && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-indigo-600 rounded-full" />}
             <div className="relative">
               <Icon size={21} strokeWidth={isActive ? 2.5 : 1.8}
-                className={isActive ? "text-blue-600" : "text-slate-400"} />
+                className={isActive ? "text-indigo-600" : "text-slate-400"} />
               {badge && unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white" />
               )}
             </div>
-            <span className={`text-[10px] font-bold ${isActive ? "text-blue-600" : "text-slate-400"}`}>{label}</span>
+            <span className={`text-[10px] font-bold ${isActive ? "text-indigo-600" : "text-slate-400"}`}>{label}</span>
           </button>
         );
       })}
@@ -99,7 +99,7 @@ export default function StatistikPage() {
       label: "Total Tayangan",
       value: loading ? "—" : summary?.totalViews?.toLocaleString("id-ID") ?? "—",
       icon: Eye,
-      color: "text-blue-600 bg-blue-50",
+      color: "text-indigo-600 bg-indigo-50",
       trend: "+12%",
       up: true,
     },
@@ -131,7 +131,7 @@ export default function StatistikPage() {
       label: "Listing Aktif",
       value: loading ? "—" : summary?.activeListings ?? "—",
       icon: BedDouble,
-      color: "text-sky-600 bg-sky-50",
+      color: "text-indigo-600 bg-indigo-50",
       trend: "+1",
       up: true,
     },
@@ -162,7 +162,7 @@ export default function StatistikPage() {
   ];
 
   return (
-    <div className="flex min-h-screen bg-slate-50" style={{ fontFamily: "'Plus Jakarta Sans','Inter',sans-serif" }}>
+    <div className="flex min-h-screen bg-slate-50" style={{ fontFamily: "'Outfit','Inter',sans-serif" }}>
       <Sidebar
         active="statistik"
         onChange={(id) => {
@@ -200,13 +200,13 @@ export default function StatistikPage() {
 
           {/* Hero */}
           <div className="relative rounded-3xl p-6 overflow-hidden"
-            style={{ background: "linear-gradient(135deg,#0F172A 0%,#1E3A8A 45%,#2563EB 100%)" }}>
-            <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-blue-500/40" />
-            <div className="absolute top-4 right-20 w-16 h-16 rounded-full bg-blue-500/25" />
+            style={{ background: "linear-gradient(135deg,#1E1B4B 0%,#3730A3 45%,#4F46E5 100%)" }}>
+            <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-indigo-600/40" />
+            <div className="absolute top-4 right-20 w-16 h-16 rounded-full bg-indigo-600/25" />
             <div className="relative z-10">
-              <p className="text-blue-200 text-xs font-semibold uppercase tracking-widest mb-1">Ringkasan Performa</p>
+              <p className="text-indigo-200 text-xs font-semibold uppercase tracking-widest mb-1">Ringkasan Performa</p>
               <p className="text-white font-black text-xl mb-1">{MONTH_NAMES[now.getMonth()]} {now.getFullYear()}</p>
-              <p className="text-blue-300 text-xs mb-5">Data diperbarui secara real-time dari server</p>
+              <p className="text-indigo-300 text-xs mb-5">Data diperbarui secara real-time dari server</p>
               <div className="grid grid-cols-3 gap-2">
                 {[
                   { label: "Total Tayangan", value: loading ? "…" : summary?.totalViews?.toLocaleString("id-ID") ?? "—", icon: Eye },
@@ -216,7 +216,7 @@ export default function StatistikPage() {
                   <div key={label} className="bg-white/15 backdrop-blur rounded-2xl px-3 py-3 flex flex-col items-center gap-1 border border-white/10">
                     <Icon size={14} className="text-white/70" />
                     <p className="text-white font-black text-lg leading-none">{value}</p>
-                    <p className="text-blue-200 text-[9px] font-semibold text-center leading-tight">{label}</p>
+                    <p className="text-indigo-200 text-[9px] font-semibold text-center leading-tight">{label}</p>
                   </div>
                 ))}
               </div>
@@ -257,9 +257,9 @@ export default function StatistikPage() {
                 <p className="text-sm font-black text-slate-800">Tayangan 6 Bulan Terakhir</p>
                 <p className="text-[11px] text-slate-400 mt-0.5">Tren performa listing kamu</p>
               </div>
-              <div className="flex items-center gap-1.5 bg-blue-50 px-3 py-1.5 rounded-full">
-                <div className="w-2 h-2 rounded-full bg-blue-500" />
-                <span className="text-[10px] font-black text-blue-600">Tayangan</span>
+              <div className="flex items-center gap-1.5 bg-indigo-50 px-3 py-1.5 rounded-full">
+                <div className="w-2 h-2 rounded-full bg-indigo-600" />
+                <span className="text-[10px] font-black text-indigo-600">Tayangan</span>
               </div>
             </div>
             <div className="flex items-end gap-2 h-36">
@@ -271,7 +271,7 @@ export default function StatistikPage() {
                       <div className="w-full rounded-t-lg transition-all duration-500 group-hover:opacity-80"
                         style={{
                           height: `${pct}%`,
-                          background: "linear-gradient(180deg,#3B82F6,#1D4ED8)",
+                          background: "linear-gradient(180deg,#A78BFA,#4F46E5)",
                         }}
                       />
                     </div>

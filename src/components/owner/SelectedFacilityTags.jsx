@@ -16,13 +16,13 @@ export default function SelectedFacilityTags({
     alignItems: "center",
     gap: 8,
     padding: "8px 12px",
-    background: "#eff6ff",
-    border: "1.5px solid #bfdbfe",
+    background: "#F5F3FF",
+    border: "1.5px solid #DDD6FE",
     borderRadius: 10,
-    color: "#1d4ed8",
+    color: "#4F46E5",
     fontSize: variant === "edit" ? 12 : 13,
     fontWeight: 600,
-    fontFamily: variant === "edit" ? "'DM Sans', sans-serif" : undefined,
+    fontFamily: variant === "edit" ? "'Outfit', sans-serif" : undefined,
   };
 
   return (
@@ -33,7 +33,7 @@ export default function SelectedFacilityTags({
           color: "#64748b",
           fontWeight: 600,
           marginBottom: 10,
-          fontFamily: variant === "edit" ? "'DM Sans', sans-serif" : undefined,
+          fontFamily: variant === "edit" ? "'Outfit', sans-serif" : undefined,
         }}
       >
         {label} ({items.length})
@@ -49,7 +49,7 @@ export default function SelectedFacilityTags({
               style={{
                 background: "none",
                 border: "none",
-                color: "#1d4ed8",
+                color: "#4F46E5",
                 cursor: "pointer",
                 padding: 0,
                 display: "flex",

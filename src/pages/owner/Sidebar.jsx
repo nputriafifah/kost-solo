@@ -49,7 +49,7 @@ export default function Sidebar({
           "md:static md:translate-x-0 md:shadow-none md:z-auto",
           open ? "translate-x-0" : "-translate-x-full",
         ].join(" ")}
-        style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        style={{ fontFamily: "'Outfit', sans-serif" }}
       >
         {/* Logo */}
         <div className="px-6 pt-8 pb-5 border-b border-slate-100 flex-shrink-0">

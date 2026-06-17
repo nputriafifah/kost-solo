@@ -54,13 +54,13 @@ function BottomNav({ active, onNavClick }) {
             className="flex-1 flex flex-col items-center justify-center py-3 gap-0.5 relative active:scale-95 transition-transform"
           >
             {isActive && (
-              <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-blue-600 rounded-full" />
+              <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-indigo-600 rounded-full" />
             )}
             <div className="relative">
               <Icon size={21} strokeWidth={isActive ? 2.5 : 1.8}
-                className={isActive ? "text-blue-600" : "text-slate-400"} />
+                className={isActive ? "text-indigo-600" : "text-slate-400"} />
             </div>
-            <span className={`text-[10px] font-bold ${isActive ? "text-blue-600" : "text-slate-400"}`}>
+            <span className={`text-[10px] font-bold ${isActive ? "text-indigo-600" : "text-slate-400"}`}>
               {label}
             </span>
           </button>
@@ -139,11 +139,11 @@ export default function DashboardOwnerPage() {
     <div className="space-y-6">
       {/* Hero card */}
       <div className="relative rounded-3xl p-6 overflow-hidden"
-        style={{ background: "linear-gradient(135deg,#0F172A 0%,#1E3A8A 45%,#2563EB 100%)" }}>
-        <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-blue-500/40" />
-        <div className="absolute top-4 right-20 w-16 h-16 rounded-full bg-blue-500/25" />
+        style={{ background: "linear-gradient(135deg,#1E1B4B 0%,#3730A3 45%,#4F46E5 100%)" }}>
+        <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-indigo-600/40" />
+        <div className="absolute top-4 right-20 w-16 h-16 rounded-full bg-indigo-600/25" />
         <div className="relative z-10">
-          <p className="text-blue-200 text-xs font-semibold uppercase tracking-widest mb-1">Ringkasan Bulan Ini</p>
+          <p className="text-indigo-200 text-xs font-semibold uppercase tracking-widest mb-1">Ringkasan Bulan Ini</p>
           <p className="text-white font-black text-xl mb-4">{bulanIni}</p>
 
           {summaryLoading ? (
@@ -165,7 +165,7 @@ export default function DashboardOwnerPage() {
                 <div key={label} className="bg-white/15 backdrop-blur rounded-2xl px-3 py-3 flex flex-col items-center gap-1 border border-white/10">
                   <Icon size={15} className="text-white/70" />
                   <p className="text-white font-black text-base leading-none">{value}</p>
-                  <p className="text-blue-200 text-[9px] font-semibold text-center leading-tight">{label}</p>
+                  <p className="text-indigo-200 text-[9px] font-semibold text-center leading-tight">{label}</p>
                 </div>
               ))}
             </div>
@@ -178,7 +178,7 @@ export default function DashboardOwnerPage() {
         <h3 className="text-slate-800 font-black text-sm mb-3">Aksi cepat</h3>
         <div className="grid grid-cols-2 gap-3">
           {[
-            { icon: Plus,       label: "Tambah kamar",    color: "bg-blue-50 text-blue-600",      action: () => navigate("/owner/create") },
+            { icon: Plus,       label: "Tambah kamar",    color: "bg-indigo-50 text-indigo-600",      action: () => navigate("/owner/create") },
             { icon: TrendingUp, label: "Tarik pendapatan", color: "bg-emerald-50 text-emerald-600", action: () => navigate("/owner/pendapatan") },
           ].map(({ icon: Icon, label, color, action }) => (
             <button key={label} onClick={action} className="flex flex-col items-center gap-2 active:scale-95 transition-transform">
@@ -195,7 +195,7 @@ export default function DashboardOwnerPage() {
       {!summaryLoading && !summaryError && (
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: "Total tayangan", value: summary?.totalViews?.toLocaleString("id-ID") ?? "—", color: "text-blue-600 bg-blue-50"     },
+            { label: "Total tayangan", value: summary?.totalViews?.toLocaleString("id-ID") ?? "—", color: "text-indigo-600 bg-indigo-50"     },
             { label: "Listing aktif",  value: totalActive,                                          color: "text-emerald-600 bg-emerald-50"},
             { label: "Total leads",    value: summary?.totalLeads ?? "—",                           color: "text-amber-600 bg-amber-50"   },
           ].map((s) => (
@@ -211,7 +211,7 @@ export default function DashboardOwnerPage() {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-slate-800 font-black text-sm">Properti saya</h3>
-          <button onClick={() => navigate("/owner/properti")} className="text-blue-600 font-black text-xs flex items-center gap-1">
+          <button onClick={() => navigate("/owner/properti")} className="text-indigo-600 font-black text-xs flex items-center gap-1">
             Lihat semua <ChevronRight size={12} />
           </button>
         </div>
@@ -219,9 +219,9 @@ export default function DashboardOwnerPage() {
           <div className="space-y-2">{[1,2].map(i => <div key={i} className="h-16 bg-white rounded-2xl border border-slate-100 animate-pulse" />)}</div>
         ) : listings.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-100 p-8 text-center">
-            <Building2 size={24} className="text-blue-200 mx-auto mb-2" />
+            <Building2 size={24} className="text-indigo-200 mx-auto mb-2" />
             <p className="text-sm font-black text-slate-600 mb-3">Belum ada properti</p>
-            <button onClick={() => navigate("/owner/create")} className="bg-blue-600 text-white text-xs font-black px-4 py-2 rounded-xl">
+            <button onClick={() => navigate("/owner/create")} className="bg-indigo-600 text-white text-xs font-black px-4 py-2 rounded-xl">
               Tambah Sekarang
             </button>
           </div>
@@ -232,9 +232,9 @@ export default function DashboardOwnerPage() {
               const kamarAvail = item.roomTypes?.reduce((a, r) => a + (r.availableCount || 0), 0) ?? 0;
               return (
                 <button key={item.id} onClick={() => navigate(`/owner/listing/${item.id}`)}
-                  className="w-full flex items-center gap-3 bg-white rounded-2xl border border-slate-100 px-4 py-3 active:scale-[0.98] transition-transform text-left shadow-sm hover:border-blue-100">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
-                    <Building2 size={17} className="text-blue-400" />
+                  className="w-full flex items-center gap-3 bg-white rounded-2xl border border-slate-100 px-4 py-3 active:scale-[0.98] transition-transform text-left shadow-sm hover:border-indigo-100">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center flex-shrink-0">
+                    <Building2 size={17} className="text-indigo-400" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-black text-slate-900 truncate">{item.name}</p>
@@ -268,10 +268,10 @@ export default function DashboardOwnerPage() {
       ) : (
         <div className="grid grid-cols-3 gap-3">
           {[
-            { label: "Total tayangan",     value: summary?.totalViews?.toLocaleString("id-ID") ?? "—",  color: "text-blue-600 bg-blue-50"     },
+            { label: "Total tayangan",     value: summary?.totalViews?.toLocaleString("id-ID") ?? "—",  color: "text-indigo-600 bg-indigo-50"     },
             { label: "Tayangan hari ini",  value: summary?.todayViews?.toLocaleString("id-ID") ?? "—",  color: "text-emerald-600 bg-emerald-50"},
             { label: "Tayangan minggu ini",value: summary?.weeklyViews?.toLocaleString("id-ID") ?? "—", color: "text-amber-600 bg-amber-50"    },
-            { label: "Total listing",      value: summary?.totalListings ?? "—",                         color: "text-blue-600 bg-blue-50"     },
+            { label: "Total listing",      value: summary?.totalListings ?? "—",                         color: "text-indigo-600 bg-indigo-50"     },
             { label: "Listing aktif",      value: summary?.activeListings ?? "—",                        color: "text-emerald-600 bg-emerald-50"},
             { label: "Total leads",        value: summary?.totalLeads?.toLocaleString("id-ID") ?? "—",  color: "text-pink-600 bg-pink-50"      },
           ].map((s) => (
@@ -291,7 +291,7 @@ export default function DashboardOwnerPage() {
             { bulan: "Feb", nilai: 90 }, { bulan: "Mar", nilai: 70 }, { bulan: "Apr", nilai: 100 },
           ].map((d) => (
             <div key={d.bulan} className="flex-1 flex flex-col items-center gap-1">
-              <div className="w-full bg-blue-600 rounded-t-lg transition-all hover:bg-blue-500"
+              <div className="w-full bg-indigo-600 rounded-t-lg transition-all hover:bg-indigo-600"
                 style={{ height: `${d.nilai}%` }} />
               <span className="text-[9px] text-slate-400 font-bold">{d.bulan}</span>
             </div>
@@ -305,16 +305,16 @@ export default function DashboardOwnerPage() {
   const renderAkun = () => (
     <div className="space-y-4 max-w-lg">
       <div className="rounded-3xl p-6 relative overflow-hidden"
-        style={{ background: "linear-gradient(135deg,#0F172A 0%,#1E3A8A 45%,#2563EB 100%)" }}>
-        <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-blue-500/40" />
+        style={{ background: "linear-gradient(135deg,#1E1B4B 0%,#3730A3 45%,#4F46E5 100%)" }}>
+        <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-indigo-600/40" />
         <div className="relative z-10 flex items-center gap-4">
           <div className="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur border border-white/20 flex items-center justify-center text-white font-black text-xl">
             {initials}
           </div>
           <div>
             <h2 className="text-white font-black text-lg">{user.name || "Owner"}</h2>
-            <p className="text-blue-200 text-xs">{user.email || "-"}</p>
-            <span className="mt-1 inline-block text-[10px] font-black text-blue-700 bg-white/90 px-2.5 py-0.5 rounded-full">
+            <p className="text-indigo-200 text-xs">{user.email || "-"}</p>
+            <span className="mt-1 inline-block text-[10px] font-black text-indigo-700 bg-white/90 px-2.5 py-0.5 rounded-full">
               Pemilik Kos
             </span>
           </div>
@@ -345,9 +345,9 @@ export default function DashboardOwnerPage() {
         { icon: Settings,  label: "Pengaturan",        sub: "Notifikasi & preferensi",                      action: () => {} },
       ].map(({ icon: Icon, label, sub, action }) => (
         <button key={label} onClick={action}
-          className="w-full flex items-center gap-4 bg-white border border-slate-100 rounded-2xl px-5 py-4 shadow-sm active:scale-[0.98] transition-transform text-left hover:border-blue-100">
-          <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
-            <Icon size={18} className="text-blue-500" />
+          className="w-full flex items-center gap-4 bg-white border border-slate-100 rounded-2xl px-5 py-4 shadow-sm active:scale-[0.98] transition-transform text-left hover:border-indigo-100">
+          <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center flex-shrink-0">
+            <Icon size={18} className="text-indigo-600" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-slate-800">{label}</p>
@@ -366,7 +366,7 @@ export default function DashboardOwnerPage() {
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <div className="flex min-h-screen bg-slate-50" style={{ fontFamily: "'Plus Jakarta Sans','Inter',sans-serif" }}>
+    <div className="flex min-h-screen bg-slate-50" style={{ fontFamily: "'Outfit','Inter',sans-serif" }}>
       <Sidebar
         active={activeNav}
         onChange={setActiveNav}
@@ -390,7 +390,7 @@ export default function DashboardOwnerPage() {
             </div>
           </div>
           <button onClick={() => navigate("/owner/create")}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-black shadow-lg shadow-blue-100 active:scale-95 transition-all">
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-black shadow-lg shadow-indigo-100 active:scale-95 transition-all">
             <Plus size={14} /> Tambah Kost
           </button>
         </header>

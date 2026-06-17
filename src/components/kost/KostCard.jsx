@@ -90,7 +90,7 @@ export default function KostCard({ item, onClick, onLike, isLiked }) {
           <span
             className={`absolute bottom-1.5 left-1.5 text-[9px] font-bold px-2 py-0.5 rounded-full ${
               item.gender === "putra"
-                ? "bg-blue-500 text-white"
+                ? "bg-indigo-600 text-white"
                 : item.gender === "putri"
                   ? "bg-pink-500 text-white"
                   : "bg-green-500 text-white"

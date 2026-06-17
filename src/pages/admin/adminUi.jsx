@@ -70,7 +70,7 @@ export function StatCard({ label, value, icon: Icon, accent, sub }) {
           </div>
         )}
       </div>
-      <div style={{ fontSize: 26, fontWeight: 700, color: "#0f172a", fontVariantNumeric: "tabular-nums" }}>
+      <div style={{ fontSize: 26, fontWeight: 700, color: "#1e1b4b", fontVariantNumeric: "tabular-nums" }}>
         {value}
       </div>
       {sub && <p style={{ margin: "6px 0 0", fontSize: 12, color: "#94a3b8" }}>{sub}</p>}
@@ -164,7 +164,7 @@ export function PageHeader({ title, subtitle, onRefresh }) {
         {subtitle === false ? null : (
           <p style={{ margin: "0 0 2px", color: "#94a3b8", fontSize: 13 }}>{greeting}, Admin</p>
         )}
-        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: "#0f172a" }}>{title}</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, color: "#1e1b4b" }}>{title}</h1>
         {subtitle && typeof subtitle === "string" && (
           <p style={{ margin: "4px 0 0", color: "#64748b", fontSize: 13 }}>{subtitle}</p>
         )}

@@ -32,7 +32,7 @@ function StatCard({ label, value, sub, accent }) {
       padding: "16px 20px", boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
     }}>
       <div style={{ fontSize: 12, color: "#64748b", fontWeight: 500, marginBottom: 6 }}>{label}</div>
-      <div style={{ fontSize: 26, fontWeight: 700, color: accent ?? "#0f172a" }}>{value}</div>
+      <div style={{ fontSize: 26, fontWeight: 700, color: accent ?? "#1e1b4b" }}>{value}</div>
       {sub && <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 4 }}>{sub}</div>}
     </div>
   );
@@ -114,7 +114,7 @@ function MinatTable({ rows }) {
       <tbody>
         {rows.map((row) => (
           <tr key={row.id}>
-            <td style={{ ...tdStyle, fontWeight: 600, color: "#0f172a" }}>{row.user?.name ?? "-"}</td>
+            <td style={{ ...tdStyle, fontWeight: 600, color: "#1e1b4b" }}>{row.user?.name ?? "-"}</td>
             <td style={tdStyle}>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 {row.user?.phone && (
@@ -144,7 +144,7 @@ function MinatTable({ rows }) {
               </div>
             </td>
             <td style={tdStyle}>
-              <div style={{ fontWeight: 600, color: "#0f172a" }}>{row.listing?.name ?? "-"}</div>
+              <div style={{ fontWeight: 600, color: "#1e1b4b" }}>{row.listing?.name ?? "-"}</div>
               {row.listing?.status && <div style={{ marginTop: 4 }}><Badge status={row.listing.status} /></div>}
             </td>
             <td style={tdStyle}>{row.listing?.contactNumber ?? "—"}</td>
@@ -214,7 +214,7 @@ export default function AdminMinatLeads() {
   }
 
   return (
-    <div style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif", color: "#0f172a" }}>
+    <div style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif", color: "#1e1b4b" }}>
       <div style={{ marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0 }}>Leads (Saya Minat)</h1>

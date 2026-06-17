@@ -763,7 +763,7 @@ export default function EditListingPage() {
             <div className="clp-sidebar-progress">
               <div className="clp-sidebar-progress-label">
                 <span>Progres</span>
-                <span style={{ color: "#1d4ed8", fontWeight: 700 }}>
+                <span style={{ color: "#4F46E5", fontWeight: 700 }}>
                   {step - 1}/{STEPS.length - 1}
                 </span>
               </div>
@@ -779,14 +779,14 @@ export default function EditListingPage() {
                     marginTop: 14,
                     padding: "10px 12px",
                     borderRadius: 10,
-                    background: "#eff6ff",
-                    border: "1px solid #bfdbfe",
+                    background: "#F5F3FF",
+                    border: "1px solid #DDD6FE",
                   }}
                 >
                   <p style={{ fontSize: 10, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 4 }}>
                     Tipe kamar
                   </p>
-                  <p style={{ fontSize: 13, fontWeight: 700, color: "#1d4ed8", margin: 0 }}>{roomTypesLabel}</p>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "#4F46E5", margin: 0 }}>{roomTypesLabel}</p>
                 </div>
               )}
             </div>
@@ -952,7 +952,7 @@ export default function EditListingPage() {
                           onClick={addCustomRule}
                           style={{
                             padding: "11px 16px",
-                            background: "#1d4ed8",
+                            background: "#4F46E5",
                             color: "white",
                             border: "none",
                             borderRadius: 10,
@@ -1027,7 +1027,7 @@ export default function EditListingPage() {
                           onClick={addCustomSharedFacility}
                           style={{
                             padding: "11px 16px",
-                            background: "#1d4ed8",
+                            background: "#4F46E5",
                             color: "white",
                             border: "none",
                             borderRadius: 10,
@@ -1098,7 +1098,7 @@ export default function EditListingPage() {
                                   width: 40,
                                   height: 40,
                                   borderRadius: 10,
-                                  background: "#1d4ed8",
+                                  background: "#4F46E5",
                                   display: "flex",
                                   alignItems: "center",
                                   justifyContent: "center",
@@ -1108,13 +1108,13 @@ export default function EditListingPage() {
                                 <BedDouble size={18} color="white" />
                               </div>
                               <div style={{ flex: 1, minWidth: 0 }}>
-                                <p style={{ fontWeight: 700, fontSize: 14, color: "#0f172a" }}>{room.name}</p>
+                                <p style={{ fontWeight: 700, fontSize: 14, color: "#1e1b4b" }}>{room.name}</p>
                                 <p style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
                                   Rp {Number(room.price).toLocaleString("id-ID")} · {room.size} · {room.availableCount} tersedia
                                   {(room.photos?.length ?? 0) > 0 && ` · ${room.photos.length} foto`}
                                 </p>
                                 {!isExpanded && facilities.length > 0 && (
-                                  <p style={{ fontSize: 11, color: "#1d4ed8", marginTop: 6, fontWeight: 600 }}>
+                                  <p style={{ fontSize: 11, color: "#4F46E5", marginTop: 6, fontWeight: 600 }}>
                                     {facilities.length} fasilitas kamar
                                   </p>
                                 )}
@@ -1190,7 +1190,7 @@ export default function EditListingPage() {
                   )}
 
                   <div style={{ borderTop: "1px solid #e8eaf2", paddingTop: 24 }}>
-                    <p style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 16 }}>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: "#1e1b4b", marginBottom: 16 }}>
                       <Plus size={16} style={{ display: "inline", verticalAlign: "middle", marginRight: 6 }} />
                       Tambah tipe kamar baru
                     </p>
@@ -1297,7 +1297,7 @@ export default function EditListingPage() {
                     return (
                       <div key={room.id} className="clp-edit-room-card">
                         <div className="clp-edit-room-head">
-                          <BedDouble size={16} color="#1d4ed8" />
+                          <BedDouble size={16} color="#4F46E5" />
                           <span className="clp-edit-room-head-title">{room.name}</span>
                           <span className="clp-edit-room-head-meta">
                             {totalPhotos}/{PHOTO_MAX} foto · Rp {Number(room.price).toLocaleString("id-ID")}
@@ -1326,7 +1326,7 @@ export default function EditListingPage() {
                           {canAddMore ? (
                             <label className="clp-upload-zone compact" style={{ opacity: ps.uploading ? 0.6 : 1, pointerEvents: ps.uploading ? "none" : "auto" }}>
                               {ps.uploading ? (
-                                <Loader2 size={20} className="clp-spin" style={{ color: "#1d4ed8", marginBottom: 6 }} />
+                                <Loader2 size={20} className="clp-spin" style={{ color: "#4F46E5", marginBottom: 6 }} />
                               ) : (
                                 <Camera size={20} style={{ color: "#94a3b8", marginBottom: 6 }} />
                               )}

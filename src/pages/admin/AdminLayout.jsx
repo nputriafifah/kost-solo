@@ -94,7 +94,7 @@ export default function AdminLayout() {
     }}>
       <div style={{
         width: 36, height: 36, borderRadius: "50%",
-        border: "3px solid #e5e7eb", borderTop: "3px solid #3b82f6",
+        border: "3px solid #e5e7eb", borderTop: "3px solid #A78BFA",
         animation: "spin 0.8s linear infinite",
       }} />
       <span style={{ color: "#9ca3af", fontSize: 13, fontFamily: "Outfit, sans-serif" }}>
@@ -111,12 +111,12 @@ export default function AdminLayout() {
       <aside className={`flex flex-col bg-[#0F1729] transition-all duration-300 ${sidebarOpen ? "w-60" : "w-[68px]"} flex-shrink-0`}>
         {/* Logo */}
         <div className="flex items-center gap-3 px-4 py-5 border-b border-white/5">
-          <div className="w-9 h-9 rounded-xl bg-blue-500 flex items-center justify-center flex-shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center flex-shrink-0">
             <Building2 size={18} className="text-white" />
           </div>
           {sidebarOpen && (
             <span className="text-white font-bold text-base tracking-tight">
-              Atap<span className="text-blue-400">Admin</span>
+              Atap<span className="text-indigo-400">Admin</span>
             </span>
           )}
         </div>
@@ -130,7 +130,7 @@ export default function AdminLayout() {
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group ${
                   isActive
-                    ? "bg-blue-500/20 text-blue-400"
+                    ? "bg-indigo-600/20 text-indigo-400"
                     : "text-white/50 hover:text-white/90 hover:bg-white/5"
                 }`
               }
@@ -140,7 +140,7 @@ export default function AdminLayout() {
                   <Icon size={18} className="flex-shrink-0" />
                   {sidebarOpen && <span className="flex-1">{label}</span>}
                   {sidebarOpen && isActive && (
-                    <ChevronRight size={14} className="text-blue-400" />
+                    <ChevronRight size={14} className="text-indigo-400" />
                   )}
                 </>
               )}
@@ -193,7 +193,7 @@ export default function AdminLayout() {
               to="/admin/profil"
               className="flex items-center gap-2.5 rounded-lg px-1.5 py-1 hover:bg-slate-100 transition-colors"
             >
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold">
                 {adminName.charAt(0).toUpperCase()}
               </div>
               <div className="hidden sm:block text-left">

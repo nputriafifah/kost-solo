@@ -29,8 +29,8 @@ const DEFAULT_NOTIFICATIONS = [
   {
     id: 3,
     icon: "Info",
-    iconBg: "#EFF6FF",
-    iconColor: "#2563EB",
+    iconBg: "#F5F3FF",
+    iconColor: "#4F46E5",
     title: "Profil belum lengkap",
     desc: "Lengkapi profil kamu untuk mendapatkan rekomendasi terbaik.",
     time: "Kemarin",
@@ -189,7 +189,7 @@ export default function NotifikasiPage() {
           ].map(({ key, title, sub }) => (
             <div key={key} className="uset-row">
               <div className="uset-row-body">
-                <p className="uset-row-label" style={{ textTransform: "none", fontSize: 14, color: "#0F172A" }}>
+                <p className="uset-row-label" style={{ textTransform: "none", fontSize: 14, color: "#1E1B4B" }}>
                   {title}
                 </p>
                 <p className="uset-notif-desc" style={{ margin: 0 }}>{sub}</p>

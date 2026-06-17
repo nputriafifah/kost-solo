@@ -56,7 +56,7 @@ function TopListingBars({ listings }) {
               gap: 8,
             }}
           >
-            <span style={{ fontSize: 13, fontWeight: 600, color: "#0f172a", flex: 1, minWidth: 0 }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "#1e1b4b", flex: 1, minWidth: 0 }}>
               <span style={{ color: "#94a3b8", marginRight: 6 }}>{i + 1}.</span>
               {l.name}
             </span>
@@ -180,14 +180,14 @@ export default function AdminAnalytics() {
   const statCards = [
     { label: "Total Listing", value: (stats?.totalListings ?? 0).toLocaleString("id-ID"), icon: Home, accent: "#6366f1" },
     { label: "Listing Aktif", value: (stats?.activeListings ?? 0).toLocaleString("id-ID"), icon: CheckCircle, accent: "#10b981" },
-    { label: "Mahasiswa (USER)", value: (stats?.totalStudents ?? 0).toLocaleString("id-ID"), icon: Users, accent: "#3b82f6" },
+    { label: "Mahasiswa (USER)", value: (stats?.totalStudents ?? 0).toLocaleString("id-ID"), icon: Users, accent: "#A78BFA" },
     { label: "Pemilik (OWNER)", value: (stats?.totalOwners ?? 0).toLocaleString("id-ID"), icon: KeyRound, accent: "#f59e0b" },
     { label: "User Baru (7 hari)", value: (stats?.newUsersThisWeek ?? 0).toLocaleString("id-ID"), icon: UserPlus, accent: "#8b5cf6" },
     { label: "Views Hari Ini", value: (stats?.totalViewsToday ?? 0).toLocaleString("id-ID"), icon: Eye, accent: "#ec4899" },
   ];
 
   return (
-    <div style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif", color: "#0f172a" }}>
+    <div style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif", color: "#1e1b4b" }}>
       <PageHeader
         title="Analitik"
         subtitle="Metrik platform, performa listing, dan tren leads Saya Minat"

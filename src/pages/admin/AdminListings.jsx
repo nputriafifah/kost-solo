@@ -85,7 +85,7 @@ function RejectModal({ listing, onConfirm, onClose, loading }) {
           style={{
             width: "100%", padding: "10px 12px", borderRadius: 10,
             border: "1.5px solid #e2e8f0", fontSize: 13, resize: "none",
-            outline: "none", fontFamily: "inherit", boxSizing: "border-box", color: "#0f172a",
+            outline: "none", fontFamily: "inherit", boxSizing: "border-box", color: "#1e1b4b",
           }}
         />
         <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
@@ -125,7 +125,7 @@ function PhotoCarousel({ photos }) {
     </div>
   );
   return (
-    <div style={{ position: "relative", borderRadius: 12, overflow: "hidden", background: "#0f172a" }}>
+    <div style={{ position: "relative", borderRadius: 12, overflow: "hidden", background: "#1e1b4b" }}>
       <img
         src={resolveMediaUrl(photos[idx]?.url ?? photos[idx])}
         alt={`foto-${idx}`}
@@ -183,7 +183,7 @@ function DetailModal({ listing, onClose, onApprove, onReject, actionLoading }) {
       <div style={{ color: "#94a3b8", flexShrink: 0, marginTop: 1 }}>{icon}</div>
       <div>
         <div style={{ fontSize: 11, color: "#94a3b8", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>{label}</div>
-        <div style={{ fontSize: 13, color: "#0f172a", fontWeight: 500, marginTop: 2 }}>{value || "-"}</div>
+        <div style={{ fontSize: 13, color: "#1e1b4b", fontWeight: 500, marginTop: 2 }}>{value || "-"}</div>
       </div>
     </div>
   );
@@ -208,7 +208,7 @@ function DetailModal({ listing, onClose, onApprove, onReject, actionLoading }) {
           position: "sticky", top: 0, background: "#fff", zIndex: 1, borderRadius: "18px 18px 0 0",
         }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#0f172a" }}>{listing.name ?? "-"}</h2>
+            <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: "#1e1b4b" }}>{listing.name ?? "-"}</h2>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
               <Badge status={listing.status} />
             </div>
@@ -249,7 +249,7 @@ function DetailModal({ listing, onClose, onApprove, onReject, actionLoading }) {
                     border: "1px solid #f1f5f9",
                   }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div style={{ fontWeight: 600, fontSize: 13, color: "#0f172a" }}>
+                      <div style={{ fontWeight: 600, fontSize: 13, color: "#1e1b4b" }}>
                         {rt.name ?? `Tipe ${i + 1}`}
                       </div>
                       <div style={{ fontSize: 13, fontWeight: 700, color: "#6366f1" }}>
@@ -434,7 +434,7 @@ export default function AdminListings() {
   );
 
   return (
-    <div style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif", color: "#0f172a" }}>
+    <div style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif", color: "#1e1b4b" }}>
 
       {/* Header */}
       <div style={{ marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -493,7 +493,7 @@ export default function AdminListings() {
             width: "100%", padding: "10px 12px 10px 36px",
             border: "1px solid #e2e8f0", borderRadius: 10,
             fontSize: 13, outline: "none", background: "#fff",
-            boxSizing: "border-box", color: "#0f172a",
+            boxSizing: "border-box", color: "#1e1b4b",
             boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
           }}
         />
@@ -545,7 +545,7 @@ export default function AdminListings() {
                     onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                     onClick={() => setDetailTarget(l)}
                   >
-                    <td style={{ ...tdStyle, fontWeight: 600, color: "#0f172a" }}>
+                    <td style={{ ...tdStyle, fontWeight: 600, color: "#1e1b4b" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         {/* Thumbnail */}
                         <div style={{
@@ -562,7 +562,7 @@ export default function AdminListings() {
                       </div>
                     </td>
                     <td style={tdStyle}>
-                      <div style={{ fontWeight: 500, color: "#0f172a" }}>{l.owner?.name ?? "-"}</div>
+                      <div style={{ fontWeight: 500, color: "#1e1b4b" }}>{l.owner?.name ?? "-"}</div>
                       <div style={{ fontSize: 12, color: "#94a3b8" }}>{l.owner?.email ?? ""}</div>
                     </td>
                     <td style={{ ...tdStyle, maxWidth: 160 }}>
@@ -577,7 +577,7 @@ export default function AdminListings() {
                     </td>
                     {/* Foto count */}
                     <td style={{ ...tdStyle, textAlign: "center" }}>
-                      <span style={{ background: allPhotos.length > 0 ? "#eff6ff" : "#f8fafc", color: allPhotos.length > 0 ? "#3b82f6" : "#94a3b8", fontSize: 12, fontWeight: 600, borderRadius: 99, padding: "3px 10px" }}>
+                      <span style={{ background: allPhotos.length > 0 ? "#F5F3FF" : "#f8fafc", color: allPhotos.length > 0 ? "#A78BFA" : "#94a3b8", fontSize: 12, fontWeight: 600, borderRadius: 99, padding: "3px 10px" }}>
                         {allPhotos.length} foto
                       </span>
                     </td>

@@ -18,7 +18,7 @@ const STATUS_CONFIG = {
 };
 
 const GENDER_STYLE = {
-  PUTRA:  { label: GENDER_LABELS.PUTRA,  style: "bg-blue-50 text-blue-600"     },
+  PUTRA:  { label: GENDER_LABELS.PUTRA,  style: "bg-indigo-50 text-indigo-600"     },
   PUTRI:  { label: GENDER_LABELS.PUTRI,  style: "bg-pink-50 text-pink-600"     },
   CAMPUR: { label: GENDER_LABELS.CAMPUR, style: "bg-violet-50 text-violet-600" },
 };
@@ -114,7 +114,7 @@ function OwnerCard({ item, onEdit, onDeactivate, onReactivate, onDetail, activat
           <Edit3 size={12} /> Edit
         </button>
         <button type="button" onClick={openDetail}
-          className="flex-1 flex items-center justify-center gap-1.5 py-3 text-blue-600 font-black text-xs border-r border-slate-100 hover:bg-blue-50 transition-colors">
+          className="flex-1 flex items-center justify-center gap-1.5 py-3 text-indigo-600 font-black text-xs border-r border-slate-100 hover:bg-indigo-50 transition-colors">
           <Eye size={12} /> Detail
         </button>
         {item.status === "ACTIVE" && (
@@ -244,7 +244,7 @@ export default function PropertiPage() {
   const totalPending = listings.filter((l) => l.status === "PENDING").length;
 
   return (
-    <div className="flex min-h-screen bg-slate-50" style={{ fontFamily: "'Plus Jakarta Sans','Inter',sans-serif" }}>
+    <div className="flex min-h-screen bg-slate-50" style={{ fontFamily: "'Outfit','Inter',sans-serif" }}>
       <Sidebar
         active="properti"
         onChange={(id) => {

@@ -86,17 +86,17 @@ function showToast(count) {
     <div style="display:flex;align-items:center;gap:10px;">
       <div style="
         width:34px;height:34px;border-radius:10px;flex-shrink:0;
-        background:linear-gradient(135deg,#2563EB,#06B6D4);
+        background:linear-gradient(135deg,#4F46E5,#06B6D4);
         display:flex;align-items:center;justify-content:center;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
         </svg>
       </div>
       <div>
-        <div style="font-size:13px;font-weight:800;color:#0F172A;font-family:'Plus Jakarta Sans',sans-serif;line-height:1.2;">
+        <div style="font-size:13px;font-weight:800;color:#1E1B4B;font-family:'Outfit',sans-serif;line-height:1.2;">
           ${count} Pesan Baru
         </div>
-        <div style="font-size:11px;color:#64748B;margin-top:2px;font-family:'Plus Jakarta Sans',sans-serif;">
+        <div style="font-size:11px;color:#64748B;margin-top:2px;font-family:'Outfit',sans-serif;">
           Ada pesan masuk dari calon penyewa
         </div>
       </div>
@@ -113,8 +113,8 @@ function showToast(count) {
     background:   "white",
     borderRadius: "16px",
     padding:      "14px 36px 14px 14px",
-    boxShadow:    "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(37,99,235,0.15)",
-    border:       "1.5px solid #BFDBFE",
+    boxShadow:    "0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(79,70,229,0.15)",
+    border:       "1.5px solid #DDD6FE",
     minWidth:     "260px",
     pointerEvents:"all",
     opacity:      "0",

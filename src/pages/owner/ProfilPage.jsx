@@ -12,9 +12,9 @@ import { useNavigate } from "react-router-dom";
 const API = "http://localhost:8080";
 
 const GRADIENTS = [
-    "linear-gradient(135deg,#3B82F6,#22D3EE)",
-    "linear-gradient(135deg,#8B5CF6,#22D3EE)",
-    "linear-gradient(135deg,#10B981,#3B82F6)",
+    "linear-gradient(135deg,#A78BFA,#7C3AED)",
+    "linear-gradient(135deg,#8B5CF6,#7C3AED)",
+    "linear-gradient(135deg,#10B981,#A78BFA)",
     "linear-gradient(135deg,#F59E0B,#F97316)",
     "linear-gradient(135deg,#EC4899,#FB7185)",
 ];
@@ -221,7 +221,7 @@ export default function ProfilPage() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 pb-10" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        <div className="min-h-screen bg-slate-50 pb-10" style={{ fontFamily: "'Outfit', sans-serif" }}>
             {/* Toast */}
             {toast && (
                 <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 rounded-2xl shadow-xl text-sm font-bold transition-all ${toast.ok ? "bg-emerald-500 text-white" : "bg-red-500 text-white"}`}>

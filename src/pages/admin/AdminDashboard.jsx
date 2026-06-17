@@ -183,7 +183,7 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif", color: "#0f172a" }}>
+    <div style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif", color: "#1e1b4b" }}>
       <PageHeader
         title="Dashboard"
         subtitle={new Date().toLocaleDateString("id-ID", {
@@ -205,7 +205,7 @@ export default function AdminDashboard() {
       >
         <StatCard label="Total Listing" value={(stats?.totalListings ?? 0).toLocaleString("id-ID")} icon={Home} accent="#6366f1" />
         <StatCard label="Listing Aktif" value={(stats?.activeListings ?? 0).toLocaleString("id-ID")} icon={CheckCircle} accent="#10b981" />
-        <StatCard label="Mahasiswa" value={(stats?.totalStudents ?? 0).toLocaleString("id-ID")} icon={Users} accent="#3b82f6" />
+        <StatCard label="Mahasiswa" value={(stats?.totalStudents ?? 0).toLocaleString("id-ID")} icon={Users} accent="#A78BFA" />
         <StatCard label="Pemilik" value={(stats?.totalOwners ?? 0).toLocaleString("id-ID")} icon={KeyRound} accent="#f59e0b" />
         <StatCard label="User Baru (7 hari)" value={(stats?.newUsersThisWeek ?? 0).toLocaleString("id-ID")} icon={UserPlus} accent="#8b5cf6" />
         <StatCard label="Views Hari Ini" value={(stats?.totalViewsToday ?? 0).toLocaleString("id-ID")} icon={Eye} accent="#ec4899" />
@@ -249,7 +249,7 @@ export default function AdminDashboard() {
               <item.icon size={18} color={item.color} />
             </div>
             <div style={{ flex: 1 }}>
-              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{item.label}</p>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: "#1e1b4b" }}>{item.label}</p>
               <p style={{ margin: "2px 0 0", fontSize: 11, color: "#94a3b8" }}>{item.desc}</p>
             </div>
             <ChevronRight size={16} color="#cbd5e1" />

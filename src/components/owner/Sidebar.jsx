@@ -44,9 +44,9 @@ export default function Sidebar({ active, onChange, ownerName, initials, onLogou
           position: "fixed", top: 0, left: 0, height: "100%", zIndex: 50,
           width: 255,
           display: "flex", flexDirection: "column",
-          background: "linear-gradient(160deg, #0F172A 0%, #1A2744 55%, #0F172A 100%)",
+          background: "linear-gradient(160deg, #1E1B4B 0%, #1A2744 55%, #1E1B4B 100%)",
           borderRight: "1px solid rgba(255,255,255,0.06)",
-          fontFamily: "'Plus Jakarta Sans','Inter',sans-serif",
+          fontFamily: "'Outfit','Inter',sans-serif",
           transition: "transform 0.3s cubic-bezier(.4,0,.2,1)",
           boxShadow: "4px 0 32px rgba(0,0,0,0.35)",
         }}
@@ -60,9 +60,9 @@ export default function Sidebar({ active, onChange, ownerName, initials, onLogou
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{
               width: 38, height: 38, borderRadius: 11, flexShrink: 0,
-              background: "linear-gradient(135deg,#2563EB,#06B6D4)",
+              background: "linear-gradient(135deg,#4F46E5,#06B6D4)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              boxShadow: "0 4px 16px rgba(37,99,235,0.5)",
+              boxShadow: "0 4px 16px rgba(79,70,229,0.5)",
             }}>
               <Building2 size={18} color="white" />
             </div>
@@ -111,9 +111,9 @@ export default function Sidebar({ active, onChange, ownerName, initials, onLogou
                   border: isActive ? "1px solid rgba(255,255,255,0.12)" : "1px solid transparent",
                   cursor: "pointer", textAlign: "left",
                   background: isActive
-                    ? "linear-gradient(135deg,rgba(37,99,235,0.85),rgba(6,182,212,0.6))"
+                    ? "linear-gradient(135deg,rgba(79,70,229,0.85),rgba(6,182,212,0.6))"
                     : "transparent",
-                  boxShadow: isActive ? "0 4px 20px rgba(37,99,235,0.25),inset 0 1px 0 rgba(255,255,255,0.1)" : "none",
+                  boxShadow: isActive ? "0 4px 20px rgba(79,70,229,0.25),inset 0 1px 0 rgba(255,255,255,0.1)" : "none",
                   position: "relative", transition: "all 0.17s ease",
                 }}
               >
@@ -168,10 +168,10 @@ export default function Sidebar({ active, onChange, ownerName, initials, onLogou
           }}>
             <div style={{
               width: 34, height: 34, borderRadius: 10, flexShrink: 0,
-              background: "linear-gradient(135deg,#2563EB,#06B6D4)",
+              background: "linear-gradient(135deg,#4F46E5,#06B6D4)",
               display: "flex", alignItems: "center", justifyContent: "center",
               color: "white", fontWeight: 900, fontSize: 12,
-              boxShadow: "0 2px 10px rgba(37,99,235,0.45)",
+              boxShadow: "0 2px 10px rgba(79,70,229,0.45)",
             }}>
               {initials}
             </div>

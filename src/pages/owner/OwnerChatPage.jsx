@@ -13,9 +13,9 @@ const API = "http://localhost:8080";
 const FILTERS = ["Semua", "Belum dibaca", "Sudah dibaca"];
 
 const GRADIENTS = [
-  "linear-gradient(135deg,#3B82F6,#22D3EE)",
-  "linear-gradient(135deg,#8B5CF6,#22D3EE)",
-  "linear-gradient(135deg,#10B981,#3B82F6)",
+  "linear-gradient(135deg,#A78BFA,#7C3AED)",
+  "linear-gradient(135deg,#8B5CF6,#7C3AED)",
+  "linear-gradient(135deg,#10B981,#A78BFA)",
   "linear-gradient(135deg,#F59E0B,#F97316)",
   "linear-gradient(135deg,#EC4899,#FB7185)",
 ];
@@ -122,7 +122,7 @@ export default function OwnerChatPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50" style={{ fontFamily: "'Plus Jakarta Sans','Inter',sans-serif" }}>
+    <div className="flex min-h-screen bg-slate-50" style={{ fontFamily: "'Outfit','Inter',sans-serif" }}>
 
       {/* Sidebar desktop — kirim unreadCount supaya badge muncul */}
       <Sidebar
@@ -166,16 +166,16 @@ export default function OwnerChatPage() {
 
         {/* Hero strip */}
         <div style={{
-          background: "linear-gradient(135deg,#0F172A 0%,#1E3A8A 45%,#2563EB 100%)",
+          background: "linear-gradient(135deg,#1E1B4B 0%,#3730A3 45%,#4F46E5 100%)",
           padding: "24px 28px",
           display: "flex", alignItems: "center", justifyContent: "space-between",
         }}>
           <div>
             <h1 style={{
-              fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: 22,
+              fontFamily: "'Outfit',sans-serif", fontSize: 22,
               fontWeight: 800, color: "#fff", letterSpacing: -0.5, margin: 0,
             }}>
-              Pesan<span style={{ color: "#93C5FD" }}>.</span>
+              Pesan<span style={{ color: "#C7D2FE" }}>.</span>
             </h1>
             <p style={{ fontSize: 12, color: "rgba(255,255,255,.55)", margin: "4px 0 0" }}>
               {chats.length} percakapan aktif dari calon penyewa
@@ -193,7 +193,7 @@ export default function OwnerChatPage() {
               <span style={{
                 position: "absolute", top: -4, right: -4,
                 width: 16, height: 16, borderRadius: "50%",
-                background: "#EF4444", border: "2px solid #1E3A8A",
+                background: "#EF4444", border: "2px solid #3730A3",
                 fontSize: 9, fontWeight: 800, color: "white",
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}>
@@ -220,9 +220,9 @@ export default function OwnerChatPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{
                   width: "100%", height: 42, paddingLeft: 40, paddingRight: 14,
-                  background: "white", border: "1.5px solid #E2E8F0", borderRadius: 12,
+                  background: "white", border: "1.5px solid #E0E7FF", borderRadius: 12,
                   fontSize: 13, outline: "none",
-                  fontFamily: "'Plus Jakarta Sans',sans-serif", color: "#0F172A",
+                  fontFamily: "'Outfit',sans-serif", color: "#1E1B4B",
                 }}
               />
             </div>
@@ -232,11 +232,11 @@ export default function OwnerChatPage() {
               {FILTERS.map((f) => (
                 <button key={f} onClick={() => setActiveFilter(f)} style={{
                   padding: "6px 14px", borderRadius: 999,
-                  border: activeFilter === f ? "1.5px solid #2563EB" : "1.5px solid #E2E8F0",
-                  background: activeFilter === f ? "linear-gradient(135deg,#1D4ED8,#2563EB)" : "white",
+                  border: activeFilter === f ? "1.5px solid #4F46E5" : "1.5px solid #E0E7FF",
+                  background: activeFilter === f ? "linear-gradient(135deg,#4F46E5,#4F46E5)" : "white",
                   color: activeFilter === f ? "white" : "#64748B",
                   fontSize: 12, fontWeight: 700, cursor: "pointer",
-                  fontFamily: "'Plus Jakarta Sans',sans-serif",
+                  fontFamily: "'Outfit',sans-serif",
                 }}>
                   {f}
                 </button>
@@ -246,13 +246,13 @@ export default function OwnerChatPage() {
             {/* Section header */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
               <h2 style={{
-                fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: 15,
+                fontFamily: "'Outfit',sans-serif", fontSize: 15,
                 fontWeight: 800, letterSpacing: -0.3, margin: 0,
               }}>
                 Percakapan
               </h2>
               <span style={{
-                background: "#EFF6FF", color: "#2563EB",
+                background: "#F5F3FF", color: "#4F46E5",
                 fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 999,
               }}>
                 {chats.length} aktif
@@ -309,12 +309,12 @@ export default function OwnerChatPage() {
                     style={{
                       width: "100%", display: "flex", alignItems: "center", gap: 12,
                       padding: "14px 16px", background: "white", borderRadius: 14,
-                      border: chat.unread > 0 ? "1.5px solid #BFDBFE" : "1px solid #F1F5F9",
+                      border: chat.unread > 0 ? "1.5px solid #DDD6FE" : "1px solid #F1F5F9",
                       cursor: "pointer", textAlign: "left", transition: ".15s",
-                      fontFamily: "'Plus Jakarta Sans',sans-serif",
+                      fontFamily: "'Outfit',sans-serif",
                     }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = "#F8FAFC"; e.currentTarget.style.borderColor = "#BFDBFE"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = "white"; e.currentTarget.style.borderColor = chat.unread > 0 ? "#BFDBFE" : "#F1F5F9"; }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "#F5F3FF"; e.currentTarget.style.borderColor = "#DDD6FE"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "white"; e.currentTarget.style.borderColor = chat.unread > 0 ? "#DDD6FE" : "#F1F5F9"; }}
                   >
                     {/* Avatar */}
                     <div style={{
@@ -340,7 +340,7 @@ export default function OwnerChatPage() {
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                         <span style={{
                           fontSize: 13, fontWeight: chat.unread > 0 ? 800 : 700,
-                          color: "#0F172A", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                          color: "#1E1B4B", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                         }}>
                           {chat.name}
                         </span>
@@ -349,7 +349,7 @@ export default function OwnerChatPage() {
                         </span>
                       </div>
                       <p style={{
-                        fontSize: 11, color: "#2563EB", fontWeight: 600,
+                        fontSize: 11, color: "#4F46E5", fontWeight: 600,
                         overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", margin: "2px 0",
                       }}>
                         {chat.kost}
@@ -357,7 +357,7 @@ export default function OwnerChatPage() {
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <p style={{
                           fontSize: 11,
-                          color: chat.unread > 0 ? "#0F172A" : "#94A3B8",
+                          color: chat.unread > 0 ? "#1E1B4B" : "#94A3B8",
                           fontWeight: chat.unread > 0 ? 600 : 400,
                           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                           flex: 1, margin: 0,
@@ -367,7 +367,7 @@ export default function OwnerChatPage() {
                         <div style={{ flexShrink: 0, marginLeft: 8 }}>
                           {chat.unread > 0 ? (
                             <span style={{
-                              background: "#2563EB", color: "white",
+                              background: "#4F46E5", color: "white",
                               fontSize: 10, width: 18, height: 18,
                               display: "flex", alignItems: "center", justifyContent: "center",
                               borderRadius: "50%", fontWeight: 800,
@@ -375,7 +375,7 @@ export default function OwnerChatPage() {
                               {chat.unread}
                             </span>
                           ) : chat.isRead ? (
-                            <CheckCheck size={14} color="#60A5FA" />
+                            <CheckCheck size={14} color="#A5B4FC" />
                           ) : (
                             <Check size={14} color="#CBD5E1" />
                           )}
@@ -392,16 +392,16 @@ export default function OwnerChatPage() {
             {/* Safety note */}
             <div style={{
               marginTop: 28, padding: 18,
-              background: "#0F172A", borderRadius: 18,
+              background: "#1E1B4B", borderRadius: 18,
               display: "flex", gap: 10, alignItems: "flex-start",
             }}>
               <ShieldCheck size={18} color="#34D399" style={{ flexShrink: 0, marginTop: 1 }} />
               <div>
-                <h4 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: 13, fontWeight: 700, color: "white", margin: 0 }}>
+                <h4 style={{ fontFamily: "'Outfit',sans-serif", fontSize: 13, fontWeight: 700, color: "white", margin: 0 }}>
                   Transaksi aman lewat Atap
                 </h4>
                 <p style={{ fontSize: 11, color: "#64748B", margin: "3px 0 0" }}>
-                  Gunakan fitur <span style={{ color: "#60A5FA" }}>Bayar di Atap</span> — hindari transaksi di luar platform
+                  Gunakan fitur <span style={{ color: "#A5B4FC" }}>Bayar di Atap</span> — hindari transaksi di luar platform
                 </p>
               </div>
             </div>
@@ -419,12 +419,12 @@ export default function OwnerChatPage() {
           return (
             <button key={id} onClick={() => path && navigate(path)}
               className="flex-1 flex flex-col items-center justify-center py-3 gap-0.5 relative active:scale-95 transition-transform">
-              {isActive && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-blue-600 rounded-full" />}
+              {isActive && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-indigo-600 rounded-full" />}
               <div className="relative">
                 <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8}
-                  className={isActive ? "text-blue-600" : "text-slate-400"} />
+                  className={isActive ? "text-indigo-600" : "text-slate-400"} />
               </div>
-              <span className={`text-[10px] font-bold ${isActive ? "text-blue-600" : "text-slate-400"}`}>
+              <span className={`text-[10px] font-bold ${isActive ? "text-indigo-600" : "text-slate-400"}`}>
                 {label}
               </span>
             </button>

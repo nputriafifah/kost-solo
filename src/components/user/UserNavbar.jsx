@@ -9,12 +9,12 @@ const DESKTOP_LINKS = USER_DESKTOP_LINKS.map(({ label, path }) => ({ label, path
 
 export const USER_NAVBAR_CSS = `
   :root {
-    --bg-primary: #F8FAFC;
+    --bg-primary: #F5F3FF;
     --bg-secondary: #FFFFFF;
-    --bg-tertiary: #F1F5F9;
-    --text-primary: #0F172A;
+    --bg-tertiary: #EEF2FF;
+    --text-primary: #1E1B4B;
     --text-secondary: #64748B;
-    --border-color: #E2E8F0;
+    --border-color: #E0E7FF;
     --card-shadow: 0 1px 3px rgba(0,0,0,0.1);
   }
 
@@ -28,33 +28,33 @@ export const USER_NAVBAR_CSS = `
     padding: 0 42px;
   }
   .atap-navbar-logo {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: 'Outfit', sans-serif;
     font-size: 25px; font-weight: 800; letter-spacing: -1px;
     color: var(--text-primary); cursor: pointer;
   }
-  .atap-navbar-logo span { color: #2563EB; }
+  .atap-navbar-logo span { color: #4F46E5; }
   .atap-navbar-links { display: flex; align-items: center; gap: 4px; }
   .atap-navbar-link {
     font-size: 14px; font-weight: 600; color: var(--text-secondary);
     cursor: pointer; padding: 7px 11px; border-radius: 9px;
-    transition: 0.15s; font-family: 'DM Sans', sans-serif;
+    transition: 0.15s; font-family: 'Outfit', sans-serif;
   }
-  .atap-navbar-link:hover { color: #2563EB; background: #EFF6FF; }
-  .atap-navbar-link.active { color: #2563EB; background: #EFF6FF; }
+  .atap-navbar-link:hover { color: #4F46E5; background: #F5F3FF; }
+  .atap-navbar-link.active { color: #4F46E5; background: #F5F3FF; }
   .atap-navbar-login {
     font-size: 14px; font-weight: 600; color: var(--text-secondary);
     cursor: pointer; padding: 7px 11px; border-radius: 9px;
-    transition: 0.15s; font-family: 'DM Sans', sans-serif;
+    transition: 0.15s; font-family: 'Outfit', sans-serif;
   }
-  .atap-navbar-login:hover { color: #2563EB; background: #EFF6FF; }
+  .atap-navbar-login:hover { color: #4F46E5; background: #F5F3FF; }
   .atap-navbar-cta {
     border: none; cursor: pointer; padding: 11px 22px; border-radius: 12px;
-    background: linear-gradient(135deg, #2563EB, #3B82F6); color: #fff;
+    background: linear-gradient(135deg, #4F46E5, #7C3AED); color: #fff;
     font-size: 13px; font-weight: 700; transition: 0.2s;
-    font-family: 'DM Sans', sans-serif; flex-shrink: 0;
+    font-family: 'Outfit', sans-serif; flex-shrink: 0;
   }
   .atap-navbar-cta:hover {
-    transform: translateY(-1px); box-shadow: 0 12px 25px rgba(37, 99, 235, 0.22);
+    transform: translateY(-1px); box-shadow: 0 12px 25px rgba(79, 70, 229, 0.22);
   }
   .atap-navbar-divider {
     width: 1px; height: 22px; background: var(--border-color); margin: 0 6px;
@@ -68,12 +68,12 @@ export const USER_NAVBAR_CSS = `
   }
   .atap-navbar-avatar {
     width: 36px; height: 36px; border-radius: 50%;
-    background: #DBEAFE; color: #1D4ED8; font-size: 12px; font-weight: 700;
+    background: #E0E7FF; color: #4F46E5; font-size: 12px; font-weight: 700;
     display: flex; align-items: center; justify-content: center;
-    cursor: pointer; border: 2px solid #BFDBFE; transition: 0.2s;
-    font-family: 'DM Sans', sans-serif;
+    cursor: pointer; border: 2px solid #DDD6FE; transition: 0.2s;
+    font-family: 'Outfit', sans-serif;
   }
-  .atap-navbar-avatar:hover { background: #BFDBFE; transform: scale(1.05); }
+  .atap-navbar-avatar:hover { background: #DDD6FE; transform: scale(1.05); }
   .atap-navbar-dropdown {
     position: absolute; top: calc(100% + 10px); right: 0;
     background: var(--bg-secondary); border: 1px solid var(--border-color);
@@ -90,7 +90,7 @@ export const USER_NAVBAR_CSS = `
     padding: 10px 13px; border: none; background: none; border-radius: 10px;
     font-size: 13px; font-weight: 600; color: var(--text-secondary);
     cursor: pointer; width: 100%; text-align: left; transition: 0.13s;
-    font-family: 'DM Sans', sans-serif;
+    font-family: 'Outfit', sans-serif;
   }
   .atap-navbar-dropdown button:hover {
     background: var(--bg-tertiary); color: var(--text-primary);

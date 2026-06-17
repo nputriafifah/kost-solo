@@ -143,7 +143,7 @@ export default function PrivacyPage() {
               <EyeOff size={18} />
             </div>
             <div className="uset-row-body">
-              <p className="uset-row-label" style={{ textTransform: "none", fontSize: 14, color: "#0F172A" }}>
+              <p className="uset-row-label" style={{ textTransform: "none", fontSize: 14, color: "#1E1B4B" }}>
                 Sembunyikan status online
               </p>
               <p className="uset-notif-desc" style={{ margin: 0 }}>Belum disinkron ke server</p>
@@ -163,7 +163,7 @@ export default function PrivacyPage() {
               <ShieldCheck size={18} />
             </div>
             <div className="uset-row-body">
-              <p className="uset-row-label" style={{ textTransform: "none", fontSize: 14, color: "#0F172A" }}>
+              <p className="uset-row-label" style={{ textTransform: "none", fontSize: 14, color: "#1E1B4B" }}>
                 Autentikasi dua faktor
               </p>
               <p className="uset-notif-desc" style={{ margin: 0 }}>Belum tersedia</p>
@@ -174,8 +174,8 @@ export default function PrivacyPage() {
 
         <div className="uset-card">
           <div className="uset-card-head" style={{ marginBottom: 12 }}>
-            <div className="uset-card-icon-lg" style={{ background: "#EFF6FF" }}>
-              <Smartphone size={22} style={{ color: "#2563EB" }} />
+            <div className="uset-card-icon-lg" style={{ background: "#F5F3FF" }}>
+              <Smartphone size={22} style={{ color: "#4F46E5" }} />
             </div>
             <div style={{ flex: 1 }}>
               <h2 className="uset-card-title">Perangkat terhubung</h2>

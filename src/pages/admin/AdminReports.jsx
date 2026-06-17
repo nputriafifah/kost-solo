@@ -34,7 +34,7 @@ function ActionModal({ report, onConfirm, onClose, loading }) {
         <div style={{ background: "#f8fafc", borderRadius: 10, padding: "12px 14px", marginBottom: 20, fontSize: 13 }}>
           <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
             <span style={{ color: "#94a3b8", fontWeight: 500, width: 80 }}>Alasan</span>
-            <span style={{ color: "#0f172a", fontWeight: 600 }}>{reportReasonLabel(report.reason)}</span>
+            <span style={{ color: "#1e1b4b", fontWeight: 600 }}>{reportReasonLabel(report.reason)}</span>
           </div>
           {report.note && (
             <div style={{ display: "flex", gap: 8 }}>
@@ -44,7 +44,7 @@ function ActionModal({ report, onConfirm, onClose, loading }) {
           )}
         </div>
 
-        <p style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 600, color: "#0f172a" }}>Pilih tindakan:</p>
+        <p style={{ margin: "0 0 12px", fontSize: 13, fontWeight: 600, color: "#1e1b4b" }}>Pilih tindakan:</p>
         <div style={{ display: "flex", gap: 10 }}>
           <button
             onClick={onClose}
@@ -177,7 +177,7 @@ export default function AdminReports() {
   };
 
   return (
-    <div style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif", color: "#0f172a" }}>
+    <div style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif", color: "#1e1b4b" }}>
 
       {/* Header */}
       <div style={{ marginBottom: 20, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -212,7 +212,7 @@ export default function AdminReports() {
           }}>
             <div>
               <div style={{ fontSize: 12, color: "#64748b", fontWeight: 500, marginBottom: 4 }}>{s.label}</div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: "#0f172a" }}>{s.value}</div>
+              <div style={{ fontSize: 24, fontWeight: 700, color: "#1e1b4b" }}>{s.value}</div>
             </div>
             <div style={{ width: 40, height: 40, borderRadius: 10, background: s.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Flag size={18} color={s.color} />
@@ -233,7 +233,7 @@ export default function AdminReports() {
               width: "100%", padding: "10px 12px 10px 36px",
               border: "1px solid #e2e8f0", borderRadius: 10,
               fontSize: 13, outline: "none", background: "#fff",
-              boxSizing: "border-box", color: "#0f172a",
+              boxSizing: "border-box", color: "#1e1b4b",
               boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
             }}
           />
@@ -293,7 +293,7 @@ export default function AdminReports() {
                           <User size={14} color="#94a3b8" />
                         </div>
                         <div>
-                          <div style={{ fontWeight: 600, color: "#0f172a" }}>{r.user?.name ?? "-"}</div>
+                          <div style={{ fontWeight: 600, color: "#1e1b4b" }}>{r.user?.name ?? "-"}</div>
                           <div style={{ fontSize: 11, color: "#94a3b8" }}>{r.user?.email ?? ""}</div>
                         </div>
                       </div>
@@ -302,13 +302,13 @@ export default function AdminReports() {
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <Building2 size={14} color="#94a3b8" />
                         <div>
-                          <div style={{ fontWeight: 500, color: "#0f172a" }}>{r.listing?.name ?? "-"}</div>
+                          <div style={{ fontWeight: 500, color: "#1e1b4b" }}>{r.listing?.name ?? "-"}</div>
                           <div style={{ fontSize: 11, color: "#94a3b8" }}>{r.listing?.status ?? ""}</div>
                         </div>
                       </div>
                     </td>
                     <td style={tdStyle}>
-                      <span style={{ fontWeight: 500, color: "#0f172a" }}>{reportReasonLabel(r.reason)}</span>
+                      <span style={{ fontWeight: 500, color: "#1e1b4b" }}>{reportReasonLabel(r.reason)}</span>
                       {r.note && (
                         <div style={{ fontSize: 11, color: "#94a3b8", marginTop: 2, maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {r.note}

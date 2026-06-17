@@ -11,11 +11,11 @@ export default function AuthLayout({ children }) {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap');
-        * { font-family: 'DM Sans', sans-serif; box-sizing: border-box; }
-        h1, h2, h3, h4 { font-family: 'Plus Jakarta Sans', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..900;1,9..144,400..900&family=Outfit:wght@400;500;600;700;800&display=swap');
+        * { font-family: 'Outfit', sans-serif; box-sizing: border-box; }
+        h1, h2, h3, h4 { font-family: 'Fraunces', Georgia, serif; }
         .gradient-bg {
-          background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 30%, #2563eb 60%, #3b82f6 100%);
+          background: linear-gradient(135deg, #1E1B4B 0%, #4338CA 35%, #4F46E5 70%, #7C3AED 100%);
         }
         .card-glass {
           background: rgba(255,255,255,0.07);
@@ -29,23 +29,23 @@ export default function AuthLayout({ children }) {
         }
         .tab-active {
           background: white;
-          color: #1d4ed8;
-          box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 0 0 1px rgba(59,130,246,0.1);
+          color: #4F46E5;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 0 0 1px rgba(129,140,248,0.1);
         }
         .role-btn:hover {
-          border-color: #3b82f6;
-          background: #eff6ff;
+          border-color: #A78BFA;
+          background: #F5F3FF;
           transform: translateY(-1px);
-          box-shadow: 0 4px 16px rgba(59,130,246,0.12);
+          box-shadow: 0 4px 16px rgba(129,140,248,0.12);
         }
         .submit-btn {
-          background: linear-gradient(135deg, #1d4ed8, #3b82f6);
-          box-shadow: 0 4px 16px rgba(37,99,235,0.35);
+          background: linear-gradient(135deg, #4F46E5, #7C3AED);
+          box-shadow: 0 4px 16px rgba(79,70,229,0.35);
           transition: all 0.2s;
         }
         .submit-btn:hover {
           transform: translateY(-1px);
-          box-shadow: 0 6px 24px rgba(37,99,235,0.45);
+          box-shadow: 0 6px 24px rgba(79,70,229,0.45);
         }
         .fade-in { animation: fadeIn 0.35s ease; }
         @keyframes fadeIn {
@@ -54,8 +54,8 @@ export default function AuthLayout({ children }) {
         }
       `}</style>
 
-      <div className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-br from-slate-100 via-blue-50 to-slate-100">
-        <div className="flex flex-col md:flex-row w-full max-w-[960px] min-h-[640px] bg-white rounded-3xl overflow-hidden shadow-2xl shadow-blue-900/10">
+      <div className="flex items-center justify-center min-h-screen p-4 bg-gradient-to-br from-slate-100 via-indigo-50 to-slate-100">
+        <div className="flex flex-col md:flex-row w-full max-w-[960px] min-h-[640px] bg-white rounded-3xl overflow-hidden shadow-2xl shadow-indigo-900/10">
           <div className="md:w-[420px] gradient-bg p-10 flex flex-col justify-between relative overflow-hidden">
             <div className="absolute w-64 h-64 rounded-full -top-20 -right-20 bg-white/5" />
             <div className="absolute rounded-full -bottom-16 -left-16 w-72 h-72 bg-white/5" />
@@ -67,28 +67,28 @@ export default function AuthLayout({ children }) {
                   <Home size={20} className="text-white" />
                 </div>
                 <div>
-                  <p className="text-lg font-bold leading-none text-white" style={{ fontFamily: "Plus Jakarta Sans" }}>
+                  <p className="text-lg font-bold leading-none text-white" style={{ fontFamily: "Outfit" }}>
                     Atap
                   </p>
-                  <p className="text-blue-200 text-[10px] font-medium uppercase tracking-widest">
+                  <p className="text-indigo-200 text-[10px] font-medium uppercase tracking-widest">
                     Platform #1 Surakarta
                   </p>
                 </div>
               </div>
 
-              <h2 className="mb-3 text-3xl font-extrabold leading-snug text-white" style={{ fontFamily: "Plus Jakarta Sans" }}>
+              <h2 className="mb-3 text-3xl font-extrabold leading-snug text-white" style={{ fontFamily: "Outfit" }}>
                 Temukan Kost
                 <br />
                 Impian Anda
               </h2>
 
-              <p className="mb-6 text-sm leading-relaxed text-blue-200">
+              <p className="mb-6 text-sm leading-relaxed text-indigo-200">
                 Ribuan pilihan kost terbaik di Solo, proses mudah, tanpa biaya tambahan.
               </p>
 
               <div className="flex items-center gap-2 px-4 py-3 card-glass rounded-2xl w-fit">
-                <MapPin size={14} className="text-blue-300" />
-                <span className="text-xs font-medium text-blue-100">
+                <MapPin size={14} className="text-indigo-300" />
+                <span className="text-xs font-medium text-indigo-100">
                   Jl. Slamet Riyadi · UNS · ISI · UMS
                 </span>
               </div>
@@ -106,7 +106,7 @@ export default function AuthLayout({ children }) {
                 { icon: <CheckCircle2 size={14} />, label: "100% Gratis" },
               ].map((s) => (
                 <div key={s.label} className="stat-pill rounded-xl px-3 py-2.5 flex items-center gap-2">
-                  <span className="text-blue-200">{s.icon}</span>
+                  <span className="text-indigo-200">{s.icon}</span>
                   <span className="text-xs font-semibold text-white">{s.label}</span>
                 </div>
               ))}

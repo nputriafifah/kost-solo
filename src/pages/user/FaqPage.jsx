@@ -36,10 +36,10 @@ function FaqItem({ question, answer }) {
   return (
     <div
       style={{
-        border: "1px solid #E2E8F0",
+        border: "1px solid #E0E7FF",
         borderRadius: 14,
         overflow: "hidden",
-        background: open ? "#F8FAFF" : "#fff",
+        background: open ? "#FAFAFE" : "#fff",
       }}
     >
       <button
@@ -59,11 +59,11 @@ function FaqItem({ question, answer }) {
           fontFamily: "inherit",
         }}
       >
-        <span style={{ fontSize: 14, fontWeight: 700, color: "#0F172A", lineHeight: 1.45 }}>
+        <span style={{ fontSize: 14, fontWeight: 700, color: "#1E1B4B", lineHeight: 1.45 }}>
           {question}
         </span>
         {open ? (
-          <ChevronDown size={18} style={{ color: "#2563EB", flexShrink: 0 }} />
+          <ChevronDown size={18} style={{ color: "#4F46E5", flexShrink: 0 }} />
         ) : (
           <ChevronRight size={18} style={{ color: "#94A3B8", flexShrink: 0 }} />
         )}
@@ -105,7 +105,7 @@ export default function FaqPage() {
             e.currentTarget.style.boxShadow = "0 8px 24px rgba(34,197,94,.12)";
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = "#E2E8F0";
+            e.currentTarget.style.borderColor = "#E0E7FF";
             e.currentTarget.style.boxShadow = "0 2px 16px rgba(15,23,42,.04)";
           }}
         >
@@ -132,19 +132,19 @@ export default function FaqPage() {
           className="uset-card"
           style={{ textDecoration: "none", color: "inherit", transition: "border-color .15s, box-shadow .15s" }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = "#BFDBFE";
-            e.currentTarget.style.boxShadow = "0 8px 24px rgba(37,99,235,.1)";
+            e.currentTarget.style.borderColor = "#DDD6FE";
+            e.currentTarget.style.boxShadow = "0 8px 24px rgba(79,70,229,.1)";
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = "#E2E8F0";
+            e.currentTarget.style.borderColor = "#E0E7FF";
             e.currentTarget.style.boxShadow = "0 2px 16px rgba(15,23,42,.04)";
           }}
         >
           <div
             className="uset-card-icon-lg"
-            style={{ background: "#EFF6FF", marginBottom: 16 }}
+            style={{ background: "#F5F3FF", marginBottom: 16 }}
           >
-            <Mail size={24} style={{ color: "#2563EB" }} />
+            <Mail size={24} style={{ color: "#4F46E5" }} />
           </div>
           <h2 className="uset-card-title">Email</h2>
           <p className="uset-card-desc" style={{ marginBottom: 0 }}>

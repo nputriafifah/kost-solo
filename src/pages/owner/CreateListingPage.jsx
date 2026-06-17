@@ -346,11 +346,11 @@ export default function CreateListingPage() {
           marginBottom: 20,
           padding: 14,
           borderRadius: 12,
-          background: "#eff6ff",
-          border: "1px solid #bfdbfe",
+          background: "#F5F3FF",
+          border: "1px solid #DDD6FE",
         }}
       >
-        <p style={{ fontSize: 12, fontWeight: 700, color: "#1d4ed8", marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.4 }}>
+        <p style={{ fontSize: 12, fontWeight: 700, color: "#4F46E5", marginBottom: 10, textTransform: "uppercase", letterSpacing: 0.4 }}>
           Tipe kamar tersimpan ({savedRoomDrafts.length})
         </p>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -365,11 +365,11 @@ export default function CreateListingPage() {
                 padding: "10px 12px",
                 background: "white",
                 borderRadius: 10,
-                border: "1px solid #dbeafe",
+                border: "1px solid #E0E7FF",
               }}
             >
               <div style={{ minWidth: 0 }}>
-                <p style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>{d.room.name}</p>
+                <p style={{ fontSize: 13, fontWeight: 700, color: "#1e1b4b" }}>{d.room.name}</p>
                 <p style={{ fontSize: 11, color: "#64748b", marginTop: 2 }}>
                   Rp {d.room.price.toLocaleString("id-ID")} · {d.room.size} · {d.photos.length} foto
                 </p>
@@ -409,8 +409,8 @@ export default function CreateListingPage() {
         marginBottom: 20,
         padding: "14px 16px",
         borderRadius: 12,
-        background: "linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%)",
-        border: "1px solid #bfdbfe",
+        background: "linear-gradient(135deg, #F5F3FF 0%, #f0fdf4 100%)",
+        border: "1px solid #DDD6FE",
         display: "flex",
         alignItems: "flex-start",
         gap: 12,
@@ -421,7 +421,7 @@ export default function CreateListingPage() {
           width: 36,
           height: 36,
           borderRadius: 10,
-          background: "#1d4ed8",
+          background: "#4F46E5",
           color: "white",
           display: "flex",
           alignItems: "center",
@@ -434,7 +434,7 @@ export default function CreateListingPage() {
         {currentRoomIndex}
       </div>
       <div style={{ minWidth: 0 }}>
-        <p style={{ fontSize: 13, fontWeight: 800, color: "#0f172a", marginBottom: 4 }}>
+        <p style={{ fontSize: 13, fontWeight: 800, color: "#1e1b4b", marginBottom: 4 }}>
           Tipe kamar ke-{currentRoomIndex}
           {room.name.trim() ? `: ${room.name.trim()}` : ""}
         </p>
@@ -457,7 +457,7 @@ export default function CreateListingPage() {
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         .clp-root {
-          font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+          font-family: 'Outfit', -apple-system, sans-serif;
           background: #f5f6fa;
           min-height: 100vh;
           display: flex;
@@ -466,14 +466,14 @@ export default function CreateListingPage() {
 
         /* TOP HEADER */
         .clp-topbar {
-          background: #1d4ed8;
+          background: #4F46E5;
           padding: 0 32px;
           height: 64px;
           display: flex;
           align-items: center;
           justify-content: space-between;
           flex-shrink: 0;
-          box-shadow: 0 2px 8px rgba(29,78,216,0.18);
+          box-shadow: 0 2px 8px rgba(79,70,229,0.18);
         }
 
         .clp-topbar-left {
@@ -588,8 +588,8 @@ export default function CreateListingPage() {
         }
 
         .clp-sidebar-step.active {
-          background: #eff6ff;
-          border-color: #bfdbfe;
+          background: #F5F3FF;
+          border-color: #DDD6FE;
         }
 
         .clp-step-num {
@@ -618,10 +618,10 @@ export default function CreateListingPage() {
         }
 
         .clp-sidebar-step.active .clp-step-num {
-          background: #1d4ed8;
+          background: #4F46E5;
           color: white;
           border: none;
-          box-shadow: 0 0 0 4px rgba(29,78,216,0.15);
+          box-shadow: 0 0 0 4px rgba(79,70,229,0.15);
         }
 
         .clp-step-info { flex: 1; min-width: 0; }
@@ -629,12 +629,12 @@ export default function CreateListingPage() {
         .clp-step-name {
           font-size: 13px;
           font-weight: 600;
-          color: #0f172a;
+          color: #1e1b4b;
           line-height: 1.2;
         }
 
         .clp-sidebar-step.done .clp-step-name { color: #15803d; }
-        .clp-sidebar-step.active .clp-step-name { color: #1d4ed8; }
+        .clp-sidebar-step.active .clp-step-name { color: #4F46E5; }
 
         .clp-step-subdesc {
           font-size: 11px;
@@ -646,7 +646,7 @@ export default function CreateListingPage() {
           text-overflow: ellipsis;
         }
 
-        .clp-sidebar-step.active .clp-step-subdesc { color: #93c5fd; }
+        .clp-sidebar-step.active .clp-step-subdesc { color: #C7D2FE; }
         .clp-sidebar-step.done .clp-step-subdesc { color: #86efac; }
 
         /* Progress bar in sidebar */
@@ -674,7 +674,7 @@ export default function CreateListingPage() {
 
         .clp-sidebar-progress-fill {
           height: 100%;
-          background: #1d4ed8;
+          background: #4F46E5;
           border-radius: 4px;
           transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
         }
@@ -714,7 +714,7 @@ export default function CreateListingPage() {
           margin-bottom: 12px;
         }
 
-        .clp-content-breadcrumb span { color: #1d4ed8; font-weight: 600; }
+        .clp-content-breadcrumb span { color: #4F46E5; font-weight: 600; }
 
         .clp-content-title-row {
           display: flex;
@@ -725,20 +725,20 @@ export default function CreateListingPage() {
         .clp-content-icon-wrap {
           width: 48px;
           height: 48px;
-          background: #eff6ff;
-          border: 1.5px solid #bfdbfe;
+          background: #F5F3FF;
+          border: 1.5px solid #DDD6FE;
           border-radius: 12px;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #1d4ed8;
+          color: #4F46E5;
           flex-shrink: 0;
         }
 
         .clp-content-title {
           font-size: 24px;
           font-weight: 800;
-          color: #0f172a;
+          color: #1e1b4b;
           letter-spacing: -0.5px;
         }
 
@@ -783,8 +783,8 @@ export default function CreateListingPage() {
           border: 1.5px solid #e2e8f0;
           border-radius: 10px;
           font-size: 14px;
-          color: #0f172a;
-          background: #fafbff;
+          color: #1e1b4b;
+          background: #FAFAFE;
           outline: none;
           transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
           font-family: inherit;
@@ -792,9 +792,9 @@ export default function CreateListingPage() {
         }
 
         .clp-input:focus, .clp-textarea:focus {
-          border-color: #3b82f6;
+          border-color: #A78BFA;
           background: white;
-          box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+          box-shadow: 0 0 0 3px rgba(129,140,248,0.1);
         }
 
         .clp-input.err, .clp-textarea.err {
@@ -826,7 +826,7 @@ export default function CreateListingPage() {
           padding: 9px 16px;
           border: 1.5px solid #e2e8f0;
           border-radius: 8px;
-          background: #fafbff;
+          background: #FAFAFE;
           color: #475569;
           font-size: 13px;
           font-weight: 600;
@@ -835,18 +835,18 @@ export default function CreateListingPage() {
           font-family: inherit;
         }
 
-        .clp-chip:hover { border-color: #93c5fd; background: #f0f9ff; }
+        .clp-chip:hover { border-color: #C7D2FE; background: #EEF2FF; }
 
         .clp-chip.active {
-          border-color: #1d4ed8;
-          background: #eff6ff;
-          color: #1d4ed8;
+          border-color: #4F46E5;
+          background: #F5F3FF;
+          color: #4F46E5;
         }
 
         .clp-chip-check {
           width: 16px;
           height: 16px;
-          background: #1d4ed8;
+          background: #4F46E5;
           border-radius: 50%;
           display: flex;
           align-items: center;
@@ -867,7 +867,7 @@ export default function CreateListingPage() {
           padding: 13px 16px;
           border: 1.5px solid #e2e8f0;
           border-radius: 10px;
-          background: #fafbff;
+          background: #FAFAFE;
           cursor: pointer;
           transition: all 0.18s;
           font-family: inherit;
@@ -877,12 +877,12 @@ export default function CreateListingPage() {
           text-align: left;
         }
 
-        .clp-toggle-row:hover { border-color: #93c5fd; background: #f0f9ff; }
+        .clp-toggle-row:hover { border-color: #C7D2FE; background: #EEF2FF; }
 
         .clp-toggle-row.active {
-          border-color: #1d4ed8;
-          background: #eff6ff;
-          color: #1d4ed8;
+          border-color: #4F46E5;
+          background: #F5F3FF;
+          color: #4F46E5;
           font-weight: 600;
         }
 
@@ -890,7 +890,7 @@ export default function CreateListingPage() {
           width: 20px;
           height: 20px;
           border-radius: 50%;
-          background: #1d4ed8;
+          background: #4F46E5;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -909,7 +909,7 @@ export default function CreateListingPage() {
           text-align: center;
           border: 1.5px solid #e2e8f0;
           border-radius: 10px;
-          background: #fafbff;
+          background: #FAFAFE;
           color: #475569;
           font-size: 14px;
           font-weight: 600;
@@ -918,11 +918,11 @@ export default function CreateListingPage() {
           font-family: inherit;
         }
 
-        .clp-gender-btn:hover { border-color: #93c5fd; }
+        .clp-gender-btn:hover { border-color: #C7D2FE; }
         .clp-gender-btn.active {
-          border-color: #1d4ed8;
-          background: #eff6ff;
-          color: #1d4ed8;
+          border-color: #4F46E5;
+          background: #F5F3FF;
+          color: #4F46E5;
         }
 
         /* MAP */
@@ -938,10 +938,10 @@ export default function CreateListingPage() {
           align-items: center;
           gap: 8px;
           padding: 9px 14px;
-          background: #eff6ff;
-          border: 1.5px solid #bfdbfe;
+          background: #F5F3FF;
+          border: 1.5px solid #DDD6FE;
           border-radius: 10px;
-          color: #1d4ed8;
+          color: #4F46E5;
           font-size: 13px;
           font-weight: 600;
           margin-top: 12px;
@@ -961,7 +961,7 @@ export default function CreateListingPage() {
           height: 52px;
           border-radius: 12px;
           border: 1.5px solid #e2e8f0;
-          background: #fafbff;
+          background: #FAFAFE;
           color: #334155;
           font-size: 24px;
           font-weight: 600;
@@ -973,7 +973,7 @@ export default function CreateListingPage() {
           font-family: inherit;
         }
 
-        .clp-counter-btn:hover { border-color: #1d4ed8; background: #eff6ff; color: #1d4ed8; }
+        .clp-counter-btn:hover { border-color: #4F46E5; background: #F5F3FF; color: #4F46E5; }
         .clp-counter-btn:active { transform: scale(0.95); }
 
         .clp-counter-input {
@@ -981,7 +981,7 @@ export default function CreateListingPage() {
           text-align: center;
           font-size: 36px;
           font-weight: 800;
-          color: #0f172a;
+          color: #1e1b4b;
           border: none;
           background: transparent;
           font-family: inherit;
@@ -996,19 +996,19 @@ export default function CreateListingPage() {
           text-align: center;
           cursor: pointer;
           transition: all 0.2s;
-          background: #fafbff;
+          background: #FAFAFE;
         }
 
         .clp-upload-zone:hover, .clp-upload-zone.has-files {
-          border-color: #3b82f6;
-          background: #eff6ff;
+          border-color: #A78BFA;
+          background: #F5F3FF;
         }
 
         .clp-upload-icon-wrap {
           width: 52px;
           height: 52px;
           margin: 0 auto 14px;
-          background: #1d4ed8;
+          background: #4F46E5;
           border-radius: 12px;
           display: flex;
           align-items: center;
@@ -1032,7 +1032,7 @@ export default function CreateListingPage() {
           border-radius: 10px;
           overflow: hidden;
           border: 1.5px solid #e2e8f0;
-          background: #f8faff;
+          background: #FAFAFE;
         }
 
         .clp-photo-item img { width: 100%; height: 100%; object-fit: cover; }
@@ -1091,14 +1091,14 @@ export default function CreateListingPage() {
         }
 
         .clp-btn-primary {
-          background: #1d4ed8;
+          background: #4F46E5;
           color: white;
-          box-shadow: 0 4px 14px rgba(29,78,216,0.25);
+          box-shadow: 0 4px 14px rgba(79,70,229,0.25);
         }
 
         .clp-btn-primary:hover:not(:disabled) {
-          background: #1e40af;
-          box-shadow: 0 6px 20px rgba(29,78,216,0.3);
+          background: #4338CA;
+          box-shadow: 0 6px 20px rgba(79,70,229,0.3);
           transform: translateY(-1px);
         }
 
@@ -1111,9 +1111,9 @@ export default function CreateListingPage() {
         }
 
         .clp-btn-outline:hover {
-          border-color: #1d4ed8;
-          color: #1d4ed8;
-          background: #eff6ff;
+          border-color: #4F46E5;
+          color: #4F46E5;
+          background: #F5F3FF;
         }
 
         .clp-btn-ghost {
@@ -1150,7 +1150,7 @@ export default function CreateListingPage() {
         .clp-sidebar-connector.done { background: #bbf7d0; }
 
         .clp-info-note {
-          background: #f0f9ff;
+          background: #EEF2FF;
           border: 1px solid #bae6fd;
           border-radius: 10px;
           padding: 12px 16px;
@@ -1215,7 +1215,7 @@ export default function CreateListingPage() {
             <div className="clp-sidebar-progress">
               <div className="clp-sidebar-progress-label">
                 <span>Progres</span>
-                <span style={{ color: "#1d4ed8", fontWeight: 700 }}>
+                <span style={{ color: "#4F46E5", fontWeight: 700 }}>
                   {step - 1}/{STEPS.length - 1}
                 </span>
               </div>
@@ -1231,14 +1231,14 @@ export default function CreateListingPage() {
                     marginTop: 14,
                     padding: "10px 12px",
                     borderRadius: 10,
-                    background: "#eff6ff",
-                    border: "1px solid #bfdbfe",
+                    background: "#F5F3FF",
+                    border: "1px solid #DDD6FE",
                   }}
                 >
                   <p style={{ fontSize: 10, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 4 }}>
                     Tipe kamar
                   </p>
-                  <p style={{ fontSize: 13, fontWeight: 700, color: "#1d4ed8", margin: 0 }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "#4F46E5", margin: 0 }}>
                     {totalRoomTypesLabel}
                   </p>
                 </div>
@@ -1389,7 +1389,7 @@ export default function CreateListingPage() {
                           onClick={addCustomRule}
                           style={{
                             padding: "11px 16px",
-                            background: "#1d4ed8",
+                            background: "#4F46E5",
                             color: "white",
                             border: "none",
                             borderRadius: 10,
@@ -1514,7 +1514,7 @@ export default function CreateListingPage() {
                     onChange={(area) => setForm({ ...form, ...area })}
                   />
                   {(form.areaDesa || form.areaKecamatan || form.areaKabupaten) && (
-                    <div style={{ marginBottom: 16, padding: "12px 14px", borderRadius: 10, background: "#eff6ff", border: "1px solid #bfdbfe", fontSize: 12, color: "#1e40af" }}>
+                    <div style={{ marginBottom: 16, padding: "12px 14px", borderRadius: 10, background: "#F5F3FF", border: "1px solid #DDD6FE", fontSize: 12, color: "#4338CA" }}>
                       <strong>Preview publik:</strong>{" "}
                       {buildListingAddress(form.areaDesa, form.areaKecamatan, form.areaKabupaten) || "—"}
                     </div>
@@ -1669,7 +1669,7 @@ export default function CreateListingPage() {
                     </div>
                     {errors.roomPrice && <p className="clp-error">⚠ {errors.roomPrice}</p>}
                     {room.price && (
-                      <p style={{ marginTop: 10, fontSize: 13, color: "#1d4ed8", fontWeight: 700 }}>
+                      <p style={{ marginTop: 10, fontSize: 13, color: "#4F46E5", fontWeight: 700 }}>
                         ✓ Rp {Number(room.price).toLocaleString("id-ID")} / bulan
                       </p>
                     )}
@@ -1836,7 +1836,7 @@ export default function CreateListingPage() {
                         onClick={handleAddAnotherRoomType}
                         disabled={loading}
                         className="clp-btn clp-btn-outline"
-                        style={{ borderColor: "#1d4ed8", color: "#1d4ed8", fontWeight: 700 }}
+                        style={{ borderColor: "#4F46E5", color: "#4F46E5", fontWeight: 700 }}
                       >
                         <Plus size={16} /> Tipe kamar lain
                       </button>

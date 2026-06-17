@@ -65,15 +65,15 @@ function toCardItem(item) {
 }
 
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..900;1,9..144,400..900&family=Outfit:wght@400;500;600;700;800&display=swap');
   * { box-sizing: border-box; }
 
   :root {
-    --bg-primary: #F8FAFC;
+    --bg-primary: #F5F3FF;
     --bg-secondary: #FFFFFF;
-    --text-primary: #0F172A;
+    --text-primary: #1E1B4B;
     --text-secondary: #64748B;
-    --border-color: #E2E8F0;
+    --border-color: #E0E7FF;
   }
 
   body { margin: 0; background: var(--bg-primary); }
@@ -224,7 +224,7 @@ export default function LikePage() {
               <button
                 type="button"
                 onClick={fetchFavorites}
-                style={{ display: "flex", alignItems: "center", gap: 8, background: "#2563EB", color: "white", border: "none", padding: "10px 18px", borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}
+                style={{ display: "flex", alignItems: "center", gap: 8, background: "#4F46E5", color: "white", border: "none", padding: "10px 18px", borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'Outfit', sans-serif" }}
               >
                 <RefreshCw size={14} /> Coba lagi
               </button>
@@ -241,7 +241,7 @@ export default function LikePage() {
               <button
                 type="button"
                 onClick={() => navigate("/search")}
-                style={{ marginTop: 4, background: "#0F172A", color: "white", border: "none", padding: "10px 24px", borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans', sans-serif" }}
+                style={{ marginTop: 4, background: "#1E1B4B", color: "white", border: "none", padding: "10px 24px", borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "'Outfit', sans-serif" }}
               >
                 Cari kost
               </button>

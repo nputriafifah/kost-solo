@@ -28,8 +28,8 @@ const GLOBAL_CSS = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=DM+Serif+Display:ital@0;1&display=swap');
 
   :root {
-    --brand:        #1A56DB;
-    --brand-dark:   #1340B0;
+    --brand:        #4F46E5;
+    --brand-dark:   #4338CA;
     --brand-light:  #EBF1FF;
     --success:      #10B981;
     --danger:       #EF4444;
@@ -48,7 +48,7 @@ const GLOBAL_CSS = `
     --shadow-xs:    0 1px 3px rgba(0,0,0,.06);
     --shadow-sm:    0 2px 8px rgba(0,0,0,.08);
     --shadow-brand: 0 6px 20px rgba(26,86,219,.28);
-    --ff:           'DM Sans', -apple-system, sans-serif;
+    --ff:           'Outfit', -apple-system, sans-serif;
     --ff-display:   'DM Serif Display', Georgia, serif;
   }
 
@@ -168,7 +168,7 @@ const REPORT_REASONS = [
 ];
 
 const genderConfig = {
-  putra:  { label: GENDER_LABELS_LOWER.putra,  bg:"#EFF6FF", text:"#1D4ED8", border:"#BFDBFE" },
+  putra:  { label: GENDER_LABELS_LOWER.putra,  bg:"#F5F3FF", text:"#4F46E5", border:"#DDD6FE" },
   putri:  { label: GENDER_LABELS_LOWER.putri,  bg:"#FDF2F8", text:"#9D174D", border:"#FBCFE8" },
   campur: { label: GENDER_LABELS_LOWER.campur, bg:"#F0FDF4", text:"#166534", border:"#BBF7D0" },
 };
@@ -419,7 +419,7 @@ function RoomTypeCard({ room, index, photoOffset, onPhotoClick, onShowFacilities
             </span>
           )}
           {room.electricityIncluded === false && (
-            <span style={{ fontSize:12, fontWeight:600, padding:"5px 10px", borderRadius:99, background:"#F8FAFC", color:"#64748B", border:"1px solid #E2E8F0" }}>
+            <span style={{ fontSize:12, fontWeight:600, padding:"5px 10px", borderRadius:99, background:"#F5F3FF", color:"#64748B", border:"1px solid #E0E7FF" }}>
               Listrik belum termasuk
             </span>
           )}
@@ -620,7 +620,7 @@ function ShareModal({ item, onClose }) {
       action: () => window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank") },
     { id:"telegram", label:"Telegram",    Icon: TgIcon, color:"#0EA5E9", bg:"#E0F2FE",
       action: () => window.open(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`, "_blank") },
-    { id:"facebook", label:"Facebook",    Icon: FbIcon, color:"#2563EB", bg:"#DBEAFE",
+    { id:"facebook", label:"Facebook",    Icon: FbIcon, color:"#4F46E5", bg:"#E0E7FF",
       action: () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, "_blank") },
     { id:"twitter",  label:"X / Twitter", Icon: XIcon,  color:"#0D1117", bg:"#F1F5F9",
       action: () => window.open(`https://x.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`, "_blank") },
@@ -1223,7 +1223,7 @@ export default function DetailPage() {
           <QuickStatsRow item={item} gender={gender} />
 
           {/* Price banner */}
-          <div style={{ borderRadius:"var(--radius-lg)", padding:"16px 20px", marginBottom:24, background:"linear-gradient(135deg,#1340B0 0%,#1A56DB 55%,#3B82F6 100%)", display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, flexWrap:"wrap" }}>
+          <div style={{ borderRadius:"var(--radius-lg)", padding:"16px 20px", marginBottom:24, background:"linear-gradient(135deg,#4338CA 0%,#4F46E5 55%,#A78BFA 100%)", display:"flex", alignItems:"center", justifyContent:"space-between", gap:12, flexWrap:"wrap" }}>
             <div>
               <p style={{ fontSize:11, color:"rgba(255,255,255,.6)", marginBottom:4, fontWeight:500 }}>Harga mulai dari</p>
               <div style={{ display:"flex", alignItems:"baseline", gap:4 }}>
@@ -1311,7 +1311,7 @@ export default function DetailPage() {
                 icon={Layers}
                 title="Tipe Kamar"
                 badge={
-                  <span style={{ fontSize:11, fontWeight:700, padding:"4px 10px", borderRadius:99, background:"var(--brand-light)", color:"var(--brand)", border:"1px solid #BFDBFE" }}>
+                  <span style={{ fontSize:11, fontWeight:700, padding:"4px 10px", borderRadius:99, background:"var(--brand-light)", color:"var(--brand)", border:"1px solid #DDD6FE" }}>
                     {item.roomTypes.length} tipe
                   </span>
                 }
@@ -1367,9 +1367,9 @@ export default function DetailPage() {
                     <MapCenter lat={item.latitude} lng={item.longitude} />
                   </MapContainer>
                 </div>
-                <div style={{ marginTop:10, padding:"11px 14px", background:"var(--brand-light)", border:"1px solid #BFDBFE", borderRadius:"var(--radius-sm)", display:"flex", alignItems:"flex-start", gap:8 }}>
+                <div style={{ marginTop:10, padding:"11px 14px", background:"var(--brand-light)", border:"1px solid #DDD6FE", borderRadius:"var(--radius-sm)", display:"flex", alignItems:"flex-start", gap:8 }}>
                   <Navigation size={13} color="var(--brand)" style={{ flexShrink:0, marginTop:1 }} />
-                  <p style={{ fontSize:12, fontWeight:600, color:"#1D4ED8", margin:0, lineHeight:1.5 }}>
+                  <p style={{ fontSize:12, fontWeight:600, color:"#4F46E5", margin:0, lineHeight:1.5 }}>
                     Peta menunjukkan area perkiraan saja. Alamat pasti diberikan setelah proses via Atap.
                   </p>
                 </div>

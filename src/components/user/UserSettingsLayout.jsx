@@ -12,13 +12,13 @@ export const USER_SETTINGS_CSS = `
   .uset-root {
     min-height: 100vh;
     background: var(--bg-primary, #F1F5F9);
-    font-family: 'DM Sans', sans-serif;
-    color: var(--text-primary, #0F172A);
+    font-family: 'Outfit', sans-serif;
+    color: var(--text-primary, #1E1B4B);
     transition: background 0.3s, color 0.3s;
   }
 
   .uset-hero {
-    background: linear-gradient(135deg, #1D4ED8 0%, #1E40AF 55%, #312E81 100%);
+    background: linear-gradient(135deg, #4F46E5 0%, #4338CA 55%, #312E81 100%);
     padding: 40px 48px 56px;
     position: relative; overflow: hidden;
   }
@@ -38,7 +38,7 @@ export const USER_SETTINGS_CSS = `
   .uset-back:hover { background: rgba(255,255,255,.22); }
   .uset-hero h1 {
     margin: 0; font-size: 32px; font-weight: 800; color: #fff;
-    font-family: 'Plus Jakarta Sans', sans-serif; letter-spacing: -.5px;
+    font-family: 'Outfit', sans-serif; letter-spacing: -.5px;
   }
   .uset-hero p { margin: 8px 0 0; font-size: 15px; color: rgba(255,255,255,.75); max-width: 560px; line-height: 1.55; }
 
@@ -57,14 +57,14 @@ export const USER_SETTINGS_CSS = `
   .uset-card {
     background: var(--bg-secondary, #fff);
     border-radius: 20px;
-    border: 1px solid var(--border-color, #E2E8F0);
+    border: 1px solid var(--border-color, #E0E7FF);
     padding: 24px 28px;
     box-shadow: 0 2px 16px rgba(15,23,42,.04);
     transition: background 0.3s, border-color 0.3s;
   }
   .uset-card-title {
     font-size: 17px; font-weight: 800; margin: 0 0 4px;
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: 'Outfit', sans-serif;
   }
   .uset-card-desc {
     font-size: 13px; color: #64748B; margin: 0 0 20px; line-height: 1.55;
@@ -79,41 +79,41 @@ export const USER_SETTINGS_CSS = `
   .uset-row-icon {
     width: 44px; height: 44px; border-radius: 12px;
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-    background: #F8FAFC; border: 1px solid #E2E8F0; color: #64748B;
+    background: #F5F3FF; border: 1px solid #E0E7FF; color: #64748B;
   }
   .uset-row-body { flex: 1; min-width: 0; }
   .uset-row-label { font-size: 11px; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: .06em; margin: 0 0 4px; }
-  .uset-row-value { font-size: 15px; font-weight: 700; color: #0F172A; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .uset-row-value { font-size: 15px; font-weight: 700; color: #1E1B4B; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .uset-row-value.muted { color: #CBD5E1; font-weight: 600; }
   .uset-row-edit {
-    font-size: 13px; font-weight: 700; color: #2563EB; background: none; border: none;
+    font-size: 13px; font-weight: 700; color: #4F46E5; background: none; border: none;
     cursor: pointer; padding: 8px 14px; border-radius: 10px; transition: .15s; font-family: inherit;
   }
-  .uset-row-edit:hover { background: #EFF6FF; }
+  .uset-row-edit:hover { background: #F5F3FF; }
 
   .uset-inline-edit { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
   .uset-inline-input {
     flex: 1; height: 44px; padding: 0 14px;
-    border: 1.5px solid #E2E8F0; border-radius: 12px;
-    font-size: 14px; font-weight: 600; color: #0F172A; outline: none;
-    font-family: inherit; background: #F8FAFC;
+    border: 1.5px solid #E0E7FF; border-radius: 12px;
+    font-size: 14px; font-weight: 600; color: #1E1B4B; outline: none;
+    font-family: inherit; background: #F5F3FF;
   }
-  .uset-inline-input:focus { border-color: #2563EB; background: #fff; }
+  .uset-inline-input:focus { border-color: #4F46E5; background: #fff; }
   .uset-icon-btn {
     width: 40px; height: 40px; border-radius: 12px; border: none;
     display: flex; align-items: center; justify-content: center;
     cursor: pointer; transition: .15s; flex-shrink: 0;
   }
-  .uset-icon-btn.save { background: #2563EB; color: #fff; }
-  .uset-icon-btn.save:disabled { background: #E2E8F0; color: #94A3B8; cursor: not-allowed; }
+  .uset-icon-btn.save { background: #4F46E5; color: #fff; }
+  .uset-icon-btn.save:disabled { background: #E0E7FF; color: #94A3B8; cursor: not-allowed; }
   .uset-icon-btn.cancel { background: #F1F5F9; color: #64748B; }
 
   .uset-toggle {
     width: 48px; height: 28px; border-radius: 999px;
-    background: #E2E8F0; border: none; cursor: pointer;
+    background: #E0E7FF; border: none; cursor: pointer;
     position: relative; transition: .2s; flex-shrink: 0;
   }
-  .uset-toggle.on { background: #2563EB; }
+  .uset-toggle.on { background: #4F46E5; }
   .uset-toggle-knob {
     position: absolute; top: 3px; left: 3px;
     width: 22px; height: 22px; border-radius: 50%;
@@ -125,7 +125,7 @@ export const USER_SETTINGS_CSS = `
   .uset-btn-link {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 0; border: none; background: none;
-    color: #2563EB; font-size: 13px; font-weight: 700; cursor: pointer;
+    color: #4F46E5; font-size: 13px; font-weight: 700; cursor: pointer;
     font-family: inherit; margin-top: 12px;
   }
   .uset-btn-link:hover { text-decoration: underline; }
@@ -133,22 +133,22 @@ export const USER_SETTINGS_CSS = `
   .uset-notif-item {
     display: flex; align-items: flex-start; gap: 14px;
     width: 100%; padding: 16px; border-radius: 14px;
-    border: 1px solid #E2E8F0; background: #fff;
+    border: 1px solid #E0E7FF; background: #fff;
     cursor: pointer; text-align: left; transition: .15s;
     font-family: inherit;
   }
-  .uset-notif-item:hover { border-color: #BFDBFE; background: #F8FAFC; }
-  .uset-notif-item.unread { border-color: #BFDBFE; background: #F8FAFF; }
+  .uset-notif-item:hover { border-color: #DDD6FE; background: #F5F3FF; }
+  .uset-notif-item.unread { border-color: #DDD6FE; background: #FAFAFE; }
   .uset-notif-list { display: flex; flex-direction: column; gap: 10px; }
   .uset-notif-icon {
     width: 44px; height: 44px; border-radius: 12px;
     display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   }
-  .uset-notif-title { font-size: 14px; font-weight: 700; margin: 0; color: #0F172A; }
+  .uset-notif-title { font-size: 14px; font-weight: 700; margin: 0; color: #1E1B4B; }
   .uset-notif-title.read { color: #64748B; }
   .uset-notif-desc { font-size: 13px; color: #64748B; margin: 4px 0 0; line-height: 1.45; }
   .uset-notif-time { font-size: 11px; color: #94A3B8; margin-top: 6px; }
-  .uset-dot { width: 8px; height: 8px; background: #2563EB; border-radius: 50%; flex-shrink: 0; margin-top: 6px; }
+  .uset-dot { width: 8px; height: 8px; background: #4F46E5; border-radius: 50%; flex-shrink: 0; margin-top: 6px; }
 
   .uset-empty {
     text-align: center; padding: 48px 24px; color: #94A3B8;
@@ -166,10 +166,10 @@ export const USER_SETTINGS_CSS = `
   .uset-toolbar-btn {
     display: inline-flex; align-items: center; gap: 6px;
     padding: 8px 14px; border-radius: 10px; border: none;
-    background: #EFF6FF; color: #1D4ED8;
+    background: #F5F3FF; color: #4F46E5;
     font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit;
   }
-  .uset-toolbar-btn:hover { background: #DBEAFE; }
+  .uset-toolbar-btn:hover { background: #E0E7FF; }
 
   .uset-alert {
     display: flex; gap: 10px; font-size: 13px; line-height: 1.5;
@@ -188,20 +188,20 @@ export const USER_SETTINGS_CSS = `
   .uset-email-chip {
     display: inline-flex; align-items: center; gap: 8px;
     margin-top: 10px; font-size: 13px; color: #475569;
-    background: #F8FAFC; padding: 8px 14px; border-radius: 10px;
-    border: 1px solid #E2E8F0;
+    background: #F5F3FF; padding: 8px 14px; border-radius: 10px;
+    border: 1px solid #E0E7FF;
   }
   .uset-btn-primary {
     display: inline-flex; align-items: center; justify-content: center; gap: 8px;
     padding: 13px 24px; border-radius: 12px; border: none; cursor: pointer;
-    background: #0F172A; color: #fff; font-size: 14px; font-weight: 700;
+    background: #1E1B4B; color: #fff; font-size: 14px; font-weight: 700;
     transition: .15s; font-family: inherit;
   }
-  .uset-btn-primary:hover:not(:disabled) { background: #2563EB; }
+  .uset-btn-primary:hover:not(:disabled) { background: #4F46E5; }
   .uset-btn-primary:disabled { opacity: .5; cursor: not-allowed; }
   .uset-device-box {
     margin-top: 16px; padding: 16px 18px;
-    background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 14px;
+    background: #F5F3FF; border: 1px solid #E0E7FF; border-radius: 14px;
   }
   .uset-device-ua {
     font-size: 11px; color: #94A3B8; margin: 10px 0 0;

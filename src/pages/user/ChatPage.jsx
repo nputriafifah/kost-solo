@@ -30,25 +30,25 @@ const MOBILE_NAV    = NAV_ITEMS.filter((n) => n.mobile);
 const GUEST_MOBILE  = NAV_ITEMS.filter((n) => n.guestMobile);
 
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;700&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..900;1,9..144,400..900&family=Outfit:wght@400;500;600;700;800&display=swap');
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg-primary); transition: background 0.3s, color 0.3s; }
 
   /* ── DARK MODE VARIABLES (fallback jika belum di index.css) ── */
   :root {
-    --bg-primary: #F8FAFC;
+    --bg-primary: #F5F3FF;
     --bg-secondary: #FFFFFF;
-    --bg-tertiary: #F1F5F9;
-    --text-primary: #0F172A;
+    --bg-tertiary: #EEF2FF;
+    --text-primary: #1E1B4B;
     --text-secondary: #64748B;
-    --border-color: #E2E8F0;
+    --border-color: #E0E7FF;
     --card-shadow: 0 1px 3px rgba(0,0,0,0.1);
   }
   .dark-mode {
-    --bg-primary: #0F172A;
+    --bg-primary: #1E1B4B;
     --bg-secondary: #1E293B;
     --bg-tertiary: #334155;
-    --text-primary: #F8FAFC;
+    --text-primary: #F5F3FF;
     --text-secondary: #CBD5E1;
     --border-color: #334155;
     --card-shadow: 0 1px 3px rgba(0,0,0,0.3);
@@ -74,24 +74,24 @@ const css = `
   }
   .dark-mode .chat-navbar { background: rgba(30,41,59,.92); }
 
-  .chat-navbar-logo { font-family:'Plus Jakarta Sans',sans-serif; font-size:25px; font-weight:800; letter-spacing:-1px; color:var(--text-primary); cursor:pointer; }
-  .chat-navbar-logo span { color:#2563EB; }
+  .chat-navbar-logo { font-family:'Outfit',sans-serif; font-size:25px; font-weight:800; letter-spacing:-1px; color:var(--text-primary); cursor:pointer; }
+  .chat-navbar-logo span { color:#4F46E5; }
   .chat-navbar-links { display:flex; align-items:center; gap:4px; }
-  .chat-navbar-link { font-size:14px; font-weight:600; color:var(--text-secondary); cursor:pointer; padding:7px 11px; border-radius:9px; transition:.15s; font-family:'DM Sans',sans-serif; }
-  .chat-navbar-link:hover { color:#2563EB; background:#EFF6FF; }
-  .dark-mode .chat-navbar-link:hover { background:rgba(59,130,246,.15); }
-  .chat-navbar-link.active { color:#2563EB; }
+  .chat-navbar-link { font-size:14px; font-weight:600; color:var(--text-secondary); cursor:pointer; padding:7px 11px; border-radius:9px; transition:.15s; font-family:'Outfit',sans-serif; }
+  .chat-navbar-link:hover { color:#4F46E5; background:#F5F3FF; }
+  .dark-mode .chat-navbar-link:hover { background:rgba(129,140,248,.15); }
+  .chat-navbar-link.active { color:#4F46E5; }
   .chat-navbar-divider { width:1px; height:22px; background:var(--border-color); margin:0 6px; }
-  .chat-navbar-login { font-size:14px; font-weight:700; color:var(--text-secondary); cursor:pointer; padding:8px 14px; border-radius:10px; transition:.15s; font-family:'DM Sans',sans-serif; }
+  .chat-navbar-login { font-size:14px; font-weight:700; color:var(--text-secondary); cursor:pointer; padding:8px 14px; border-radius:10px; transition:.15s; font-family:'Outfit',sans-serif; }
   .chat-navbar-login:hover { color:var(--text-primary); background:var(--bg-tertiary); }
-  .chat-navbar-cta { border:none; cursor:pointer; padding:11px 22px; border-radius:12px; background:linear-gradient(135deg,#2563EB,#3B82F6); color:#fff; font-size:13px; font-weight:700; transition:.2s; font-family:'DM Sans',sans-serif; }
-  .chat-navbar-cta:hover { transform:translateY(-1px); box-shadow:0 12px 25px rgba(37,99,235,.22); }
+  .chat-navbar-cta { border:none; cursor:pointer; padding:11px 22px; border-radius:12px; background:linear-gradient(135deg,#4F46E5,#7C3AED); color:#fff; font-size:13px; font-weight:700; transition:.2s; font-family:'Outfit',sans-serif; }
+  .chat-navbar-cta:hover { transform:translateY(-1px); box-shadow:0 12px 25px rgba(79,70,229,.22); }
 
   /* ── Chat button + badge ── */
   .chat-chat-btn-wrap { position:relative; display:inline-flex; margin-left:2px; cursor:pointer; }
   .chat-chat-btn { width:36px; height:36px; border-radius:50%; background:var(--bg-tertiary); color:var(--text-secondary); display:flex; align-items:center; justify-content:center; border:1.5px solid var(--border-color); transition:.2s; }
-  .chat-chat-btn:hover { background:#EFF6FF; color:#2563EB; border-color:#BFDBFE; }
-  .dark-mode .chat-chat-btn:hover { background:rgba(59,130,246,.15); }
+  .chat-chat-btn:hover { background:#F5F3FF; color:#4F46E5; border-color:#DDD6FE; }
+  .dark-mode .chat-chat-btn:hover { background:rgba(129,140,248,.15); }
   .chat-chat-badge {
     position:absolute; top:-3px; right:-3px;
     min-width:16px; height:16px;
@@ -106,13 +106,13 @@ const css = `
   .chat-dropdown-wrap { position:relative; }
   .chat-avatar-wrap { position:relative; display:inline-block; margin-left:4px; }
   .chat-notif-dot { position:absolute; top:-2px; right:-2px; width:10px; height:10px; background:#EF4444; border-radius:50%; border:2.5px solid var(--bg-secondary); box-shadow:0 0 0 2px rgba(239,68,68,.22); pointer-events:none; }
-  .chat-navbar-avatar { width:36px; height:36px; border-radius:50%; background:#DBEAFE; color:#1D4ED8; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; cursor:pointer; border:2px solid #BFDBFE; transition:.2s; font-family:'DM Sans',sans-serif; }
-  .chat-navbar-avatar:hover { background:#BFDBFE; transform:scale(1.05); }
+  .chat-navbar-avatar { width:36px; height:36px; border-radius:50%; background:#E0E7FF; color:#4F46E5; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; cursor:pointer; border:2px solid #DDD6FE; transition:.2s; font-family:'Outfit',sans-serif; }
+  .chat-navbar-avatar:hover { background:#DDD6FE; transform:scale(1.05); }
 
   /* ── Dropdown ── */
   .chat-navbar-dropdown { position:absolute; top:calc(100% + 10px); right:0; background:var(--bg-secondary); border:1px solid var(--border-color); border-radius:16px; padding:8px; min-width:175px; box-shadow:var(--card-shadow); display:flex; flex-direction:column; gap:2px; z-index:200; animation:ddFadeIn .15s ease; }
   @keyframes ddFadeIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
-  .chat-navbar-dropdown button { display:flex; align-items:center; gap:10px; padding:10px 13px; border:none; background:none; border-radius:10px; font-size:13px; font-weight:600; color:var(--text-secondary); cursor:pointer; width:100%; text-align:left; transition:.13s; font-family:'DM Sans',sans-serif; }
+  .chat-navbar-dropdown button { display:flex; align-items:center; gap:10px; padding:10px 13px; border:none; background:none; border-radius:10px; font-size:13px; font-weight:600; color:var(--text-secondary); cursor:pointer; width:100%; text-align:left; transition:.13s; font-family:'Outfit',sans-serif; }
   .chat-navbar-dropdown button:hover { background:var(--bg-tertiary); color:var(--text-primary); }
   .chat-navbar-dropdown .dd-divider { height:1px; background:var(--border-color); margin:4px 0; }
   .chat-navbar-dropdown button.danger { color:#EF4444; }
@@ -124,7 +124,7 @@ const css = `
     width:100%; height:44px; padding-left:42px; padding-right:16px;
     background:var(--bg-secondary); border:1.5px solid var(--border-color);
     border-radius:14px; font-size:14px; outline:none;
-    font-family:'DM Sans',sans-serif; color:var(--text-primary);
+    font-family:'Outfit',sans-serif; color:var(--text-primary);
     transition: background 0.3s, border-color 0.3s, color 0.3s;
   }
   .chat-search-input::placeholder { color:var(--text-secondary); }
@@ -133,17 +133,17 @@ const css = `
   .chat-chip {
     padding:7px 16px; border-radius:999px;
     font-size:12px; font-weight:700; cursor:pointer;
-    font-family:'DM Sans',sans-serif; transition:.15s;
+    font-family:'Outfit',sans-serif; transition:.15s;
   }
   .chat-chip-inactive {
     border:1.5px solid var(--border-color);
     background:var(--bg-secondary);
     color:var(--text-secondary);
   }
-  .chat-chip-inactive:hover { border-color:#93C5FD; color:#2563EB; }
+  .chat-chip-inactive:hover { border-color:#C7D2FE; color:#4F46E5; }
   .chat-chip-active {
-    border:1.5px solid #2563EB;
-    background:linear-gradient(135deg,#1D4ED8,#2563EB);
+    border:1.5px solid #4F46E5;
+    background:linear-gradient(135deg,#4F46E5,#4F46E5);
     color:white;
   }
 
@@ -153,9 +153,9 @@ const css = `
     padding:16px; background:var(--bg-secondary);
     border-radius:16px; border:1px solid var(--border-color);
     cursor:pointer; text-align:left; transition:.15s;
-    font-family:'DM Sans',sans-serif;
+    font-family:'Outfit',sans-serif;
   }
-  .chat-card:hover { background:var(--bg-tertiary); border-color:#BFDBFE; }
+  .chat-card:hover { background:var(--bg-tertiary); border-color:#DDD6FE; }
 
   /* ── SKELETON ── */
   .chat-skeleton-wrap { background:var(--bg-secondary); border-radius:16px; border:1px solid var(--border-color); }
@@ -163,19 +163,19 @@ const css = `
   .chat-skeleton-avatar { background:var(--bg-tertiary); border-radius:14px; width:48px; height:48px; flex-shrink:0; }
 
   /* ── SECTION HEADER badge ── */
-  .chat-count-badge { background:#EFF6FF; color:#2563EB; font-size:12px; font-weight:700; padding:4px 12px; border-radius:999px; }
-  .dark-mode .chat-count-badge { background:rgba(59,130,246,.15); }
+  .chat-count-badge { background:#F5F3FF; color:#4F46E5; font-size:12px; font-weight:700; padding:4px 12px; border-radius:999px; }
+  .dark-mode .chat-count-badge { background:rgba(129,140,248,.15); }
 
   /* ── NEW CHAT BANNER ── */
-  .chat-new-banner { margin-bottom:16px; padding:16px; background:#EFF6FF; border-radius:16px; display:flex; gap:12px; border:1px solid #BFDBFE; }
-  .dark-mode .chat-new-banner { background:rgba(59,130,246,.1); border-color:rgba(59,130,246,.3); }
+  .chat-new-banner { margin-bottom:16px; padding:16px; background:#F5F3FF; border-radius:16px; display:flex; gap:12px; border:1px solid #DDD6FE; }
+  .dark-mode .chat-new-banner { background:rgba(129,140,248,.1); border-color:rgba(129,140,248,.3); }
 
   /* ── EMPTY STATE ── */
   .chat-empty-icon { width:64px; height:64px; border-radius:20px; background:var(--bg-tertiary); display:flex; align-items:center; justify-content:center; }
 
   /* ── SAFETY BANNER ── */
-  .chat-safety { margin-top:32px; padding:20px; background:#0F172A; border-radius:20px; display:flex; gap:12px; align-items:flex-start; }
-  .dark-mode .chat-safety { background:#0F172A; border:1px solid var(--border-color); }
+  .chat-safety { margin-top:32px; padding:20px; background:#1E1B4B; border-radius:20px; display:flex; gap:12px; align-items:flex-start; }
+  .dark-mode .chat-safety { background:#1E1B4B; border:1px solid var(--border-color); }
 
   /* ── RESPONSIVE ── */
   @media(max-width:768px) {
@@ -190,9 +190,9 @@ const css = `
 `;
 
 const GRADIENTS = [
-  "linear-gradient(135deg,#3B82F6,#22D3EE)",
-  "linear-gradient(135deg,#8B5CF6,#22D3EE)",
-  "linear-gradient(135deg,#10B981,#3B82F6)",
+  "linear-gradient(135deg,#A78BFA,#7C3AED)",
+  "linear-gradient(135deg,#8B5CF6,#7C3AED)",
+  "linear-gradient(135deg,#10B981,#A78BFA)",
   "linear-gradient(135deg,#F59E0B,#F97316)",
   "linear-gradient(135deg,#EC4899,#FB7185)",
 ];
@@ -324,7 +324,7 @@ export default function ChatPage() {
                 <div className="chat-navbar-divider" />
 
                 <div className="chat-chat-btn-wrap" onClick={() => navigate("/chat")} title="Chat">
-                  <div className="chat-chat-btn" style={{ background: "#EFF6FF", color: "#2563EB", borderColor: "#BFDBFE" }}>
+                  <div className="chat-chat-btn" style={{ background: "#F5F3FF", color: "#4F46E5", borderColor: "#DDD6FE" }}>
                     <MessageCircle size={16} />
                   </div>
                   {unreadChat > 0 && <span className="chat-chat-badge">{unreadChat > 99 ? "99+" : unreadChat}</span>}
@@ -367,7 +367,7 @@ export default function ChatPage() {
 
           {isLoggedIn && (
             <div className="chat-chat-btn-wrap chat-mobile-chat" onClick={() => navigate("/chat")} title="Chat">
-              <div className="chat-chat-btn" style={{ background: "#EFF6FF", color: "#2563EB", borderColor: "#BFDBFE" }}>
+              <div className="chat-chat-btn" style={{ background: "#F5F3FF", color: "#4F46E5", borderColor: "#DDD6FE" }}>
                 <MessageCircle size={16} />
               </div>
               {unreadChat > 0 && <span className="chat-chat-badge">{unreadChat > 99 ? "99+" : unreadChat}</span>}
@@ -377,12 +377,12 @@ export default function ChatPage() {
 
         {/* ── HERO STRIP ── */}
         <div className="chat-hero" style={{
-          background: "linear-gradient(135deg, #0F172A 0%, #1E3A8A 45%, #2563EB 100%)",
+          background: "linear-gradient(135deg, #1E1B4B 0%, #4338CA 38%, #4F46E5 72%, #7C3AED 100%)",
           padding: "32px 42px", display: "flex", alignItems: "center", justifyContent: "space-between",
         }}>
           <div>
-            <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 26, fontWeight: 800, color: "#fff", letterSpacing: -0.8, margin: 0 }}>
-              Pesan<span style={{ color: "#93C5FD" }}>.</span>
+            <h1 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 26, fontWeight: 800, color: "#fff", letterSpacing: -0.8, margin: 0 }}>
+              Pesan<span style={{ color: "#C7D2FE" }}>.</span>
             </h1>
             <p style={{ fontSize: 13, color: "rgba(255,255,255,.6)", margin: "4px 0 0" }}>
               {chatSessions.length} percakapan aktif
@@ -423,7 +423,7 @@ export default function ChatPage() {
 
           {/* Section header */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-            <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 17, fontWeight: 800, letterSpacing: -0.5, margin: 0, color: "var(--text-primary)" }}>
+            <h2 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 17, fontWeight: 800, letterSpacing: -0.5, margin: 0, color: "var(--text-primary)" }}>
               Percakapan
             </h2>
             <span className="chat-count-badge">{chatSessions.length} aktif</span>
@@ -432,9 +432,9 @@ export default function ChatPage() {
           {/* New-chat banner */}
           {kostName && (
             <div className="chat-new-banner">
-              <MessageCircle size={17} color="#2563EB" style={{ flexShrink: 0, marginTop: 2 }} />
+              <MessageCircle size={17} color="#4F46E5" style={{ flexShrink: 0, marginTop: 2 }} />
               <div>
-                <p style={{ fontSize: 12, color: "#3B82F6", fontWeight: 600, margin: 0 }}>Mulai chat dengan</p>
+                <p style={{ fontSize: 12, color: "#A78BFA", fontWeight: 600, margin: 0 }}>Mulai chat dengan</p>
                 <p style={{ fontSize: 14, fontWeight: 700, margin: "2px 0 0", color: "var(--text-primary)" }}>{ownerName}</p>
                 <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: "2px 0 0" }}>Tentang: {kostName}</p>
               </div>
@@ -492,7 +492,7 @@ export default function ChatPage() {
                       </span>
                       <span style={{ fontSize: 11, color: "var(--text-secondary)", flexShrink: 0, marginLeft: 8 }}>{chat.time}</span>
                     </div>
-                    <p style={{ fontSize: 12, color: "#3B82F6", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", margin: "2px 0" }}>
+                    <p style={{ fontSize: 12, color: "#A78BFA", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", margin: "2px 0" }}>
                       {chat.kost}
                     </p>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -501,11 +501,11 @@ export default function ChatPage() {
                       </p>
                       <div style={{ flexShrink: 0, marginLeft: 8 }}>
                         {chat.unread > 0 ? (
-                          <span style={{ background: "#2563EB", color: "white", fontSize: 11, width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", fontWeight: 700 }}>
+                          <span style={{ background: "#4F46E5", color: "white", fontSize: 11, width: 20, height: 20, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", fontWeight: 700 }}>
                             {chat.unread}
                           </span>
                         ) : chat.isRead ? (
-                          <CheckCheck size={15} color="#60A5FA" />
+                          <CheckCheck size={15} color="#A5B4FC" />
                         ) : (
                           <Check size={15} color="var(--text-secondary)" />
                         )}
@@ -522,11 +522,11 @@ export default function ChatPage() {
           <div className="chat-safety">
             <ShieldCheck size={20} color="#34D399" style={{ flexShrink: 0, marginTop: 2 }} />
             <div>
-              <h4 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 14, fontWeight: 700, color: "white", margin: 0 }}>
+              <h4 style={{ fontFamily: "'Outfit', sans-serif", fontSize: 14, fontWeight: 700, color: "white", margin: 0 }}>
                 Bertransaksi aman
               </h4>
               <p style={{ fontSize: 12, color: "#64748B", margin: "4px 0 0" }}>
-                Gunakan fitur <span style={{ color: "#60A5FA" }}>Bayar di Atap</span> untuk keamanan transaksimu
+                Gunakan fitur <span style={{ color: "#A5B4FC" }}>Bayar di Atap</span> untuk keamanan transaksimu
               </p>
             </div>
           </div>

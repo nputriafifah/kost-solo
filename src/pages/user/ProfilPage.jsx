@@ -64,7 +64,7 @@ const CITIES = {
 };
 
 const menuItems = [
-  { icon: Settings,   label: "Pengaturan Akun",    sub: "Kelola informasi & keamanan",  color: "#2563EB", bg: "#EFF6FF",  darkBg: "#1e3a8a22", path: "/settings/account" },
+  { icon: Settings,   label: "Pengaturan Akun",    sub: "Kelola informasi & keamanan",  color: "#4F46E5", bg: "#F5F3FF",  darkBg: "#3730A322", path: "/settings/account" },
   { icon: Bell,       label: "Notifikasi",          sub: "Atur preferensi notifikasi",   color: "#D97706", bg: "#FFFBEB",  darkBg: "#92400e22", path: "/settings/notifications", showBadge: true },
   { icon: Shield,     label: "Privasi & Keamanan",  sub: "Jaga keamanan akunmu",         color: "#059669", bg: "#ECFDF5",  darkBg: "#06503622", path: "/settings/privacy" },
   { icon: HelpCircle, label: "Bantuan & FAQ",       sub: "Butuh bantuan? Kami siap",     color: "#7C3AED", bg: "#F5F3FF",  darkBg: "#4c1d9522", path: "/settings/faq" },
@@ -79,7 +79,7 @@ function InputGroup({ label, icon, value, onChange, placeholder }) {
       <div style={{ position:"relative" }}>
         <span style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", color:"#94A3B8", display:"flex" }}>{icon}</span>
         <input
-          style={{ width:"100%", height:48, paddingLeft:44, paddingRight:16, background:"#F8FAFC", border:`1.5px solid ${focused ? "#2563EB" : "#E2E8F0"}`, borderRadius:14, fontSize:14, color:"#0F172A", outline:"none", boxSizing:"border-box", transition:"border-color 0.2s", fontFamily:"'DM Sans', sans-serif" }}
+          style={{ width:"100%", height:48, paddingLeft:44, paddingRight:16, background:"#F5F3FF", border:`1.5px solid ${focused ? "#4F46E5" : "#E0E7FF"}`, borderRadius:14, fontSize:14, color:"#1E1B4B", outline:"none", boxSizing:"border-box", transition:"border-color 0.2s", fontFamily:"'Outfit', sans-serif" }}
           value={value} onChange={onChange} placeholder={placeholder}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
@@ -97,7 +97,7 @@ function SelectGroup({ label, icon, options, value, onChange, disabled, placehol
       <div style={{ position:"relative" }}>
         <span style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", color:"#94A3B8", display:"flex", zIndex:1 }}>{icon}</span>
         <select disabled={disabled}
-          style={{ width:"100%", height:48, paddingLeft:44, paddingRight:40, background:"#F8FAFC", border:"1.5px solid #E2E8F0", borderRadius:14, fontSize:14, color: value ? "#0F172A" : "#94A3B8", outline:"none", appearance:"none", boxSizing:"border-box", cursor: disabled ? "not-allowed" : "pointer", fontFamily:"'DM Sans', sans-serif" }}
+          style={{ width:"100%", height:48, paddingLeft:44, paddingRight:40, background:"#F5F3FF", border:"1.5px solid #E0E7FF", borderRadius:14, fontSize:14, color: value ? "#1E1B4B" : "#94A3B8", outline:"none", appearance:"none", boxSizing:"border-box", cursor: disabled ? "not-allowed" : "pointer", fontFamily:"'Outfit', sans-serif" }}
           value={value} onChange={onChange}
         >
           <option value="">{placeholder || `Pilih ${label}`}</option>
@@ -180,16 +180,16 @@ export default function ProfilPage() {
   const bg        = "#F1F5F9";
   const cardBg    = "#FFFFFF";
   const cardBg2   = "#FFFFFF";
-  const textPri   = "#0F172A";
+  const textPri   = "#1E1B4B";
   const textSec   = "#64748B";
   const textMuted = "#94A3B8";
   const border    = "#F1F5F9";
-  const inputBg   = "#F8FAFC";
+  const inputBg   = "#F5F3FF";
   const bnBg      = "rgba(255,255,255,.97)";
-  const bnBorder  = "#E2E8F0";
+  const bnBorder  = "#E0E7FF";
 
   const css = `
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@300;400;500;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..900;1,9..144,400..900&family=Outfit:wght@400;500;600;700;800&display=swap');
     @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
     @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -207,13 +207,13 @@ export default function ProfilPage() {
       <style>{USER_NAVBAR_CSS}</style>
       <style>{USER_BOTTOM_NAV_CSS}</style>
       <style>{css}</style>
-      <div className="user-page-shell" style={{ minHeight:"100vh", background: bg, fontFamily:"'DM Sans', sans-serif", transition:"background 0.3s" }}>
+      <div className="user-page-shell" style={{ minHeight:"100vh", background: bg, fontFamily:"'Outfit', sans-serif", transition:"background 0.3s" }}>
 
         <UserNavbar badges={navBadges} activePath={currentPath} />
 
         {/* ── HERO HEADER ── */}
         <div style={{
-          background:"linear-gradient(135deg, #1D4ED8 0%, #1E40AF 50%, #312E81 100%)",
+          background:"linear-gradient(135deg, #4F46E5 0%, #4338CA 50%, #312E81 100%)",
           padding:"40px 0 80px", position:"relative", overflow:"hidden",
         }}>
           <div style={{ position:"absolute", top:-40, right:-40, width:200, height:200, borderRadius:"50%", background:"rgba(255,255,255,0.05)" }} />
@@ -221,7 +221,7 @@ export default function ProfilPage() {
 
           <div className="profil-hero-pad" style={{ position:"relative", maxWidth:1120, margin:"0 auto", padding:"0 48px" }}>
             <div style={{ fontSize:12, fontWeight:600, color:"rgba(255,255,255,0.6)", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:4 }}>Akun Saya</div>
-            <h1 className="profil-hero-title" style={{ fontSize:32, fontWeight:800, color:"#fff", margin:0, letterSpacing:"-0.5px", fontFamily:"'Plus Jakarta Sans', sans-serif" }}>Profil</h1>
+            <h1 className="profil-hero-title" style={{ fontSize:32, fontWeight:800, color:"#fff", margin:0, letterSpacing:"-0.5px", fontFamily:"'Outfit', sans-serif" }}>Profil</h1>
             <p style={{ margin:"8px 0 0", fontSize:15, color:"rgba(255,255,255,0.75)", maxWidth:480, lineHeight:1.55 }}>
               Kelola informasi akun, favorit, dan pengaturan keamananmu.
             </p>
@@ -233,23 +233,23 @@ export default function ProfilPage() {
           <div style={{ background: cardBg, borderRadius:28, padding:"28px 24px 24px", boxShadow: "0 8px 40px rgba(15,23,42,0.12)", transition:"background 0.3s" }}>
             <div style={{ display:"flex", alignItems:"center", gap:18 }}>
               <div style={{ position:"relative", flexShrink:0 }}>
-                <div style={{ width:80, height:80, borderRadius:22, overflow:"hidden", border: "3px solid #EFF6FF", boxShadow:"0 4px 12px rgba(37,99,235,0.15)" }}>
+                <div style={{ width:80, height:80, borderRadius:22, overflow:"hidden", border: "3px solid #F5F3FF", boxShadow:"0 4px 12px rgba(79,70,229,0.15)" }}>
                   {photoUrl ? (
                     <img src={photoUrl} style={{ width:"100%", height:"100%", objectFit:"cover" }} alt="Profile" />
                   ) : (
-                    <div style={{ width:"100%", height:"100%", background:"linear-gradient(135deg, #2563EB, #4F46E5)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:26, fontWeight:800, color:"#fff", fontFamily:"'Plus Jakarta Sans', sans-serif" }}>
+                    <div style={{ width:"100%", height:"100%", background:"linear-gradient(135deg, #4F46E5, #7C3AED)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:26, fontWeight:800, color:"#fff", fontFamily:"'Outfit', sans-serif" }}>
                       {initials}
                     </div>
                   )}
                 </div>
-                <button onClick={() => fileInputRef.current?.click()} style={{ position:"absolute", bottom:-4, right:-4, width:30, height:30, background:"#2563EB", border:`2.5px solid ${cardBg}`, borderRadius:10, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:"#fff" }}>
+                <button onClick={() => fileInputRef.current?.click()} style={{ position:"absolute", bottom:-4, right:-4, width:30, height:30, background:"#4F46E5", border:`2.5px solid ${cardBg}`, borderRadius:10, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:"#fff" }}>
                   <Camera size={14} />
                 </button>
                 <input ref={fileInputRef} type="file" accept="image/*" style={{ display:"none" }} onChange={handlePhotoChange} />
               </div>
 
               <div style={{ flex:1, minWidth:0 }}>
-                <h2 style={{ fontSize:18, fontWeight:800, color: textPri, margin:0, marginBottom:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", fontFamily:"'Plus Jakarta Sans', sans-serif" }}>
+                <h2 style={{ fontSize:18, fontWeight:800, color: textPri, margin:0, marginBottom:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", fontFamily:"'Outfit', sans-serif" }}>
                   {userData.name || "Pengguna Atap"}
                 </h2>
                 <div style={{ display:"flex", alignItems:"center", gap:5, color: textSec, fontSize:13 }}>
@@ -257,7 +257,7 @@ export default function ProfilPage() {
                   <span style={{ overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{userData.email || "—"}</span>
                 </div>
                 {userData.province && (
-                  <div style={{ display:"inline-flex", alignItems:"center", gap:4, background: "#EFF6FF", color:"#1D4ED8", fontSize:11, fontWeight:700, padding:"4px 10px", borderRadius:8, marginTop:8 }}>
+                  <div style={{ display:"inline-flex", alignItems:"center", gap:4, background: "#F5F3FF", color:"#4F46E5", fontSize:11, fontWeight:700, padding:"4px 10px", borderRadius:8, marginTop:8 }}>
                     <MapPin size={10} />
                     <span>{userData.district ? `${userData.district}, ` : ""}{userData.city || userData.province}</span>
                   </div>
@@ -266,9 +266,9 @@ export default function ProfilPage() {
             </div>
 
             <button onClick={() => setIsEditing(true)}
-              style={{ marginTop:20, width:"100%", padding:"14px 0", background: "#0F172A", color:"#fff", border:"none", borderRadius:16, fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"'DM Sans', sans-serif", transition:"background 0.2s" }}
-              onMouseEnter={e => e.currentTarget.style.background = "#2563EB"}
-              onMouseLeave={e => e.currentTarget.style.background = "#0F172A"}>
+              style={{ marginTop:20, width:"100%", padding:"14px 0", background: "#1E1B4B", color:"#fff", border:"none", borderRadius:16, fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"'Outfit', sans-serif", transition:"background 0.2s" }}
+              onMouseEnter={e => e.currentTarget.style.background = "#4F46E5"}
+              onMouseLeave={e => e.currentTarget.style.background = "#1E1B4B"}>
               Ubah Detail Profil
             </button>
           </div>
@@ -316,9 +316,9 @@ export default function ProfilPage() {
           <div style={{ position:"fixed", inset:0, zIndex:100, display:"flex", alignItems:"flex-end" }}>
             <div style={{ position:"absolute", inset:0, background:"rgba(15,23,42,0.6)", backdropFilter:"blur(4px)" }} onClick={() => setIsEditing(false)} />
             <div style={{ position:"relative", background: cardBg, width:"100%", borderRadius:"28px 28px 0 0", padding:"28px 24px 40px", maxHeight:"92vh", overflowY:"auto", animation:"slideUp 0.3s cubic-bezier(0.32,0.72,0,1)", transition:"background 0.3s" }}>
-              <div style={{ width:40, height:4, background: "#E2E8F0", borderRadius:2, margin:"0 auto 20px" }} />
+              <div style={{ width:40, height:4, background: "#E0E7FF", borderRadius:2, margin:"0 auto 20px" }} />
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:24 }}>
-                <h3 style={{ fontSize:18, fontWeight:800, color: textPri, margin:0, fontFamily:"'Plus Jakarta Sans', sans-serif" }}>Edit Profil & Lokasi</h3>
+                <h3 style={{ fontSize:18, fontWeight:800, color: textPri, margin:0, fontFamily:"'Outfit', sans-serif" }}>Edit Profil & Lokasi</h3>
                 <button onClick={() => setIsEditing(false)} style={{ width:36, height:36, background: "#F1F5F9", border:"none", borderRadius:12, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer" }}>
                   <X size={18} color={textSec} />
                 </button>
@@ -331,23 +331,23 @@ export default function ProfilPage() {
                   Nama dan alamat disimpan di perangkat ini. Perubahan email di server belum tersedia.
                 </p>
                 <div style={{ height:1, background: "#F1F5F9" }} />
-                <div style={{ fontSize:11, fontWeight:800, color:"#2563EB", letterSpacing:"0.1em", textTransform:"uppercase" }}>Alamat Lengkap</div>
+                <div style={{ fontSize:11, fontWeight:800, color:"#4F46E5", letterSpacing:"0.1em", textTransform:"uppercase" }}>Alamat Lengkap</div>
                 <SelectGroup label="Provinsi" icon={<Globe size={16} />} options={PROVINCES} value={editForm.province} placeholder="Pilih Provinsi" onChange={e => setEditForm({ ...editForm, province:e.target.value, city:"", district:"" })} />
                 <SelectGroup label="Kota / Kabupaten" icon={<MapIcon size={16} />} options={cityOptions} value={editForm.city} disabled={!editForm.province} placeholder="Pilih Kota/Kabupaten" onChange={e => setEditForm({ ...editForm, city:e.target.value, district:"" })} />
                 <InputGroup label="Kecamatan" icon={<Navigation size={16} />} value={editForm.district} onChange={e => setEditForm({ ...editForm, district:e.target.value })} placeholder="Ketik nama kecamatan" />
                 <div>
                   <label style={{ display:"block", fontSize:11, fontWeight:700, color: textSec, marginBottom:6, textTransform:"uppercase", letterSpacing:"0.08em" }}>Alamat Spesifik</label>
                   <textarea
-                    style={{ width:"100%", padding:"14px 16px", background: "#F8FAFC", border:"1.5px solid #E2E8F0", borderRadius:14, fontSize:14, color: textPri, resize:"none", outline:"none", boxSizing:"border-box", fontFamily:"inherit", transition:"border-color 0.2s" }}
+                    style={{ width:"100%", padding:"14px 16px", background: "#F5F3FF", border:"1.5px solid #E0E7FF", borderRadius:14, fontSize:14, color: textPri, resize:"none", outline:"none", boxSizing:"border-box", fontFamily:"inherit", transition:"border-color 0.2s" }}
                     rows={3} placeholder="Contoh: Jl. Melati No. 12, RT 01/02, Blok A"
                     value={editForm.address}
                     onChange={e => setEditForm({ ...editForm, address:e.target.value })}
-                    onFocus={e => e.target.style.borderColor = "#2563EB"}
-                    onBlur={e  => e.target.style.borderColor = "#E2E8F0"}
+                    onFocus={e => e.target.style.borderColor = "#4F46E5"}
+                    onBlur={e  => e.target.style.borderColor = "#E0E7FF"}
                   />
                 </div>
                 <button onClick={handleSaveProfile} disabled={isSaving}
-                  style={{ width:"100%", padding:"15px 0", background: saveSuccess ? "#059669" : "#2563EB", color:"#fff", border:"none", borderRadius:16, fontSize:15, fontWeight:700, cursor: isSaving ? "not-allowed" : "pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8, transition:"background 0.3s", opacity: isSaving ? 0.8 : 1, fontFamily:"'DM Sans', sans-serif" }}>
+                  style={{ width:"100%", padding:"15px 0", background: saveSuccess ? "#059669" : "#4F46E5", color:"#fff", border:"none", borderRadius:16, fontSize:15, fontWeight:700, cursor: isSaving ? "not-allowed" : "pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8, transition:"background 0.3s", opacity: isSaving ? 0.8 : 1, fontFamily:"'Outfit', sans-serif" }}>
                   {isSaving ? (
                     <div style={{ width:20, height:20, border:"2.5px solid rgba(255,255,255,0.4)", borderTop:"2.5px solid #fff", borderRadius:"50%", animation:"spin 0.7s linear infinite" }} />
                   ) : saveSuccess ? (

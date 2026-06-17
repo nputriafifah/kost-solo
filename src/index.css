@@ -1,1 +1,72 @@
 @import "tailwindcss";
+
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..900;1,9..144,400..900&family=Outfit:wght@400;500;600;700;800&display=swap");
+
+:root {
+  --atap-indigo-950: #1e1b4b;
+  --atap-indigo-900: #312e81;
+  --atap-indigo-800: #3730a3;
+  --atap-indigo-700: #4f46e5;
+  --atap-indigo-600: #4f46e5;
+  --atap-indigo-500: #7c3aed;
+  --atap-indigo-400: #a78bfa;
+  --atap-indigo-50: #f5f3ff;
+  --atap-indigo-100: #eef2ff;
+  --atap-chat: #10b981;
+  --atap-verified: #f59e0b;
+  --atap-text: #1e1b4b;
+  --atap-text-muted: #64748b;
+  --atap-surface: #ffffff;
+  --atap-bg: #f5f3ff;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Outfit", system-ui, sans-serif;
+  background-color: var(--atap-surface);
+  color: var(--atap-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: "Fraunces", Georgia, serif;
+  color: var(--atap-text);
+}
+
+.font-price {
+  font-family: "Fraunces", Georgia, serif;
+  font-weight: 700;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
