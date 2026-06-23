@@ -54,7 +54,7 @@ const FILTERS = ["Semua", "Putra", "Putri", "Campur"];
 const NAV_ITEMS = [
   { label: "Home", path: "/", icon: Home, desktop: true, mobile: true, guestMobile: true },
   { label: "Search", path: "/search", icon: Search, desktop: true, mobile: true, guestMobile: true },
-  { label: "My List", path: "/like", icon: Heart, desktop: true, mobile: true, guestMobile: false },
+  { label: "My List", path: "/like", icon: Heart, desktop: true, mobile: true, guestMobile: true },
   { label: "Profil", path: "/profil", icon: User, desktop: false, mobile: true, guestMobile: false },
 ];
 
@@ -610,6 +610,12 @@ export default function DashboardPage() {
                   onClick={() => navigate("/search")}
                 >
                   Search
+                </span>
+                <span
+                  className={`atap-navbar-link${isNavActive("/like") ? " active" : ""}`}
+                  onClick={() => navigate("/like")}
+                >
+                  My List
                 </span>
                 <div className="atap-navbar-divider" />
                 <span className="atap-navbar-login" onClick={() => navigate("/auth")}>Masuk</span>

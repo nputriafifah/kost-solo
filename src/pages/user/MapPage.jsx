@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Circle, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import {
@@ -8,7 +8,7 @@ import {
   MapPin, Star, ChevronRight,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { formatPublicLocation, obfuscateCoordinates } from "../../utils/publicLocation";
+import { formatPublicLocation } from "../../utils/publicLocation";
 import { createPriceIcon } from "../../utils/mapPriceIcon";
 import UserBottomNav, { USER_BOTTOM_NAV_CSS } from "../../components/user/UserBottomNav";
 import { getApiBase } from "../../config/apiBase";
@@ -129,7 +129,7 @@ export default function MapPage() {
         (json.data || [])
           .filter((item) => item.latitude && item.longitude)
           .map((item) => {
-            const obf = obfuscateCoordinates(item.latitude, item.longitude, String(item.id));
+            // Koordinat sudah di-masking oleh server (center lingkaran + radius).
             return {
               id: item.id,
               name: item.name,
@@ -137,8 +137,9 @@ export default function MapPage() {
               price: item.cheapestPrice ?? null,
               gender: item.genderType ?? "",
               isPremium: item.isPremium ?? false,
-              latitude: obf?.lat ?? Number(item.latitude),
-              longitude: obf?.lng ?? Number(item.longitude),
+              latitude: Number(item.latitude),
+              longitude: Number(item.longitude),
+              radiusM: Number(item.locationRadiusM) || 150,
               image: item.thumbnailUrl
                 ? item.thumbnailUrl.startsWith("http")
                   ? item.thumbnailUrl
@@ -448,16 +449,30 @@ export default function MapPage() {
             />
             {userCoords && <FlyToLocation coords={userCoords} />}
 
-            {kosData.map((kost) => (
-              <Marker
-                key={kost.id}
-                position={[kost.latitude, kost.longitude]}
-                icon={createPriceIcon(kost.price, selectedKost?.id === kost.id)}
-                eventHandlers={{
-                  click: () => setSelectedKost((prev) => prev?.id === kost.id ? null : kost),
-                }}
-              />
-            ))}
+            {kosData.map((kost) => {
+              const active = selectedKost?.id === kost.id;
+              return (
+                <React.Fragment key={kost.id}>
+                  <Circle
+                    center={[kost.latitude, kost.longitude]}
+                    radius={kost.radiusM || 150}
+                    pathOptions={{
+                      color: "#4F46E5",
+                      fillColor: "#4F46E5",
+                      fillOpacity: active ? 0.18 : 0.08,
+                      weight: active ? 2 : 1,
+                    }}
+                  />
+                  <Marker
+                    position={[kost.latitude, kost.longitude]}
+                    icon={createPriceIcon(kost.price, active, { pointer: false })}
+                    eventHandlers={{
+                      click: () => setSelectedKost((prev) => prev?.id === kost.id ? null : kost),
+                    }}
+                  />
+                </React.Fragment>
+              );
+            })}
           </MapContainer>
 
           {/* Search bar */}

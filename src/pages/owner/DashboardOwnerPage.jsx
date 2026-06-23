@@ -179,7 +179,7 @@ export default function DashboardOwnerPage() {
         <div className="grid grid-cols-2 gap-3">
           {[
             { icon: Plus,       label: "Tambah kamar",    color: "bg-indigo-50 text-indigo-600",      action: () => navigate("/owner/create") },
-            { icon: TrendingUp, label: "Tarik pendapatan", color: "bg-emerald-50 text-emerald-600", action: () => navigate("/owner/pendapatan") },
+            // "Tarik pendapatan" disembunyikan sementara (fitur belum aktif)
           ].map(({ icon: Icon, label, color, action }) => (
             <button key={label} onClick={action} className="flex flex-col items-center gap-2 active:scale-95 transition-transform">
               <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm ${color}`}>

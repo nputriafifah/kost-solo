@@ -7,7 +7,7 @@ function buildImageCandidates(rawUrl) {
   return proxied ? [proxied] : [];
 }
 
-export default function KostCard({ item, onClick, onLike, isLiked }) {
+export default function KostCard({ item, onClick, onLike, isLiked, hideLike = false }) {
   const candidates = useMemo(
     () => buildImageCandidates(item.image ?? item.thumbnailUrl),
     [item.image, item.thumbnailUrl]
@@ -62,20 +62,22 @@ export default function KostCard({ item, onClick, onLike, isLiked }) {
           </div>
         )}
 
-        <button
-          onClick={handleLikeClick}
-          className={`absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center transition shadow-sm ${
-            isLiked
-              ? "bg-red-500 text-white"
-              : "bg-white/80 text-slate-400 hover:text-red-500"
-          }`}
-        >
-          <Heart
-            size={11}
-            className="transition-transform duration-200 group-active:scale-90"
-            fill={isLiked ? "white" : "none"}
-          />
-        </button>
+        {!hideLike && (
+          <button
+            onClick={handleLikeClick}
+            className={`absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center transition shadow-sm ${
+              isLiked
+                ? "bg-red-500 text-white"
+                : "bg-white/80 text-slate-400 hover:text-red-500"
+            }`}
+          >
+            <Heart
+              size={11}
+              className="transition-transform duration-200 group-active:scale-90"
+              fill={isLiked ? "white" : "none"}
+            />
+          </button>
+        )}
 
         {item.distanceKm != null && (
           <span className="absolute bottom-1.5 right-1.5 z-[2] flex items-center gap-0.5 text-[9px] font-bold px-2 py-0.5 rounded-full bg-slate-900/80 text-white shadow-sm backdrop-blur-sm">

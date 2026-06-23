@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { MapContainer, TileLayer, Marker, ZoomControl, useMap } from "react-leaflet";
+import { Fragment } from "react";
+import { MapContainer, TileLayer, Marker, Circle, ZoomControl, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { createPriceIcon } from "../../utils/mapPriceIcon";
@@ -60,16 +61,30 @@ export default function SearchSplitMap({
         <ZoomControl position="topright" />
         <FitBounds results={withCoords} />
         <PanToActive results={withCoords} activePinId={activePinId} />
-        {withCoords.map((item) => (
-          <Marker
-            key={item.id}
-            position={[item.latitude, item.longitude]}
-            icon={createPriceIcon(item.price, activePinId === item.id)}
-            eventHandlers={{
-              click: () => onPinClick?.(item.id),
-            }}
-          />
-        ))}
+        {withCoords.map((item) => {
+          const active = activePinId === item.id;
+          return (
+            <Fragment key={item.id}>
+              <Circle
+                center={[item.latitude, item.longitude]}
+                radius={item.radiusM || 150}
+                pathOptions={{
+                  color: "#4F46E5",
+                  fillColor: "#4F46E5",
+                  fillOpacity: active ? 0.18 : 0.08,
+                  weight: active ? 2 : 1,
+                }}
+              />
+              <Marker
+                position={[item.latitude, item.longitude]}
+                icon={createPriceIcon(item.price, active, { pointer: false })}
+                eventHandlers={{
+                  click: () => onPinClick?.(item.id),
+                }}
+              />
+            </Fragment>
+          );
+        })}
       </MapContainer>
     </div>
   );

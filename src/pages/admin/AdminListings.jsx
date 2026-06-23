@@ -7,8 +7,19 @@ import {
   Calendar, Image as ImageIcon, Layers,
 } from "lucide-react";
 
+import { MapContainer, TileLayer, Marker } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+
 import { adminApiFetch, handleAdminAuthError } from "./adminApi";
 import { resolveMediaUrl } from "../../config/apiBase";
+
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+});
 /** Tanpa endpoint admin “semua status” — aktif dari GET /listings (publik), nonaktif dari analytics */
 const STATUS_TABS = [
   { key: "ACTIVE", label: "Disetujui (Aktif)" },
@@ -235,6 +246,37 @@ function DetailModal({ listing, onClose, onApprove, onReject, actionLoading }) {
             {infoRow(<Calendar size={15} />, "Terdaftar", listing.createdAt ? new Date(listing.createdAt).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" }) : "-")}
             {listing.rejectionReason && infoRow(<AlertTriangle size={15} />, "Alasan Penolakan", listing.rejectionReason)}
           </div>
+
+          {/* Peta lokasi — PENDING pakai koordinat asli (review), lainnya dari data publik */}
+          {Number.isFinite(Number(listing.latitude)) && Number.isFinite(Number(listing.longitude)) && (
+            <div style={{ marginTop: 20 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>
+                Lokasi di Peta
+              </div>
+              <div style={{ position: "relative", height: 220, borderRadius: 12, overflow: "hidden", border: "1px solid #e2e8f0", zIndex: 0 }}>
+                <MapContainer
+                  center={[Number(listing.latitude), Number(listing.longitude)]}
+                  zoom={16}
+                  style={{ width: "100%", height: "100%" }}
+                  zoomControl={false}
+                  scrollWheelZoom={false}
+                >
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+                    url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                    subdomains="abcd"
+                    maxZoom={19}
+                  />
+                  <Marker position={[Number(listing.latitude), Number(listing.longitude)]} />
+                </MapContainer>
+              </div>
+              <p style={{ fontSize: 11, fontWeight: 600, color: listing.status === "PENDING" ? "#4338ca" : "#94a3b8", margin: "8px 0 0", lineHeight: 1.5 }}>
+                {listing.status === "PENDING"
+                  ? "Titik asli yang ditandai pemilik (untuk verifikasi sebelum disetujui)."
+                  : "Titik perkiraan dari data publik. Untuk titik asli, tinjau saat listing masih menunggu review."}
+              </p>
+            </div>
+          )}
 
           {/* Room Types */}
           {listing.roomTypes?.length > 0 && (

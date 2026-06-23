@@ -23,6 +23,14 @@ export function resolveMediaUrl(url) {
 
   const r2Base = getR2PublicBase();
 
+  // URL proxy file backend (.../files/<key>) — host bisa "dibakar" salah
+  // (port/origin lama). Selalu rutekan lewat origin/proxy yang sedang dipakai.
+  const filesIdx = trimmed.indexOf("/files/");
+  if (filesIdx !== -1) {
+    const key = trimmed.slice(filesIdx + "/files/".length).replace(/^\/+/, "");
+    if (key) return `${getApiBase()}/files/${key}`;
+  }
+
   if (trimmed.startsWith("https://") || trimmed.startsWith("http://")) {
     return trimmed;
   }
@@ -53,20 +61,7 @@ export function resolveMediaUrl(url) {
  * backend ke dalam URL (yang bisa salah port/origin).
  */
 export function resolveFileUrl(url) {
-  if (!url || typeof url !== "string") return null;
-
-  const trimmed = url.trim();
-  if (!trimmed) return null;
-
-  const marker = "/files/";
-  const idx = trimmed.indexOf(marker);
-  if (idx !== -1) {
-    const key = trimmed.slice(idx + marker.length).replace(/^\/+/, "");
-    if (!key) return null;
-    return `${getApiBase()}/files/${key}`;
-  }
-
-  return resolveMediaUrl(trimmed);
+  return resolveMediaUrl(url);
 }
 
 /** POST publik tanpa Authorization (guest / Saya Minat) */
