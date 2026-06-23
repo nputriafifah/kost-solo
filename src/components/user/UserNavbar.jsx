@@ -217,7 +217,7 @@ export default function UserNavbar({ badges: badgesProp, activePath: activePathP
           </>
         ) : (
           <>
-            {DESKTOP_LINKS.slice(0, 2).map(({ label, path }) => (
+            {DESKTOP_LINKS.slice(0, 3).map(({ label, path }) => (
               <span
                 key={path}
                 className={`atap-navbar-link atap-nav-desktop-only${isLinkActive(path) ? " active" : ""}`}

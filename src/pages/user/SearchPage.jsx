@@ -5,11 +5,11 @@ import "leaflet/dist/leaflet.css";
 import {
   Search, Clock, TrendingUp, X, MapPin, Home,
   ChevronDown, Check, Users, ArrowUpDown,
-  List, Map as MapIcon,
+  List, Map as MapIcon, ArrowLeft,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getApiBase, resolveMediaUrl } from "../../config/apiBase";
-import { buildAreaSearchQuery, formatPublicLocation, obfuscateCoordinates } from "../../utils/publicLocation";
+import { buildAreaSearchQuery, formatPublicLocation } from "../../utils/publicLocation";
 import { GENDER_OPTIONS } from "../../constants/listing";
 import { KABUPATEN_OPTIONS, getKecamatanOptions } from "../../constants/soloRegions";
 import { CAMPUS_PRESETS, QUICK_KECAMATAN } from "../../constants/searchLocations";
@@ -90,7 +90,13 @@ function DropdownPortal({ anchorRef, children, onClose }) {
 }
 
 const HISTORY_KEY = "atap_search_history";
-const TRENDS = ["Kost dekat UNS", "Kost dekat UMS", "Kost Laweyan murah", "Kost Kartasura"];
+// Trending → aksi nyata (filter kampus / area), bukan teks q mentah yang tak match
+const TRENDS = [
+  { label: "Kost dekat UNS", type: "campus", id: "uns" },
+  { label: "Kost dekat UMS", type: "campus", id: "ums" },
+  { label: "Kost Jebres", type: "area", kabupaten: "Kota Surakarta", kecamatan: "Jebres" },
+  { label: "Kost Kartasura", type: "area", kabupaten: "Kab. Sukoharjo", kecamatan: "Kartasura" },
+];
 const SORT_OPTIONS = [
   { value: "relevance", label: "Rekomendasi" },
   { value: "lowest_price", label: "Harga termurah" },
@@ -99,10 +105,7 @@ const SORT_OPTIONS = [
 ];
 
 function mapSearchResult(item) {
-  const obf =
-    item.latitude != null && item.longitude != null
-      ? obfuscateCoordinates(item.latitude, item.longitude, String(item.id))
-      : null;
+  // Koordinat sudah di-masking oleh server (center lingkaran + radius).
   return {
     id: item.id,
     name: item.name,
@@ -110,8 +113,9 @@ function mapSearchResult(item) {
     location: formatPublicLocation(item.address ?? ""),
     gender: (item.genderType || "").toLowerCase(),
     isPremium: Boolean(item.isPremium),
-    latitude: obf?.lat ?? item.latitude ?? null,
-    longitude: obf?.lng ?? item.longitude ?? null,
+    latitude: item.latitude ?? null,
+    longitude: item.longitude ?? null,
+    radiusM: Number(item.locationRadiusM) || 150,
     distanceKm: item.distanceKm ?? null,
     image: resolveMediaUrl(item.thumbnailUrl),
     facilities: Array.isArray(item.facilities) ? item.facilities : [],
@@ -145,6 +149,8 @@ body { font-family:'Outfit',sans-serif; color:var(--text-primary); background:va
 /* ── TOOLBAR (search + filter) ── */
 .sp-toolbar { flex-shrink:0; z-index:50; background:var(--bg-secondary); border-bottom:1px solid var(--border-color); transition:background 0.3s, border-color 0.3s; }
 .sp-toolbar-top { display:flex; align-items:center; gap:10px; padding:12px 16px; }
+.sp-back-btn { flex-shrink:0; width:44px; height:44px; display:flex; align-items:center; justify-content:center; border:1.5px solid var(--border-color); border-radius:10px; background:var(--bg-tertiary); color:var(--text-primary); cursor:pointer; transition:border-color .15s, background .15s, color .15s; }
+.sp-back-btn:hover { border-color:#4F46E5; color:#4F46E5; background:var(--bg-secondary); }
 
 .sp-search-bar { flex:1; display:flex; align-items:center; gap:10px; height:44px; border:1.5px solid var(--border-color); border-radius:10px; padding:0 14px; background:var(--bg-tertiary); transition:border-color .15s, background .15s; }
 .sp-search-bar:focus-within { border-color:#4F46E5; background:var(--bg-secondary); }
@@ -398,6 +404,18 @@ export default function SearchPage() {
     doSearch(qArea, null);
   };
 
+  const handleTrendClick = (t) => {
+    if (t.type === "campus") {
+      const preset = CAMPUS_PRESETS.find((p) => p.id === t.id);
+      if (preset) applyCampusFilter(preset);
+    } else if (t.type === "area") {
+      applyAreaFilter(t.kabupaten, t.kecamatan);
+    } else {
+      setQuery(t.q || "");
+      doSearch(t.q || "");
+    }
+  };
+
   const doSearch = useCallback(async (customQuery, customCoords) => {
     const q = (customQuery ?? queryRef.current).trim();
     if (q) saveHistory(q);
@@ -453,6 +471,15 @@ export default function SearchPage() {
 
         <div className="sp-toolbar">
           <div className="sp-toolbar-top">
+            <button
+              type="button"
+              className="sp-back-btn"
+              onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/"))}
+              aria-label="Kembali"
+              title="Kembali"
+            >
+              <ArrowLeft size={18} />
+            </button>
             <div className="sp-search-bar">
               <Search size={15} color="#4F46E5" style={{ flexShrink: 0 }} />
               <input
@@ -473,10 +500,6 @@ export default function SearchPage() {
 
           <div className="sp-filter-bar">
             <div className="sp-filter-row">
-              <button className={`sp-chip${(selectedGenders.length > 0 || priceFiltered || sort !== "relevance") ? " filtered" : ""}`} style={{ gap: 6 }}>
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
-                Filter
-              </button>
               <div ref={genderAnchorRef}>
                 <button className={`sp-chip${activeDropdown === "gender" ? " active" : selectedGenders.length > 0 ? " filtered" : ""}`} onClick={() => setActiveDropdown((p) => p === "gender" ? null : "gender")}>
                   <Users size={13} />{genderLabel}<ChevronDown size={13} />
@@ -685,8 +708,8 @@ export default function SearchPage() {
             )}
             <p className="sp-suggest-label">Trending</p>
             {TRENDS.map((t) => (
-              <div key={t} className="sp-suggest-item" onMouseDown={() => { setQuery(t); doSearch(t); }}>
-                <div className="sp-suggest-left"><TrendingUp size={14} className="sp-suggest-icon" /> {t}</div>
+              <div key={t.label} className="sp-suggest-item" onMouseDown={() => handleTrendClick(t)}>
+                <div className="sp-suggest-left"><TrendingUp size={14} className="sp-suggest-icon" /> {t.label}</div>
               </div>
             ))}
           </div>

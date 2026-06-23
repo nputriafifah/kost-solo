@@ -3,7 +3,7 @@ export const getApiBase = () => {
   const fromEnv = import.meta.env.VITE_API_URL?.trim();
   if (fromEnv) return fromEnv.replace(/\/$/, "");
   if (import.meta.env.DEV) return "/api";
-  return "http://localhost:3000";
+  return "http://localhost:8080";
 };
 
 const getR2PublicBase = () => {
@@ -22,6 +22,14 @@ export function resolveMediaUrl(url) {
   if (!trimmed) return null;
 
   const r2Base = getR2PublicBase();
+
+  // URL proxy file backend (.../files/<key>) — host bisa "dibakar" salah
+  // (port/origin lama). Selalu rutekan lewat origin/proxy yang sedang dipakai.
+  const filesIdx = trimmed.indexOf("/files/");
+  if (filesIdx !== -1) {
+    const key = trimmed.slice(filesIdx + "/files/".length).replace(/^\/+/, "");
+    if (key) return `${getApiBase()}/files/${key}`;
+  }
 
   if (trimmed.startsWith("https://") || trimmed.startsWith("http://")) {
     return trimmed;
@@ -47,6 +55,15 @@ export function resolveMediaUrl(url) {
   return null;
 }
 
+/**
+ * URL file proxy backend (mis. bukti transfer) — selalu dirutekan lewat
+ * origin/proxy yang sedang dipakai frontend, mengabaikan host yang "dibakar"
+ * backend ke dalam URL (yang bisa salah port/origin).
+ */
+export function resolveFileUrl(url) {
+  return resolveMediaUrl(url);
+}
+
 /** POST publik tanpa Authorization (guest / Saya Minat) */
 export async function postPublicJson(path, body) {
   const headers = new Headers();
@@ -58,6 +75,45 @@ export async function postPublicJson(path, body) {
     credentials: "omit",
     mode: "cors",
     body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.message || "Request gagal");
+  }
+  return data;
+}
+
+/**
+ * GET publik tanpa Authorization (mis. info pembayaran lead).
+ */
+export async function getPublicJson(path) {
+  const res = await fetch(`${getApiBase()}${path}`, {
+    method: "GET",
+    credentials: "omit",
+    mode: "cors",
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.message || "Request gagal");
+  }
+  return data;
+}
+
+/**
+ * POST multipart/form-data publik (mis. upload bukti transfer lead).
+ * Sertakan token jika user login agar verifikasi kepemilikan lead berjalan.
+ */
+export async function postPublicForm(path, formData) {
+  const headers = new Headers();
+  const token =
+    localStorage.getItem("token") || localStorage.getItem("accessToken") || "";
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
+  const res = await fetch(`${getApiBase()}${path}`, {
+    method: "POST",
+    headers,
+    mode: "cors",
+    body: formData,
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {

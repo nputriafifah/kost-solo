@@ -76,7 +76,7 @@ export default function AuthLayout({ children }) {
                 </div>
               </div>
 
-              <h2 className="mb-3 text-3xl font-extrabold leading-snug text-white" style={{ fontFamily: "Outfit" }}>
+              <h2 className="mb-3 text-3xl font-extrabold leading-snug text-white" style={{ fontFamily: "Outfit", color: "#fff" }}>
                 Temukan Kost
                 <br />
                 Impian Anda

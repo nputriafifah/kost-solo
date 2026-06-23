@@ -3,7 +3,7 @@
 export const USER_NAV_ITEMS = [
   { label: "Home", path: "/", iconKey: "home", desktop: true, mobile: true, guestMobile: true },
   { label: "Search", path: "/search", iconKey: "search", desktop: true, mobile: true, guestMobile: true },
-  { label: "My List", path: "/like", iconKey: "heart", desktop: true, mobile: true, guestMobile: false },
+  { label: "My List", path: "/like", iconKey: "heart", desktop: true, mobile: true, guestMobile: true },
   { label: "Masuk", path: "/auth", iconKey: "login", desktop: false, mobile: false, guestMobile: true },
   { label: "Profil", path: "/profil", iconKey: "user", desktop: false, mobile: true, guestMobile: false },
 ];

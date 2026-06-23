@@ -54,7 +54,7 @@ const FILTERS = ["Semua", "Putra", "Putri", "Campur"];
 const NAV_ITEMS = [
   { label: "Home", path: "/", icon: Home, desktop: true, mobile: true, guestMobile: true },
   { label: "Search", path: "/search", icon: Search, desktop: true, mobile: true, guestMobile: true },
-  { label: "My List", path: "/like", icon: Heart, desktop: true, mobile: true, guestMobile: false },
+  { label: "My List", path: "/like", icon: Heart, desktop: true, mobile: true, guestMobile: true },
   { label: "Profil", path: "/profil", icon: User, desktop: false, mobile: true, guestMobile: false },
 ];
 
@@ -72,9 +72,8 @@ const WHY_ITEMS = [
 ];
 
 const FOOTER_COLS = [
-  { title: "Platform", links: [{ label: "Cari Kost", path: "/search" }, { label: "Peta Kost", path: "/map" }, { label: "Kost Favorit", path: "/like" }, { label: "Semua Listing", path: "/semua" }] },
-  { title: "Untuk Pemilik", links: [{ label: "Daftarkan Kost", path: "/owner/dashboard" }, { label: "Kelola Listing", path: "/owner/dashboard" }, { label: "Panduan Harga", path: null }, { label: "FAQ Pemilik", path: null }] },
-  { title: "Perusahaan", links: [{ label: "Tentang Kami", path: null }, { label: "Karir", path: null }, { label: "Blog", path: null }, { label: "Hubungi Kami", path: null }] },
+  { title: "Platform", links: [{ label: "Cari Kost", path: "/search" }, { label: "Kost Favorit", path: "/auth" }, { label: "Semua Listing", path: "/semua" }] },
+  { title: "Untuk Pemilik", links: [{ label: "Daftarkan Kost", path: "/owner/dashboard" }, { label: "Kelola Listing", path: "/owner/dashboard" }] },
 ];
 
 // Hitung jarak (km) pakai Haversine
@@ -612,6 +611,12 @@ export default function DashboardPage() {
                 >
                   Search
                 </span>
+                <span
+                  className={`atap-navbar-link${isNavActive("/like") ? " active" : ""}`}
+                  onClick={() => navigate("/like")}
+                >
+                  My List
+                </span>
                 <div className="atap-navbar-divider" />
                 <span className="atap-navbar-login" onClick={() => navigate("/auth")}>Masuk</span>
                 <button className="atap-navbar-cta" onClick={() => navigate("/auth")}>Daftar Gratis</button>
@@ -735,7 +740,6 @@ export default function DashboardPage() {
             </div>
             <div className="atap-cta-btns">
               <button className="atap-cta-btn-primary" onClick={() => navigate(isLoggedIn ? "/owner/dashboard" : "/auth")}>Daftarkan Kost</button>
-              <button className="atap-cta-btn-ghost" onClick={() => navigate("/map")}>Lihat di Peta</button>
             </div>
           </div>
         </div>
@@ -750,9 +754,6 @@ export default function DashboardPage() {
             <div className="atap-footer-brand">
               <div className="atap-footer-logo">Atap<span>.</span></div>
               <p>Platform pencarian kost terpercaya untuk mahasiswa dan pekerja di seluruh Indonesia.</p>
-              <div className="atap-footer-socials">
-                {["Instagram", "Twitter", "TikTok"].map((s) => <span key={s} className="atap-footer-social">{s}</span>)}
-              </div>
             </div>
             <div className="atap-footer-links">
               {FOOTER_COLS.map(({ title, links }) => (

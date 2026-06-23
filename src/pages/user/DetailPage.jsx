@@ -4,14 +4,13 @@ import { getApiBase, postPublicJson, resolveMediaUrl } from "../../config/apiBas
 import UserNavbar, { USER_NAVBAR_CSS } from "../../components/user/UserNavbar";
 import UserBottomNav, { USER_BOTTOM_NAV_CSS } from "../../components/user/UserBottomNav";
 import { useUserNavBadges } from "../../hooks/useUserNavBadges";
-import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Circle, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { GENDER_LABELS_LOWER, extractKostFacilitiesFromRooms, getRoomOnlyFacilities, getRentableRoomTypes, findSharedFacilityRoom, parseElectricityIncluded } from "../../constants/listing";
-import { formatPublicLocation, obfuscateCoordinates } from "../../utils/publicLocation";
+import { formatPublicLocation } from "../../utils/publicLocation";
 import FacilityChipList from "../../components/user/FacilityChipList";
 import FacilitiesModal from "../../components/user/FacilitiesModal";
-import { createPriceIcon } from "../../utils/mapPriceIcon";
 import {
   ArrowLeft, MapPin, Heart, Home,
   ShieldCheck, ChevronLeft, ChevronRight, X,
@@ -190,6 +189,17 @@ const getLocalFavorites = () => {
 const setLocalFavorites = (arr) => {
   localStorage.setItem("atap_favorites", JSON.stringify(arr));
 };
+// Jejak "Saya Minat" untuk guest (belum login) — disimpan lokal di browser
+const getLocalMinat = () => {
+  try { return JSON.parse(localStorage.getItem("atap_minat") || "[]"); }
+  catch { return []; }
+};
+const hasLocalMinat = (id) => getLocalMinat().some((m) => String(m?.id ?? m) === String(id));
+const addLocalMinat = (item) => {
+  const arr = getLocalMinat().filter((m) => String(m?.id ?? m) !== String(item.id));
+  arr.unshift({ id: String(item.id), name: item.name || "", location: item.location || "", image: item.images?.[0] || null, at: Date.now() });
+  localStorage.setItem("atap_minat", JSON.stringify(arr));
+};
 const getFavoriteListingId = (fav) =>
   String(fav?.listingId ?? fav?.listing?.id ?? fav?.id ?? "");
 
@@ -200,12 +210,21 @@ const authFetch = (url, opts = {}) => {
   return fetch(url, { ...opts, headers });
 };
 
-const formatPhone = (n) => (n?.startsWith("0") ? "62" + n.slice(1) : n || "");
-
 const fmtRp   = (n) => `Rp ${Number(n || 0).toLocaleString("id-ID")}`;
 
+/** Normalisasi nomor ke format wa.me (62xxxx, hanya digit) */
+const normalizeWaPhone = (n) => {
+  const d = String(n || "").replace(/\D/g, "");
+  if (!d) return "";
+  if (d.startsWith("0")) return "62" + d.slice(1);
+  if (d.startsWith("62")) return d;
+  if (d.startsWith("8")) return "62" + d;
+  return d;
+};
+
 const buildMinatWhatsAppUrl = (item, { name, phone } = {}) => {
-  const waNum = formatPhone(WHATSAPP_CONSULTATION);
+  // Selalu ke nomor narahubung Atap (sama dengan backend), bukan kontak per-kost.
+  const waNum = normalizeWaPhone(WHATSAPP_CONSULTATION);
   const waMsg =
     name && phone
       ? `Halo, saya *${name}* (${phone}) tertarik dengan kost *${item.name}* di ${item.location}. Apakah masih tersedia?`
@@ -253,7 +272,10 @@ function mapListingDetail(data) {
   const priceValues = rentableRaw.map((r) => Number(r.price)).filter((p) => p > 0);
   const availableRooms = rentableRaw.reduce((s, r) => s + (r.availableCount || 0), 0);
 
-  const mapCoords = obfuscateCoordinates(data.latitude, data.longitude, String(data.id || ""));
+  // Koordinat sudah di-masking server (center lingkaran + radius). Pakai apa adanya.
+  const mapLat = Number(data.latitude);
+  const mapLng = Number(data.longitude);
+  const hasCoords = Number.isFinite(mapLat) && Number.isFinite(mapLng);
 
   return {
     id:             data.id,
@@ -267,8 +289,9 @@ function mapListingDetail(data) {
     sharedFacilityImages,
     isPremium:      Boolean(data.isPremium),
     availableRooms,
-    latitude:       mapCoords?.lat ?? null,
-    longitude:      mapCoords?.lng ?? null,
+    latitude:       hasCoords ? mapLat : null,
+    longitude:      hasCoords ? mapLng : null,
+    locationRadiusM: Number(data.locationRadiusM) || 150,
     kostFacilities,
     roomTypes,
     status: data.status,
@@ -456,11 +479,14 @@ L.Icon.Default.mergeOptions({
   shadowUrl:     "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-function MapCenter({ lat, lng }) {
+function MapCenter({ lat, lng, radiusM = 150 }) {
   const map = useMap();
   useEffect(() => {
-    if (lat && lng) map.setView([lat, lng], 15, { animate: true });
-  }, [lat, lng, map]);
+    if (lat == null || lng == null) return;
+    // Fit ke bounds lingkaran area supaya zoom otomatis pas (tidak terlalu dekat/jauh)
+    const bounds = L.latLng(lat, lng).toBounds(radiusM * 2.6);
+    map.fitBounds(bounds, { animate: true });
+  }, [lat, lng, radiusM, map]);
   return null;
 }
 
@@ -688,12 +714,12 @@ function ShareModal({ item, onClose }) {
 /* ─────────────────────────────────────────────
    MINAT MODAL
 ───────────────────────────────────────────── */
-function MinatModal({ item, onClose }) {
+function MinatModal({ item, onClose, onSubmitted }) {
   const profile            = getCurrentUser();
   const [name, setName]    = useState(profile.name  || "");
   const [phone, setPhone]  = useState(profile.phone || "");
   const [loading, setLoading] = useState(false);
-  const [status, setStatus]   = useState(null);
+  const [status, setStatus]   = useState(null); // null | "success"
   const [errMsg, setErrMsg]   = useState("");
 
   const handleSubmit = async () => {
@@ -708,6 +734,8 @@ function MinatModal({ item, onClose }) {
       const email = (profile.email || "").trim();
       if (email) body.email = email;
       await postPublicJson(`/leads/${item.id}`, body);
+      addLocalMinat(item);
+      onSubmitted?.();
       window.open(buildMinatWhatsAppUrl(item, { name: cName, phone: cPhone }), "_blank");
       setStatus("success");
     } catch (e) {
@@ -722,19 +750,22 @@ function MinatModal({ item, onClose }) {
     }
   };
 
+  const fieldLabel = { fontSize:11, fontWeight:700, color:"var(--text-muted)", display:"block", marginBottom:6 };
+  const fieldInput = { width:"100%", background:"var(--surface-2)", border:"1.5px solid var(--border)", borderRadius:"var(--radius-sm)", padding:"11px 14px", fontSize:13.5, color:"var(--text-primary)", fontFamily:"var(--ff)", outline:"none" };
+
   return (
     <div style={S.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div style={{ ...S.sheet, paddingBottom: 28 }}>
         <div style={S.handle} />
-        <div style={{ padding: "16px 20px 0" }}>
+        <div style={{ padding: "16px 20px 0", maxHeight: "82vh", overflowY: "auto" }}>
           {status === "success" ? (
             <div style={{ display:"flex", flexDirection:"column", alignItems:"center", padding:"20px 0 8px", gap:16, textAlign:"center" }}>
               <div style={{ width:64, height:64, borderRadius:"50%", background:"#DCFCE7", display:"flex", alignItems:"center", justifyContent:"center" }}>
                 <CheckCircle2 size={32} color="var(--success)" />
               </div>
               <div>
-                <p style={{ fontWeight:700, fontSize:17, color:"var(--text-primary)", marginBottom:4 }}>WhatsApp terbuka!</p>
-                <p style={{ fontSize:13, color:"var(--text-muted)", lineHeight:1.6 }}>Lanjutkan percakapan di WhatsApp.</p>
+                <p style={{ fontWeight:700, fontSize:17, color:"var(--text-primary)", marginBottom:4 }}>Minat terkirim!</p>
+                <p style={{ fontSize:13, color:"var(--text-muted)", lineHeight:1.6 }}>Lanjutkan percakapan di WhatsApp. Kost ini juga tersimpan di <b>My List → Diminati</b>.</p>
               </div>
               <button onClick={onClose} style={{ width:"100%", height:48, borderRadius:"var(--radius)", background:"var(--success)", color:"white", fontWeight:700, fontSize:14, border:"none", cursor:"pointer", fontFamily:"var(--ff)" }}>
                 Tutup
@@ -769,7 +800,7 @@ function MinatModal({ item, onClose }) {
                 ["Nomor WhatsApp","tel",  "contoh: 08123456789",   phone, setPhone],
               ].map(([lbl, type, ph, val, setter]) => (
                 <div key={lbl} style={{ marginBottom:12 }}>
-                  <label style={{ fontSize:11, fontWeight:700, color:"var(--text-muted)", display:"block", marginBottom:6 }}>
+                  <label style={fieldLabel}>
                     {lbl} <span style={{ color:"var(--danger)" }}>*</span>
                   </label>
                   <input
@@ -777,7 +808,7 @@ function MinatModal({ item, onClose }) {
                     placeholder={ph}
                     value={val}
                     onChange={(e) => setter(e.target.value)}
-                    style={{ width:"100%", background:"var(--surface-2)", border:"1.5px solid var(--border)", borderRadius:"var(--radius-sm)", padding:"11px 14px", fontSize:13.5, color:"var(--text-primary)", fontFamily:"var(--ff)", outline:"none" }}
+                    style={fieldInput}
                   />
                 </div>
               ))}
@@ -974,6 +1005,7 @@ export default function DetailPage() {
   const [likeLoading, setLikeLoading] = useState(false);
   const [lightbox,    setLightbox]    = useState(null);
   const [showMinat,   setShowMinat]   = useState(false);
+  const [hasMinat,    setHasMinat]    = useState(false);
   const [showReport,  setShowReport]  = useState(false);
   const [showShare,   setShowShare]   = useState(false);
   const [facilitiesModal, setFacilitiesModal] = useState(null);
@@ -1009,6 +1041,10 @@ export default function DetailPage() {
     })();
   }, [id, API]);
 
+  useEffect(() => {
+    setHasMinat(hasLocalMinat(id));
+  }, [id]);
+
   const toggleLike = async () => {
     const token = getToken();
     if (!token) {
@@ -1036,6 +1072,25 @@ export default function DetailPage() {
     } finally {
       setLikeLoading(false);
     }
+  };
+
+  // "Saya Minat": kalau sudah login → catat lead otomatis + langsung buka WA narahubung
+  // kost (tanpa isi form). Kalau belum login → buka form minat seperti biasa.
+  const handleMinatClick = async () => {
+    const token = getToken();
+    if (!token) { setShowMinat(true); return; }
+
+    const profile = getCurrentUser();
+    // Catat lead (best-effort; abaikan error mis. role bukan USER)
+    try {
+      await authFetch(`${API}/leads/${item.id}/auth`, { method: "POST" });
+    } catch { /* tetap lanjut buka WhatsApp */ }
+    addLocalMinat(item);
+    setHasMinat(true);
+    window.open(
+      buildMinatWhatsAppUrl(item, { name: profile.name, phone: profile.phone }),
+      "_blank"
+    );
   };
 
   // Fetch listing detail
@@ -1360,11 +1415,12 @@ export default function DetailPage() {
                       subdomains="abcd"
                       maxZoom={19}
                     />
-                    <Marker
-                      position={[item.latitude, item.longitude]}
-                      icon={createPriceIcon(item.price, true)}
+                    <Circle
+                      center={[item.latitude, item.longitude]}
+                      radius={item.locationRadiusM || 150}
+                      pathOptions={{ color: "#4F46E5", fillColor: "#4F46E5", fillOpacity: 0.15, weight: 2 }}
                     />
-                    <MapCenter lat={item.latitude} lng={item.longitude} />
+                    <MapCenter lat={item.latitude} lng={item.longitude} radiusM={item.locationRadiusM || 150} />
                   </MapContainer>
                 </div>
                 <div style={{ marginTop:10, padding:"11px 14px", background:"var(--brand-light)", border:"1px solid #DDD6FE", borderRadius:"var(--radius-sm)", display:"flex", alignItems:"flex-start", gap:8 }}>
@@ -1409,17 +1465,26 @@ export default function DetailPage() {
             <Heart size={18} fill={isLiked ? "var(--danger)" : "none"} color={isLiked ? "var(--danger)" : "var(--text-muted)"} />
           </button>
 
-          {/* Minat (WhatsApp Atap) */}
+          {/* Minat — login: langsung WA narahubung kost; guest: isi form dulu */}
           <button
             type="button"
-            onClick={() => setShowMinat(true)}
-            style={{ flex:1, height:48, borderRadius:"var(--radius)", color:"white", fontWeight:700, fontSize:13, fontFamily:"var(--ff)", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8, background:"linear-gradient(135deg,#25D366,#128C7E)", boxShadow:"0 4px 16px rgba(37,211,102,.3)" }}
+            onClick={handleMinatClick}
+            style={{ flex:1, height:48, borderRadius:"var(--radius)", color:"white", fontWeight:700, fontSize:13, fontFamily:"var(--ff)", border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8, background: hasMinat ? "linear-gradient(135deg,#4F46E5,#7C3AED)" : "linear-gradient(135deg,#25D366,#128C7E)", boxShadow: hasMinat ? "0 4px 16px rgba(79,70,229,.3)" : "0 4px 16px rgba(37,211,102,.3)" }}
           >
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-              <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.555 4.126 1.527 5.858L.057 23.617a.75.75 0 0 0 .92.92l5.818-1.488A11.946 11.946 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z"/>
-            </svg>
-            Saya Minat
+            {hasMinat ? (
+              <>
+                <CheckCircle2 size={16} />
+                Sudah Minat
+              </>
+            ) : (
+              <>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                  <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.555 4.126 1.527 5.858L.057 23.617a.75.75 0 0 0 .92.92l5.818-1.488A11.946 11.946 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z"/>
+                </svg>
+                Saya Minat
+              </>
+            )}
           </button>
 
           {/* Report */}
@@ -1434,7 +1499,7 @@ export default function DetailPage() {
       </div>
 
       {/* ══ MODALS ══ */}
-      {showMinat  && <MinatModal  item={item} onClose={() => setShowMinat(false)}  />}
+      {showMinat  && <MinatModal  item={item} onClose={() => setShowMinat(false)} onSubmitted={() => setHasMinat(true)} />}
       {showReport && <ReportModal item={item} onClose={() => setShowReport(false)} />}
       {showShare  && <ShareModal  item={item} onClose={() => setShowShare(false)}  />}
       {hasPhotos && lightbox !== null && (

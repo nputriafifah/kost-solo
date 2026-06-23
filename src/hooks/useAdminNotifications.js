@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+import { getApiBase } from "../config/apiBase";
+
+const BASE_URL = getApiBase();
 const READ_KEY = "atap_admin_notif_read";
 
 function getToken() {

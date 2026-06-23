@@ -3,6 +3,7 @@ import { useLocation, useNavigate, Navigate } from "react-router-dom";
 import AuthLayout from "../../layouts/AuthLayout";
 import OtpForm from "../../components/auth/OtpForm";
 import { requestOwnerOtp } from "../../services/authService";
+import { getApiBase } from "../../config/apiBase";
 
 function formatPhone(phone) {
   return phone.startsWith("0") ? "+62" + phone.slice(1) : phone;
@@ -33,7 +34,7 @@ export default function OtpPage() {
       if (cleanOtp.length !== 6) throw new Error("OTP harus 6 digit");
 
       if (role === "pencari") {
-        const res = await fetch("http://localhost:3000/auth/user/verify-email", {
+        const res = await fetch(`${getApiBase()}/auth/user/verify-email`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email, otp: cleanOtp }),
@@ -46,7 +47,7 @@ export default function OtpPage() {
       }
 
       if (role === "pemilik") {
-        const res = await fetch("http://localhost:3000/auth/owner/login", {
+        const res = await fetch(`${getApiBase()}/auth/owner/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ phone: formatPhone(phone), otp: cleanOtp }),
@@ -89,7 +90,7 @@ export default function OtpPage() {
       setSuccess("");
 
       if (role === "pencari") {
-        const res = await fetch("http://localhost:3000/auth/user/resend-otp", {
+        const res = await fetch(`${getApiBase()}/auth/user/resend-otp`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ email }),

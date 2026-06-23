@@ -5,8 +5,19 @@ import {
   ChevronLeft, ChevronRight, Wifi, Users, Wind, Zap, Droplets,
   ImageOff, Shield, Ruler, Building2, Sparkles,
 } from "lucide-react";
+import { MapContainer, TileLayer, Marker } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import { getApiBase, resolveMediaUrl } from "../../config/apiBase";
 import { GENDER_LABELS, extractKostFacilitiesFromRooms, getRoomOnlyFacilities, getRentableRoomTypes, findSharedFacilityRoom } from "../../constants/listing";
+
+// Fix ikon default Leaflet (path aset rusak via bundler)
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+});
 
 const STATUS = {
   PENDING:  { label: "Menunggu Review", pill: "bg-amber-100 text-amber-700 border-amber-200", dot: "bg-amber-400" },
@@ -106,6 +117,11 @@ export default function DetailListingPage() {
 
   const prevImg = () => setImgIdx((i) => (i - 1 + allImages.length) % allImages.length);
   const nextImg = () => setImgIdx((i) => (i + 1) % allImages.length);
+
+  // Koordinat ASLI dari endpoint owner — owner & admin lihat titik sebenarnya
+  const realLat = Number(data.latitude);
+  const realLng = Number(data.longitude);
+  const hasCoords = Number.isFinite(realLat) && Number.isFinite(realLng);
 
   return (
     <div
@@ -337,21 +353,36 @@ export default function DetailListingPage() {
 
               <Section icon={MapPin} title="Lokasi">
                 <p className="text-sm text-slate-600 leading-relaxed mb-3">{data.address}</p>
-                {(data.latitude != null || data.longitude != null) && (
-                  <div className="relative rounded-2xl overflow-hidden border border-indigo-200 h-40">
-                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-100 via-indigo-50 to-indigo-50" />
-                    <div
-                      className="absolute inset-0 opacity-60"
-                      style={{
-                        backgroundImage:
-                          "radial-gradient(circle at 20% 25%, rgba(129,140,248,0.45), transparent 38%), radial-gradient(circle at 82% 35%, rgba(14,165,233,0.4), transparent 36%), radial-gradient(circle at 45% 80%, rgba(96,165,250,0.45), transparent 40%)",
-                      }}
-                    />
-                    <div className="absolute inset-0 backdrop-blur-xl" />
-                    <div className="absolute inset-0 bg-white/25" />
-                    <div className="absolute right-3 bottom-3 text-[10px] font-bold text-indigo-700/80 bg-white/70 px-2 py-1 rounded-lg">
-                      Lokasi disamarkan
+                {hasCoords ? (
+                  <>
+                    <div className="relative rounded-2xl overflow-hidden border border-indigo-200 h-56" style={{ zIndex: 0 }}>
+                      <MapContainer
+                        center={[realLat, realLng]}
+                        zoom={16}
+                        style={{ width: "100%", height: "100%" }}
+                        zoomControl={false}
+                        scrollWheelZoom={false}
+                      >
+                        <TileLayer
+                          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+                          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                          subdomains="abcd"
+                          maxZoom={19}
+                        />
+                        <Marker position={[realLat, realLng]} />
+                      </MapContainer>
                     </div>
+                    <div className="mt-2 flex items-start gap-2 px-3 py-2.5 rounded-xl bg-indigo-50 border border-indigo-100">
+                      <Shield size={13} className="text-indigo-600 flex-shrink-0 mt-0.5" />
+                      <p className="text-[11px] font-bold text-indigo-700 leading-relaxed m-0">
+                        Ini titik <strong>asli</strong> yang kamu tandai — hanya terlihat oleh kamu &amp; admin.
+                        Calon penyewa hanya melihat area perkiraan (radius ±150&nbsp;m) di sekitar lokasi ini.
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-sm text-slate-400 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3">
+                    Lokasi belum ditandai di peta. Buka Edit Properti untuk menandai titik lokasi.
                   </div>
                 )}
               </Section>

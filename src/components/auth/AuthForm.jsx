@@ -85,7 +85,7 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
 
       // ── LOGIN PEMILIK (OTP) ──────────────────────────────────────────────────
       if (isLogin && role === "pemilik") {
-        const res = await fetch("http://localhost:3000/auth/owner/request-otp", {
+        const res = await fetch(`${getApiBase()}/auth/owner/request-otp`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ phone: formattedPhone }),
@@ -135,7 +135,7 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
 
       // ── REGISTER PENCARI ─────────────────────────────────────────────────────
       if (role === "pencari") {
-        const res = await fetch("http://localhost:3000/auth/user/register", {
+        const res = await fetch(`${getApiBase()}/auth/user/register`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name: form.name, email: form.email, password: form.password }),
@@ -149,7 +149,7 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
 
       // ── REGISTER PEMILIK ─────────────────────────────────────────────────────
       if (role === "pemilik") {
-        const res = await fetch("http://localhost:3000/auth/owner/register", {
+        const res = await fetch(`${getApiBase()}/auth/owner/register`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
