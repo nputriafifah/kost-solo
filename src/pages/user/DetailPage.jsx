@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getApiBase, postPublicJson, resolveMediaUrl } from "../../config/apiBase";
+import { getApiBase, postPublicJson, postPublicForm, resolveMediaUrl } from "../../config/apiBase";
 import UserNavbar, { USER_NAVBAR_CSS } from "../../components/user/UserNavbar";
 import UserBottomNav, { USER_BOTTOM_NAV_CSS } from "../../components/user/UserBottomNav";
 import { useUserNavBadges } from "../../hooks/useUserNavBadges";
@@ -19,6 +19,7 @@ import {
   LayoutGrid, Loader2, Share2, Layers,
   CheckCircle2, AlertCircle, Navigation, Info,
   Flag, Copy, Check, Mail, Ruler, BedDouble, Users, Zap,
+  Upload, Landmark, ImageIcon,
 } from "lucide-react";
 
 /* ─────────────────────────────────────────────
@@ -204,12 +205,20 @@ const formatPhone = (n) => (n?.startsWith("0") ? "62" + n.slice(1) : n || "");
 
 const fmtRp   = (n) => `Rp ${Number(n || 0).toLocaleString("id-ID")}`;
 
-const buildMinatWhatsAppUrl = (item, { name, phone } = {}) => {
+const buildMinatWhatsAppUrl = (item, { name, phone, paid } = {}) => {
   const waNum = formatPhone(WHATSAPP_CONSULTATION);
-  const waMsg =
-    name && phone
-      ? `Halo, saya *${name}* (${phone}) tertarik dengan kost *${item.name}* di ${item.location}. Apakah masih tersedia?`
-      : `Halo, saya tertarik dengan kost *${item.name}* di ${item.location}. Apakah masih tersedia?`;
+  let waMsg;
+  if (paid) {
+    waMsg =
+      name && phone
+        ? `Halo, saya *${name}* (${phone}) sudah melakukan pembayaran DP untuk kost *${item.name}* di ${item.location}. Bukti transfer sudah saya unggah. Mohon dibantu proses pemesanannya ya. Terima kasih!`
+        : `Halo, saya sudah melakukan pembayaran DP untuk kost *${item.name}* di ${item.location}. Bukti transfer sudah saya unggah. Mohon dibantu proses pemesanannya ya. Terima kasih!`;
+  } else {
+    waMsg =
+      name && phone
+        ? `Halo, saya *${name}* (${phone}) tertarik dengan kost *${item.name}* di ${item.location}. Apakah masih tersedia?`
+        : `Halo, saya tertarik dengan kost *${item.name}* di ${item.location}. Apakah masih tersedia?`;
+  }
   return `https://wa.me/${waNum}?text=${encodeURIComponent(waMsg)}`;
 };
 
@@ -688,13 +697,27 @@ function ShareModal({ item, onClose }) {
 /* ─────────────────────────────────────────────
    MINAT MODAL
 ───────────────────────────────────────────── */
+const PROOF_MIME = ["image/jpeg", "image/png", "image/webp"];
+const PROOF_MAX_BYTES = 5 * 1024 * 1024;
+
 function MinatModal({ item, onClose }) {
   const profile            = getCurrentUser();
+  const [step, setStep]    = useState("form"); // form | payment
   const [name, setName]    = useState(profile.name  || "");
   const [phone, setPhone]  = useState(profile.phone || "");
   const [loading, setLoading] = useState(false);
-  const [status, setStatus]   = useState(null);
   const [errMsg, setErrMsg]   = useState("");
+
+  // payment step state
+  const [leadId, setLeadId]         = useState(null);
+  const [paymentInfo, setPaymentInfo] = useState(null);
+  const [copied, setCopied]         = useState(false);
+  const [proofFile, setProofFile]   = useState(null);
+  const [uploading, setUploading]   = useState(false);
+  const [uploadErr, setUploadErr]   = useState("");
+  const [uploadDone, setUploadDone] = useState(false);
+
+  const submittedPhone = useRef("");
 
   const handleSubmit = async () => {
     const cName  = name.trim();
@@ -707,9 +730,11 @@ function MinatModal({ item, onClose }) {
       const body  = { name: cName, phone: cPhone };
       const email = (profile.email || "").trim();
       if (email) body.email = email;
-      await postPublicJson(`/leads/${item.id}`, body);
-      window.open(buildMinatWhatsAppUrl(item, { name: cName, phone: cPhone }), "_blank");
-      setStatus("success");
+      const res = await postPublicJson(`/leads/${item.id}`, body);
+      submittedPhone.current = cPhone;
+      setLeadId(res?.data?.id || null);
+      setPaymentInfo(res?.paymentInfo || null);
+      setStep("payment");
     } catch (e) {
       const msg = e?.message || "";
       setErrMsg(
@@ -722,24 +747,171 @@ function MinatModal({ item, onClose }) {
     }
   };
 
+  const handleCopy = async (text) => {
+    try {
+      await navigator.clipboard.writeText(String(text || ""));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch (_) {}
+  };
+
+  const handlePickProof = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!PROOF_MIME.includes(file.type)) {
+      setUploadErr("Format harus JPG, PNG, atau WEBP");
+      return;
+    }
+    if (file.size > PROOF_MAX_BYTES) {
+      setUploadErr("Ukuran maksimal 5MB");
+      return;
+    }
+    setUploadErr("");
+    setUploadDone(false);
+    setProofFile(file);
+  };
+
+  const handleUploadProof = async () => {
+    if (!proofFile || !leadId) return;
+    setUploading(true);
+    setUploadErr("");
+    try {
+      const fd = new FormData();
+      fd.append("proof", proofFile);
+      if (submittedPhone.current) fd.append("phone", submittedPhone.current);
+      await postPublicForm(`/leads/records/${leadId}/payment-proof`, fd);
+      setUploadDone(true);
+    } catch (e) {
+      setUploadErr(e?.message || "Gagal mengunggah bukti");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const openWhatsApp = () => {
+    window.open(
+      buildMinatWhatsAppUrl(item, { name: name.trim(), phone: phone.trim(), paid: uploadDone }),
+      "_blank",
+    );
+  };
+
+  const fieldLabel = { fontSize:11, fontWeight:700, color:"var(--text-muted)", display:"block", marginBottom:6 };
+  const fieldInput = { width:"100%", background:"var(--surface-2)", border:"1.5px solid var(--border)", borderRadius:"var(--radius-sm)", padding:"11px 14px", fontSize:13.5, color:"var(--text-primary)", fontFamily:"var(--ff)", outline:"none" };
+
   return (
     <div style={S.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div style={{ ...S.sheet, paddingBottom: 28 }}>
         <div style={S.handle} />
-        <div style={{ padding: "16px 20px 0" }}>
-          {status === "success" ? (
-            <div style={{ display:"flex", flexDirection:"column", alignItems:"center", padding:"20px 0 8px", gap:16, textAlign:"center" }}>
-              <div style={{ width:64, height:64, borderRadius:"50%", background:"#DCFCE7", display:"flex", alignItems:"center", justifyContent:"center" }}>
-                <CheckCircle2 size={32} color="var(--success)" />
+        <div style={{ padding: "16px 20px 0", maxHeight: "82vh", overflowY: "auto" }}>
+          {step === "payment" ? (
+            <>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:4 }}>
+                <p style={{ fontWeight:700, fontSize:16, color:"var(--text-primary)" }}>Minat Terkirim 🎉</p>
+                <button style={S.closeBtn} onClick={onClose}><X size={15} color="var(--text-secondary)" /></button>
               </div>
-              <div>
-                <p style={{ fontWeight:700, fontSize:17, color:"var(--text-primary)", marginBottom:4 }}>WhatsApp terbuka!</p>
-                <p style={{ fontSize:13, color:"var(--text-muted)", lineHeight:1.6 }}>Lanjutkan percakapan di WhatsApp.</p>
-              </div>
-              <button onClick={onClose} style={{ width:"100%", height:48, borderRadius:"var(--radius)", background:"var(--success)", color:"white", fontWeight:700, fontSize:14, border:"none", cursor:"pointer", fontFamily:"var(--ff)" }}>
-                Tutup
+              <p style={{ fontSize:12, color:"var(--text-muted)", marginBottom:16 }}>
+                Selesaikan pembayaran biaya admin, lalu (opsional) unggah bukti transfer.
+              </p>
+
+              {/* Payment info card */}
+              {paymentInfo && (
+                <div style={{ border:"1px solid var(--border)", borderRadius:"var(--radius)", padding:16, marginBottom:16, background:"var(--surface-2)" }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12 }}>
+                    <Landmark size={16} color="var(--brand)" />
+                    <p style={{ fontWeight:700, fontSize:13.5, color:"var(--text-primary)" }}>Info Pembayaran</p>
+                  </div>
+
+                  {paymentInfo.amount != null && (
+                    <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+                      <span style={{ fontSize:12, color:"var(--text-muted)" }}>Nominal</span>
+                      <span style={{ fontSize:16, fontWeight:800, color:"var(--brand)" }}>{fmtRp(paymentInfo.amount)}</span>
+                    </div>
+                  )}
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+                    <span style={{ fontSize:12, color:"var(--text-muted)" }}>Bank</span>
+                    <span style={{ fontSize:13, fontWeight:700, color:"var(--text-primary)" }}>{paymentInfo.bankName || "-"}</span>
+                  </div>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+                    <span style={{ fontSize:12, color:"var(--text-muted)" }}>No. Rekening</span>
+                    <span style={{ display:"inline-flex", alignItems:"center", gap:8 }}>
+                      <span style={{ fontSize:13.5, fontWeight:800, color:"var(--text-primary)", letterSpacing:0.5 }}>{paymentInfo.accountNumber || "-"}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(paymentInfo.accountNumber)}
+                        style={{ display:"inline-flex", alignItems:"center", gap:4, fontSize:11, fontWeight:700, color: copied ? "var(--success)" : "var(--brand)", background:"none", border:"none", cursor:"pointer", fontFamily:"var(--ff)" }}
+                      >
+                        {copied ? <Check size={13} /> : <Copy size={13} />}
+                        {copied ? "Tersalin" : "Salin"}
+                      </button>
+                    </span>
+                  </div>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                    <span style={{ fontSize:12, color:"var(--text-muted)" }}>Atas Nama</span>
+                    <span style={{ fontSize:13, fontWeight:700, color:"var(--text-primary)" }}>{paymentInfo.accountHolder || "-"}</span>
+                  </div>
+                  {paymentInfo.notes && (
+                    <p style={{ fontSize:11.5, color:"var(--text-muted)", lineHeight:1.6, marginTop:12, paddingTop:12, borderTop:"1px dashed var(--border)" }}>
+                      {paymentInfo.notes}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Upload bukti (opsional) */}
+              {leadId && (
+                <div style={{ marginBottom:16 }}>
+                  <label style={fieldLabel}>Bukti Transfer <span style={{ color:"var(--text-muted)", fontWeight:500 }}>(opsional)</span></label>
+                  {uploadDone ? (
+                    <div style={{ display:"flex", alignItems:"center", gap:8, background:"#DCFCE7", border:"1px solid #BBF7D0", borderRadius:"var(--radius-sm)", padding:"11px 14px" }}>
+                      <CheckCircle2 size={15} color="var(--success)" />
+                      <p style={{ fontSize:12.5, color:"#15803D", fontWeight:600 }}>Bukti transfer berhasil diunggah</p>
+                    </div>
+                  ) : (
+                    <>
+                      <label style={{ display:"flex", alignItems:"center", gap:10, border:"1.5px dashed var(--border-strong)", borderRadius:"var(--radius-sm)", padding:"12px 14px", cursor:"pointer", background:"var(--surface-2)" }}>
+                        {proofFile ? <ImageIcon size={16} color="var(--brand)" /> : <Upload size={16} color="var(--text-muted)" />}
+                        <span style={{ fontSize:12.5, color: proofFile ? "var(--text-primary)" : "var(--text-muted)", fontWeight:600, flex:1, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
+                          {proofFile ? proofFile.name : "Pilih foto bukti transfer (JPG/PNG/WEBP, maks 5MB)"}
+                        </span>
+                        <input type="file" accept="image/jpeg,image/png,image/webp" style={{ display:"none" }} onChange={handlePickProof} />
+                      </label>
+                      {proofFile && (
+                        <button
+                          onClick={handleUploadProof}
+                          disabled={uploading}
+                          style={{ width:"100%", marginTop:10, padding:"11px 0", borderRadius:"var(--radius-sm)", color:"white", fontWeight:700, fontSize:13, border:"none", cursor:"pointer", fontFamily:"var(--ff)", display:"flex", alignItems:"center", justifyContent:"center", gap:8, background:"var(--brand)", opacity:uploading ? 0.7 : 1 }}
+                        >
+                          {uploading && <Loader2 size={15} style={{ animation:"spin 1s linear infinite" }} />}
+                          {uploading ? "Mengunggah..." : "Unggah Bukti"}
+                        </button>
+                      )}
+                    </>
+                  )}
+                  {uploadErr && (
+                    <div style={{ display:"flex", alignItems:"center", gap:8, background:"#FEF2F2", border:"1px solid #FECACA", borderRadius:"var(--radius-sm)", padding:"10px 12px", marginTop:10 }}>
+                      <AlertCircle size={13} color="var(--danger)" style={{ flexShrink:0 }} />
+                      <p style={{ fontSize:12, color:"var(--danger)" }}>{uploadErr}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* WhatsApp + selesai */}
+              <button
+                onClick={openWhatsApp}
+                style={{ width:"100%", padding:"14px 0", borderRadius:"var(--radius)", color:"white", fontWeight:700, fontSize:14, border:"none", cursor:"pointer", fontFamily:"var(--ff)", display:"flex", alignItems:"center", justifyContent:"center", gap:8, background:"linear-gradient(135deg,#25D366,#128C7E)", boxShadow:"0 6px 20px rgba(37,211,102,.3)" }}
+              >
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                  <path d="M12 0C5.373 0 0 5.373 0 12c0 2.127.555 4.126 1.527 5.858L.057 23.617a.75.75 0 0 0 .92.92l5.818-1.488A11.946 11.946 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0z"/>
+                </svg>
+                {uploadDone ? "Konfirmasi Pembayaran via WhatsApp" : "Lanjut Chat WhatsApp"}
               </button>
-            </div>
+              <button onClick={onClose} style={{ width:"100%", marginTop:10, padding:"12px 0", borderRadius:"var(--radius)", background:"none", color:"var(--text-muted)", fontWeight:600, fontSize:13, border:"none", cursor:"pointer", fontFamily:"var(--ff)" }}>
+                Selesai
+              </button>
+            </>
           ) : (
             <>
               <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:4 }}>
@@ -769,7 +941,7 @@ function MinatModal({ item, onClose }) {
                 ["Nomor WhatsApp","tel",  "contoh: 08123456789",   phone, setPhone],
               ].map(([lbl, type, ph, val, setter]) => (
                 <div key={lbl} style={{ marginBottom:12 }}>
-                  <label style={{ fontSize:11, fontWeight:700, color:"var(--text-muted)", display:"block", marginBottom:6 }}>
+                  <label style={fieldLabel}>
                     {lbl} <span style={{ color:"var(--danger)" }}>*</span>
                   </label>
                   <input
@@ -777,7 +949,7 @@ function MinatModal({ item, onClose }) {
                     placeholder={ph}
                     value={val}
                     onChange={(e) => setter(e.target.value)}
-                    style={{ width:"100%", background:"var(--surface-2)", border:"1.5px solid var(--border)", borderRadius:"var(--radius-sm)", padding:"11px 14px", fontSize:13.5, color:"var(--text-primary)", fontFamily:"var(--ff)", outline:"none" }}
+                    style={fieldInput}
                   />
                 </div>
               ))}

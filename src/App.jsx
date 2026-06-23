@@ -111,7 +111,7 @@ export default function App() {
         <Route
           path="/profil"
           element={
-            <ProtectedRoute role="pencari">
+            <ProtectedRoute>
               <ProfilPage />
             </ProtectedRoute>
           }

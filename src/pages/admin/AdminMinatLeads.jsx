@@ -2,9 +2,10 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   Star, RefreshCw, AlertTriangle, Search,
-  Phone, Mail, ExternalLink,
+  Phone, Mail, ExternalLink, Receipt,
 } from "lucide-react";
 import { adminApiFetch, handleAdminAuthError } from "./adminApi";
+import { resolveFileUrl } from "../../config/apiBase";
 
 const STATUS_CFG = {
   ACTIVE:   { label: "Aktif",    bg: "#ecfdf5", color: "#059669" },
@@ -106,7 +107,7 @@ function MinatTable({ rows }) {
     <table style={{ width: "100%", borderCollapse: "collapse" }}>
       <thead>
         <tr>
-          {["Calon Penyewa", "Kontak", "Kost", "Kontak Kost", "Tanggal"].map((h) => (
+          {["Calon Penyewa", "Kontak", "Kost", "Kontak Kost", "Bukti Transfer", "Tanggal"].map((h) => (
             <th key={h} style={thStyle}>{h}</th>
           ))}
         </tr>
@@ -148,6 +149,22 @@ function MinatTable({ rows }) {
               {row.listing?.status && <div style={{ marginTop: 4 }}><Badge status={row.listing.status} /></div>}
             </td>
             <td style={tdStyle}>{row.listing?.contactNumber ?? "—"}</td>
+            <td style={tdStyle}>
+              {row.paymentProofUrl ? (
+                <a
+                  href={resolveFileUrl(row.paymentProofUrl)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600, color: "#059669", textDecoration: "none" }}
+                >
+                  <Receipt size={13} /> Lihat bukti
+                </a>
+              ) : (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: "#94a3b8" }}>
+                  <Receipt size={13} color="#cbd5e1" /> Belum ada
+                </span>
+              )}
+            </td>
             <td style={{ ...tdStyle, color: "#94a3b8" }}>{formatDt(row.createdAt)}</td>
           </tr>
         ))}
@@ -233,6 +250,7 @@ export default function AdminMinatLeads() {
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 14, marginBottom: 20 }}>
         <StatCard label="Total Leads" value={rows.length.toLocaleString("id-ID")} sub="maks. 100 data terbaru dari API" accent="#6366f1" />
+        <StatCard label="Dengan Bukti Transfer" value={rows.filter((r) => r.paymentProofUrl).length} sub="sudah upload bukti" accent="#059669" />
         <StatCard label="Hasil Filter" value={filteredRows.length} sub="pencarian aktif" accent="#f59e0b" />
       </div>
 

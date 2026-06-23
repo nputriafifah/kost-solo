@@ -11,6 +11,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { formatPublicLocation, obfuscateCoordinates } from "../../utils/publicLocation";
 import { createPriceIcon } from "../../utils/mapPriceIcon";
 import UserBottomNav, { USER_BOTTOM_NAV_CSS } from "../../components/user/UserBottomNav";
+import { getApiBase } from "../../config/apiBase";
 
 // Fix Leaflet default icon
 delete L.Icon.Default.prototype._getIconUrl;
@@ -20,7 +21,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-const BASE_URL = "http://localhost:3000";
+const BASE_URL = getApiBase();
 const SOLO_CENTER = [-7.5755, 110.8243];
 
 const NAV_ITEMS = [

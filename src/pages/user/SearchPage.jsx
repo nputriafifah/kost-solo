@@ -473,10 +473,6 @@ export default function SearchPage() {
 
           <div className="sp-filter-bar">
             <div className="sp-filter-row">
-              <button className={`sp-chip${(selectedGenders.length > 0 || priceFiltered || sort !== "relevance") ? " filtered" : ""}`} style={{ gap: 6 }}>
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
-                Filter
-              </button>
               <div ref={genderAnchorRef}>
                 <button className={`sp-chip${activeDropdown === "gender" ? " active" : selectedGenders.length > 0 ? " filtered" : ""}`} onClick={() => setActiveDropdown((p) => p === "gender" ? null : "gender")}>
                   <Users size={13} />{genderLabel}<ChevronDown size={13} />
