@@ -7,7 +7,9 @@ import {
 } from "lucide-react";
 import Sidebar, { NAV_ITEMS } from "../../components/owner/Sidebar";
 
-const API = "http://localhost:8080";
+import { getApiBase } from "../../config/apiBase";
+
+const API = getApiBase();
 
 const MONTH_NAMES = [
   "Jan","Feb","Mar","Apr","Mei","Jun",

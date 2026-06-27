@@ -9,7 +9,9 @@ import { useNavigate } from "react-router-dom";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
-const API = "http://localhost:8080";
+import { getApiBase } from "../../config/apiBase";
+
+const API = getApiBase();
 
 const GRADIENTS = [
     "linear-gradient(135deg,#A78BFA,#7C3AED)",
