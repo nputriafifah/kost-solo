@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Laporan Deployment Projek KostSolo</title>
+<style>
+  body {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 12pt;
+    line-height: 1.5;
+    max-width: 800px;
+    margin: 40px auto;
+    color: #000;
+    padding: 0 24px;
+  }
+  h1 {
+    font-size: 18pt;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  h2 {
+    font-size: 14pt;
+    border-bottom: 1px solid #999;
+    padding-bottom: 4px;
+    margin-top: 24px;
+  }
+  h3 {
+    font-size: 12pt;
+    margin-top: 18px;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 12px 0;
+    font-size: 11pt;
+  }
+  th, td {
+    border: 1px solid #555;
+    padding: 6px 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: #e9e9e9;
+    font-weight: bold;
+  }
+  code {
+    font-family: Consolas, 'Courier New', monospace;
+    background: #f3f3f3;
+    padding: 1px 4px;
+    border-radius: 2px;
+    font-size: 10.5pt;
+  }
+  pre {
+    font-family: Consolas, 'Courier New', monospace;
+    background: #f3f3f3;
+    padding: 10px 14px;
+    border-left: 3px solid #888;
+    font-size: 10.5pt;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  ul, ol { padding-left: 28px; }
+  li { margin-bottom: 4px; }
+  .subtitle {
+    text-align: center;
+    color: #555;
+    margin-top: 0;
+    margin-bottom: 28px;
+  }
+  .center { text-align: center; }
+  hr { border: none; border-top: 1px solid #ccc; margin: 28px 0; }
+</style>
+</head>
+<body>
+
+<h1>Laporan Deployment Projek KostSolo (Atap)</h1>
+<p class="subtitle">
+  Tanggal Deployment: 23 Juni 2026<br>
+  Status: Live &amp; berhasil diakses publik
+</p>
+
+<h2>1. Identitas Projek</h2>
+<table>
+  <tr><th style="width:35%">Item</th><th>Nilai</th></tr>
+  <tr><td>Nama aplikasi</td><td><b>KostSolo / Atap</b></td></tr>
+  <tr><td>Deskripsi</td><td>Platform pencarian kost di Surakarta dengan fitur pemilik, calon penyewa, dan admin</td></tr>
+  <tr><td>URL Frontend (publik)</td><td>https://kostsolo.netlify.app</td></tr>
+  <tr><td>URL Backend (publik)</td><td>https://pbl10.tail410511.ts.net</td></tr>
+  <tr><td>Repository Frontend</td><td>github.com/rayhannurcholis/kost-solo</td></tr>
+  <tr><td>Lingkungan server backend</td><td>VM Ubuntu 22.04 (Proxmox kampus, IP lokal 10.109.0.137)</td></tr>
+</table>
+
+<h2>2. Arsitektur Sistem</h2>
+<p>Sistem terdiri atas 5 komponen utama yang saling terhubung:</p>
+<ol>
+  <li><b>Browser Pengguna (HTTPS)</b> &mdash; mengakses frontend di Netlify dan secara langsung memanggil API backend.</li>
+  <li><b>Netlify CDN</b> &mdash; meng-host file static frontend (React SPA) di <code>kostsolo.netlify.app</code>.</li>
+  <li><b>Tailscale Funnel</b> &mdash; mem-proxy backend kampus ke internet dengan HTTPS publik di <code>pbl10.tail410511.ts.net</code>.</li>
+  <li><b>Server Backend (Ubuntu 22.04)</b> &mdash; menjalankan API Hono + Bun di port 8080, dikelola oleh systemd (<code>kostsolo.service</code>).</li>
+  <li><b>Data &amp; Storage</b>:
+    <ul>
+      <li><b>PostgreSQL 14</b> di lokal server (database utama).</li>
+      <li><b>Cloudflare R2</b> untuk object storage foto (di-proxy oleh backend lewat endpoint <code>/files</code>).</li>
+      <li><b>Fonnte API</b> untuk WhatsApp gateway pengiriman OTP login owner.</li>
+    </ul>
+  </li>
+</ol>
+
+<pre>
+                    +------------------------------+
+                    |   Browser Pengguna (HTTPS)   |
+                    +--------------+---------------+
+                                   |
+              +--------------------+---------------------+
+              |                                          |
+              v                                          v
+   +---------------------+              +-------------------------+
+   |  Netlify CDN        |              |  Tailscale Funnel       |
+   |  (Frontend SPA)     |              |  (HTTPS publik)         |
+   +---------------------+              +-----------+-------------+
+                                                    |
+                                                    v
+                                         +-------------------------+
+                                         |  Server Ubuntu 22.04    |
+                                         |  Backend Hono + Bun     |
+                                         |  systemd: kostsolo      |
+                                         +----+--------------+-----+
+                                              |              |
+                                              v              v
+                                +---------------------+   +----------------+
+                                |   PostgreSQL 14     |   |  Cloudflare R2 |
+                                |  (lokal server)     |   |  (foto storage)|
+                                +---------------------+   +----------------+
+
+         + Integrasi Fonnte (WhatsApp Gateway) untuk OTP login owner
+</pre>
+
+<h2>3. Tech Stack</h2>
+
+<h3>3.1. Frontend</h3>
+<ul>
+  <li>React 19 + Vite 7</li>
+  <li>React Router 7 (BrowserRouter / SPA)</li>
+  <li>Tailwind CSS 4</li>
+  <li>Leaflet &amp; react-leaflet untuk peta</li>
+  <li>Lucide React untuk ikon</li>
+  <li>Axios untuk HTTP request</li>
+</ul>
+
+<h3>3.2. Backend</h3>
+<ul>
+  <li>Hono 4 (web framework)</li>
+  <li>Bun (JavaScript runtime)</li>
+  <li>Prisma 6 (ORM)</li>
+  <li>PostgreSQL 14 (database utama)</li>
+  <li>Cloudflare R2 (object storage)</li>
+  <li>Fonnte API (WhatsApp gateway)</li>
+</ul>
+
+<h3>3.3. Infrastruktur Deployment</h3>
+<ul>
+  <li>Netlify &mdash; hosting frontend, CI/CD otomatis dari GitHub</li>
+  <li>Tailscale Funnel &mdash; expose backend kampus ke internet via HTTPS</li>
+  <li>systemd &mdash; manajemen process backend di server</li>
+  <li>GitHub &mdash; source code &amp; trigger CI/CD Netlify</li>
+</ul>
+
+<h2>4. Langkah-Langkah Deployment</h2>
+
+<h3>4.1. Deployment Frontend ke Netlify</h3>
+<ol>
+  <li><b>Persiapan konfigurasi SPA.</b> Karena React Router pakai <code>BrowserRouter</code>, semua route harus diarahkan ke <code>index.html</code> agar refresh di route mana pun tidak menghasilkan 404. Buat file <code>public/_redirects</code>:
+    <pre>/*    /index.html   200</pre>
+    Opsional, tambahkan juga <code>netlify.toml</code> di root:
+    <pre>[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200</pre>
+  </li>
+  <li><b>Connect repo GitHub ke Netlify.</b> Login ke app.netlify.com &rarr; Add new site &rarr; Import an existing project &rarr; GitHub &rarr; pilih repository <code>kost-solo</code>.</li>
+  <li><b>Build settings:</b>
+    <table>
+      <tr><th>Field</th><th>Nilai</th></tr>
+      <tr><td>Base directory</td><td><i>(kosong)</i></td></tr>
+      <tr><td>Build command</td><td>npm run build</td></tr>
+      <tr><td>Publish directory</td><td>dist</td></tr>
+      <tr><td>Branch to deploy</td><td>main</td></tr>
+    </table>
+  </li>
+  <li><b>Environment variables di Netlify:</b>
+    <table>
+      <tr><th>Key</th><th>Value</th></tr>
+      <tr><td>VITE_API_URL</td><td>https://pbl10.tail410511.ts.net</td></tr>
+      <tr><td>VITE_R2_PUBLIC_URL</td><td>https://pub-...r2.dev</td></tr>
+    </table>
+  </li>
+  <li>Trigger deploy, tunggu status berubah jadi <b>Published</b>.</li>
+</ol>
+
+<h3>4.2. Deployment Backend di Server Kampus</h3>
+<ol>
+  <li>Akses server via Tailscale + SSH: <code>ssh root@100.118.86.91</code></li>
+  <li>Struktur projek backend berada di <code>~/Atap</code> dengan tiga file environment:
+    <ul>
+      <li><code>.env</code> &mdash; Postgres lokal server</li>
+      <li><code>.env.campus</code> &mdash; Postgres lokal + konfigurasi kampus</li>
+      <li><code>.env.cloud</code> &mdash; Database Neon (cloud)</li>
+    </ul>
+  </li>
+  <li>Backend dijalankan oleh service <code>kostsolo.service</code> (systemd), sehingga otomatis hidup ulang setelah crash atau reboot:
+    <pre>systemctl status kostsolo
+systemctl restart kostsolo</pre>
+  </li>
+  <li>Variabel environment kunci di <code>~/Atap/.env</code>:
+    <pre>DATABASE_URL=postgresql://kostsolo:atap@127.0.0.1:5432/kostsolo
+API_PUBLIC_URL=https://pbl10.tail410511.ts.net
+FONNTE_TOKEN=&lt;token-fonnte&gt;
+R2_ACCOUNT_ID=...
+R2_ACCESS_KEY_ID=...
+R2_SECRET_ACCESS_KEY=...
+R2_BUCKET_NAME=...
+R2_PUBLIC_URL=https://pub-...r2.dev
+JWT_SECRET=...</pre>
+  </li>
+</ol>
+
+<h3>4.3. Expose Backend ke Internet (Tailscale Funnel)</h3>
+<p>Backend hanya jalan di port 8080 di jaringan lokal kampus dan IP Tailscale <code>100.118.86.91</code> (private CGNAT). Agar bisa diakses publik via HTTPS:</p>
+<ol>
+  <li>Aktifkan <b>MagicDNS</b> + <b>HTTPS Certificates</b> di halaman DNS admin Tailscale.</li>
+  <li>Tambahkan node attribute <code>funnel</code> di Access Controls (JSON editor):
+    <pre>{
+  "grants": [
+    {"src": ["*"], "dst": ["*"], "ip": ["*"]}
+  ],
+  "nodeAttrs": [
+    {
+      "target": ["autogroup:member"],
+      "attr": ["funnel"]
+    }
+  ],
+  "ssh": [
+    {
+      "action": "check",
+      "src":    ["autogroup:member"],
+      "dst":    ["autogroup:self"],
+      "users":  ["autogroup:nonroot", "root"]
+    }
+  ]
+}</pre>
+  </li>
+  <li>Jalankan Funnel di server (mode background):
+    <pre>tailscale funnel --bg 8080</pre>
+    Output:
+    <pre>Available on the internet:
+https://pbl10.tail410511.ts.net/
+|-- proxy http://127.0.0.1:8080</pre>
+  </li>
+</ol>
+
+<h3>4.4. Setup CORS di Backend (Hono)</h3>
+<p>Frontend dari <code>https://kostsolo.netlify.app</code> perlu diizinkan mengakses backend. Konfigurasi CORS di <code>src/index.js</code>:</p>
+<pre>const allowedOrigins = [
+  'https://kostsolo.netlify.app',
+  'http://localhost:5173',
+  'http://localhost:4173',
+]
+
+app.use('*', cors({
+  origin: (origin) =&gt; {
+    if (!origin) return origin
+    if (allowedOrigins.includes(origin)) return origin
+    if (origin.endsWith('.netlify.app')) return origin
+    return null
+  },
+  allowMethods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowHeaders: ['Content-Type','Authorization'],
+  credentials: true,
+}))</pre>
+
+<h3>4.5. Setup Database &amp; Migrasi Data</h3>
+<ol>
+  <li>PostgreSQL 14 sudah terinstall di server, dengan 15 tabel yang ter-generate via Prisma migrate (KostListing, RoomType, User, OwnerProfile, RoomPhoto, ChatThread, dll).</li>
+  <li>Karena database lokal awalnya kosong, dilakukan migrasi data dari Neon (cloud) ke lokal server:
+    <ul>
+      <li>Install PostgreSQL client 17 (untuk kompatibilitas dengan Neon):
+        <pre>curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+  | gpg --dearmor -o /usr/share/keyrings/pgdg.gpg
+echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+  &gt; /etc/apt/sources.list.d/pgdg.list
+apt update &amp;&amp; apt install -y postgresql-client-17</pre>
+      </li>
+      <li>Stop backend agar tidak mengunci database:
+        <pre>systemctl stop kostsolo</pre>
+      </li>
+      <li>Dump &amp; restore:
+        <pre>/usr/lib/postgresql/17/bin/pg_dump \
+  "postgresql://...@neon.tech/kost?sslmode=require" \
+  --no-owner --no-acl --clean --if-exists \
+| /usr/lib/postgresql/17/bin/psql \
+  "postgresql://kostsolo:atap@127.0.0.1:5432/kostsolo"</pre>
+      </li>
+      <li>Start backend kembali:
+        <pre>systemctl start kostsolo</pre>
+      </li>
+    </ul>
+  </li>
+</ol>
+
+<h3>4.6. Storage Foto (Cloudflare R2)</h3>
+<ul>
+  <li>Foto kost di-upload ke R2 melalui endpoint backend (helper <code>uploadBufferToR2</code>).</li>
+  <li>URL foto yang dikirim ke frontend menggunakan <b>proxy backend</b> (<code>/files/&lt;key&gt;</code>), bukan URL R2 langsung &mdash; untuk menghindari masalah CORS R2 dan timeout <code>r2.dev</code>.</li>
+  <li>Implementasi proxy ada di <code>src/modules/files/files.routes.js</code> dan helper <code>toProxiedFileUrl</code>.</li>
+</ul>
+
+<h2>5. Kendala yang Dihadapi dan Solusinya</h2>
+<table>
+  <tr>
+    <th style="width:4%">No</th>
+    <th style="width:28%">Kendala</th>
+    <th style="width:34%">Penyebab</th>
+    <th>Solusi</th>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td>Frontend tidak bisa konek backend</td>
+    <td>Default <code>VITE_API_URL</code> mengarah ke <code>localhost:3000</code></td>
+    <td>Set env <code>VITE_API_URL</code> di Netlify ke URL publik backend</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>Mixed Content (HTTPS &rarr; HTTP diblokir browser)</td>
+    <td>Netlify HTTPS, backend HTTP</td>
+    <td>Expose backend via Tailscale Funnel (otomatis HTTPS dengan SSL valid)</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td>IP Tailscale <code>100.x.x.x</code> tidak bisa diakses pengunjung publik</td>
+    <td>IP CGNAT &mdash; hanya tersedia di anggota Tailnet</td>
+    <td>Funnel memberi URL <code>*.ts.net</code> yang publik &amp; ber-HTTPS</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>Data kost tampil kosong di FE meski backend OK</td>
+    <td>Postgres lokal server masih kosong</td>
+    <td>Migrasi data dari Neon ke Postgres lokal pakai <code>pg_dump | psql</code></td>
+  </tr>
+  <tr>
+    <td>5</td>
+    <td>Error <code>EADDRINUSE: port 8080</code> saat restart manual</td>
+    <td>systemd auto-restart service <code>kostsolo</code></td>
+    <td>Restart melalui systemd: <code>systemctl restart kostsolo</code></td>
+  </tr>
+  <tr>
+    <td>6</td>
+    <td>Foto kost tidak muncul ("Foto tidak tersedia")</td>
+    <td><code>API_PUBLIC_URL</code> masih <code>http://localhost:8080</code> sehingga proxy foto kena Mixed Content</td>
+    <td>Set <code>API_PUBLIC_URL=https://pbl10.tail410511.ts.net</code> di env server</td>
+  </tr>
+  <tr>
+    <td>7</td>
+    <td>"Failed to send OTP via WhatsApp" saat login owner</td>
+    <td><code>FONNTE_TOKEN</code> di env server berbeda dengan token Fonnte yang aktif</td>
+    <td>Samakan <code>FONNTE_TOKEN</code> di <code>.env</code>, <code>.env.campus</code>, dan <code>.env.cloud</code></td>
+  </tr>
+  <tr>
+    <td>8</td>
+    <td>Page not found saat akses route <code>/verify-otp</code> dan refresh route lainnya</td>
+    <td>SPA fallback belum aktif di Netlify</td>
+    <td>Tambahkan <code>public/_redirects</code> dengan rule <code>/* /index.html 200</code></td>
+  </tr>
+  <tr>
+    <td>9</td>
+    <td>Perubahan di frontend tidak ter-deploy ke Netlify</td>
+    <td><code>git remote origin</code> mengarah ke repo berbeda dari yang dipantau Netlify</td>
+    <td>Sinkronisasi repo: pastikan push ke repo yang sama dengan yang dipantau Netlify</td>
+  </tr>
+  <tr>
+    <td>10</td>
+    <td>Repository PostgreSQL pgdg gagal GPG error</td>
+    <td>Repo <code>apt.postgresql.org</code> belum ditandai <code>[signed-by=...]</code></td>
+    <td>Tambah keyring <code>pgdg.gpg</code> lalu definisikan repo dengan opsi <code>signed-by</code></td>
+  </tr>
+</table>
+
+<h2>6. File Konfigurasi Kunci</h2>
+
+<h3>6.1. <code>public/_redirects</code> (frontend)</h3>
+<pre>/*    /index.html   200</pre>
+
+<h3>6.2. <code>netlify.toml</code> (frontend)</h3>
+<pre>[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200</pre>
+
+<h3>6.3. <code>src/config/apiBase.js</code> (frontend)</h3>
+<pre>export const getApiBase = () =&gt; {
+  const fromEnv = import.meta.env.VITE_API_URL?.trim();
+  if (fromEnv) return fromEnv.replace(/\/$/, "");
+  if (import.meta.env.DEV) return "/api";
+  return "http://localhost:3000";
+};</pre>
+
+<h3>6.4. Environment di Netlify (frontend)</h3>
+<pre>VITE_API_URL=https://pbl10.tail410511.ts.net
+VITE_R2_PUBLIC_URL=https://pub-e084a065ee23482ebd9f95e36322aea4.r2.dev</pre>
+
+<h3>6.5. Environment di Server (backend)</h3>
+<pre>DATABASE_URL=postgresql://kostsolo:atap@127.0.0.1:5432/kostsolo
+API_PUBLIC_URL=https://pbl10.tail410511.ts.net
+FONNTE_TOKEN=&lt;token&gt;
+R2_ACCOUNT_ID=&lt;id&gt;
+R2_ACCESS_KEY_ID=&lt;key&gt;
+R2_SECRET_ACCESS_KEY=&lt;secret&gt;
+R2_BUCKET_NAME=&lt;bucket&gt;
+R2_PUBLIC_URL=https://pub-...r2.dev
+JWT_SECRET=&lt;secret&gt;
+PORT=8080</pre>
+
+<h2>7. Hasil Akhir</h2>
+<table>
+  <tr><th>Komponen</th><th>URL / Lokasi</th><th>Status</th></tr>
+  <tr><td>Frontend</td><td>https://kostsolo.netlify.app</td><td>Live (Netlify)</td></tr>
+  <tr><td>Backend</td><td>https://pbl10.tail410511.ts.net</td><td>Live (Tailscale Funnel)</td></tr>
+  <tr><td>Database</td><td>PostgreSQL 14 di 127.0.0.1:5432/kostsolo</td><td>Berisi data (hasil migrasi dari Neon)</td></tr>
+  <tr><td>Storage foto</td><td>Cloudflare R2 + proxy backend</td><td>Aktif</td></tr>
+  <tr><td>OTP WhatsApp</td><td>Fonnte API</td><td>Aktif</td></tr>
+</table>
+
+<h3>Fitur yang sudah berjalan di produksi</h3>
+<ul>
+  <li>Menampilkan daftar kost lengkap (foto, harga, lokasi)</li>
+  <li>Filter kost (Putra / Putri / Campur)</li>
+  <li>Pencarian dan tampilan "Kost di sekitar Anda"</li>
+  <li>Login owner melalui OTP WhatsApp (via Fonnte)</li>
+  <li>Halaman OTP <code>/verify-otp</code> (SPA route, sudah tidak 404)</li>
+</ul>
+
+<h2>8. Pelajaran yang Diambil (Learning Outcome)</h2>
+<ol>
+  <li><b>SPA fallback wajib</b> untuk single-page app yang pakai <code>BrowserRouter</code> &mdash; kalau tidak, refresh di route apa pun akan menghasilkan 404.</li>
+  <li><b>Hindari Mixed Content</b> dengan memastikan backend ber-HTTPS jika frontend ber-HTTPS. Browser modern memblokir request HTTP dari halaman HTTPS.</li>
+  <li><b>IP Tailscale 100.x.x.x bukan IP publik</b> &mdash; gunakan Tailscale Funnel untuk expose service ke internet dengan domain dan SSL valid.</li>
+  <li><b>Selalu cek <code>git remote -v</code></b> sebelum push, terutama saat berkolaborasi di repo bersama, agar perubahan tidak nyasar ke repo yang salah.</li>
+  <li><b>Sinkronisasi env variables</b> antara dev (local) dan production (server) &mdash; token / URL yang beda akan langsung menyebabkan error misterius.</li>
+  <li><b>Pisahkan proxy storage</b> (lewat backend) jika provider object storage tidak menyediakan custom domain HTTPS yang stabil.</li>
+  <li><b>systemd lebih reliable</b> daripada <code>nohup</code> untuk menjalankan backend, karena auto-restart saat crash atau reboot.</li>
+  <li><b>Versi <code>pg_dump</code> harus &ge; versi server sumber</b> saat migrasi database antar PostgreSQL.</li>
+</ol>
+
+<h2>9. Lampiran &mdash; Daftar Tool / Layanan</h2>
+<table>
+  <tr><th>Tool / Layanan</th><th>Fungsi</th></tr>
+  <tr><td>Netlify</td><td>Hosting frontend, CI/CD otomatis dari GitHub</td></tr>
+  <tr><td>GitHub</td><td>Source code repository, trigger build</td></tr>
+  <tr><td>Tailscale</td><td>Private VPN antar device + Funnel (HTTPS publik)</td></tr>
+  <tr><td>Proxmox VE</td><td>Hypervisor server kampus</td></tr>
+  <tr><td>Ubuntu 22.04 LTS</td><td>OS server backend</td></tr>
+  <tr><td>Bun</td><td>Runtime JavaScript (replacement Node.js)</td></tr>
+  <tr><td>Hono</td><td>Web framework backend</td></tr>
+  <tr><td>Prisma</td><td>ORM untuk PostgreSQL</td></tr>
+  <tr><td>PostgreSQL 14</td><td>Database utama (lokal)</td></tr>
+  <tr><td>Neon</td><td>PostgreSQL serverless cloud (sumber data awal)</td></tr>
+  <tr><td>Cloudflare R2</td><td>Object storage S3-compatible (foto)</td></tr>
+  <tr><td>Fonnte</td><td>WhatsApp gateway untuk OTP</td></tr>
+  <tr><td>systemd</td><td>Process manager Linux</td></tr>
+</table>
+
+<p class="center" style="margin-top:32px;"><i>Akhir laporan.</i></p>
+
+</body>
+</html>
