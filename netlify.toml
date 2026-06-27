@@ -11,3 +11,22 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Jangan cache HTML — selalu ambil versi terbaru.
+# Asset JS/CSS aman di-cache karena Vite menambahkan hash di nama file
+# (mis. /assets/index-CN31UoQv.js) sehingga cache bust otomatis.
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Asset ber-hash (output Vite) boleh di-cache lama (immutable).
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
