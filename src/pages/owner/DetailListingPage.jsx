@@ -9,7 +9,7 @@ import { MapContainer, TileLayer, Marker } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { getApiBase, resolveMediaUrl } from "../../config/apiBase";
-import { GENDER_LABELS, extractKostFacilitiesFromRooms, getRoomOnlyFacilities, getRentableRoomTypes, findSharedFacilityRoom } from "../../constants/listing";
+import { GENDER_LABELS, extractKostFacilitiesFromRooms, getRoomOnlyFacilities, getRentableRoomTypes, findSharedFacilityRoom, parseElectricityIncluded } from "../../constants/listing";
 
 // Fix ikon default Leaflet (path aset rusak via bundler)
 delete L.Icon.Default.prototype._getIconUrl;
@@ -100,13 +100,14 @@ export default function DetailListingPage() {
   const rentableRooms = getRentableRoomTypes(data.roomTypes);
   const sharedFacilityRoom = findSharedFacilityRoom(data.roomTypes);
 
-  const allImages = (data.photos?.length
-    ? data.photos
-    : [
-        ...rentableRooms.flatMap((r) => r?.photos || []),
-        ...(sharedFacilityRoom?.photos || []),
-      ]
-  ).filter((p) => p?.url);
+  // Foto fasilitas bersama dipisah dari galeri utama (sesuai data backend & halaman user)
+  const sharedFacilityImages = (sharedFacilityRoom?.photos || []).filter((p) => p?.url);
+  const sharedPhotoIds = new Set(sharedFacilityImages.map((p) => p.id));
+  const roomGalleryImages = rentableRooms.flatMap((r) => r?.photos || []).filter((p) => p?.url);
+  const allImages = (roomGalleryImages.length
+    ? roomGalleryImages
+    : (data.photos || []).filter((p) => p?.url && !sharedPhotoIds.has(p.id))
+  );
 
   const coverUrl = allImages[imgIdx]?.url ? resolveMediaUrl(allImages[imgIdx].url) : null;
   const totalRooms = rentableRooms.reduce((s, r) => s + (r?.availableCount || 0), 0) || 0;
@@ -196,7 +197,7 @@ export default function DetailListingPage() {
                 <p className="text-indigo-200 text-[11px] font-black uppercase tracking-[0.2em] mb-2">
                   Detail Properti
                 </p>
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white leading-tight tracking-tight mb-3">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white leading-tight tracking-tight mb-3" style={{ color: "#fff" }}>
                   {data.name}
                 </h1>
                 <div className="flex items-start gap-2 text-indigo-100 mb-4">
@@ -212,6 +213,11 @@ export default function DetailListingPage() {
                   <span className={`inline-flex items-center px-3 py-1 rounded-full text-[11px] font-black border ${gn.cls}`}>
                     {gn.label}
                   </span>
+                  {data.isPremium && (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-black border bg-amber-100 text-amber-700 border-amber-200">
+                      <Sparkles size={12} /> Premium
+                    </span>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-3 gap-3">
@@ -403,6 +409,25 @@ export default function DetailListingPage() {
                 </Section>
               )}
 
+              {sharedFacilityImages.length > 0 && (
+                <Section icon={Building2} title="Foto Fasilitas Bersama">
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                    {sharedFacilityImages.map((img, i) => (
+                      <div
+                        key={img.id ?? i}
+                        className="aspect-square rounded-xl overflow-hidden border border-indigo-100 bg-indigo-50"
+                      >
+                        <img
+                          src={resolveMediaUrl(img.url)}
+                          alt={`Fasilitas bersama ${i + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </Section>
+              )}
+
               {data.rules?.length > 0 && (
                 <Section icon={Shield} title="Peraturan Penghuni">
                   <ul className="space-y-2">
@@ -442,6 +467,7 @@ export default function DetailListingPage() {
                     {rentableRooms.map((room) => {
                       const thumb = room?.photos?.[0]?.url ? resolveMediaUrl(room.photos[0].url) : null;
                       const facs = getRoomOnlyFacilities(room?.facilities || [], kostFac).filter(Boolean);
+                      const electricity = parseElectricityIncluded(room?.facilities || []);
                       return (
                         <article
                           key={room?.id}
@@ -458,10 +484,23 @@ export default function DetailListingPage() {
                             <div className="flex-1 min-w-0">
                               <h3 className="text-base font-black text-slate-900 mb-1">{room?.name || "Kamar"}</h3>
                               <p className="text-xs text-slate-500 mb-2">
-                                {room?.size ? `${room.size} · ` : ""}
+                                {room?.size && room.size !== "-" ? `${room.size} · ` : ""}
                                 <span className="text-indigo-600 font-black">{fmtPrice(room?.price)}</span>
                                 <span className="text-slate-400"> / bulan</span>
                               </p>
+                              {electricity !== null && (
+                                <div className="mb-2">
+                                  <span
+                                    className={`inline-flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded-lg border ${
+                                      electricity
+                                        ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                                        : "text-amber-700 bg-amber-50 border-amber-200"
+                                    }`}
+                                  >
+                                    <Zap size={11} /> {electricity ? "Listrik termasuk" : "Listrik belum termasuk"}
+                                  </span>
+                                </div>
+                              )}
                               {facs.length > 0 && (
                                 <div className="flex flex-wrap gap-1.5">
                                   {facs.slice(0, 5).map((f, i) => (

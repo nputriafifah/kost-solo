@@ -176,7 +176,7 @@ export default function DashboardOwnerPage() {
       {/* Quick actions */}
       <div>
         <h3 className="text-slate-800 font-black text-sm mb-3">Aksi cepat</h3>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="flex justify-center gap-3">
           {[
             { icon: Plus,       label: "Tambah kamar",    color: "bg-indigo-50 text-indigo-600",      action: () => navigate("/owner/create") },
             // "Tarik pendapatan" disembunyikan sementara (fitur belum aktif)
