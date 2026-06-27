@@ -11,7 +11,7 @@ import Sidebar, { NAV_ITEMS } from "../../components/owner/Sidebar";
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
-const API = "http://localhost:8080";
+const API = "https://atapbackend.netlify.app";
 
 const STATUS_CONFIG = {
   PENDING:  { label: "Menunggu Review", bg: "bg-amber-50",   text: "text-amber-600",  dot: "bg-amber-400"  },
