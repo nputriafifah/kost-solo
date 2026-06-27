@@ -9,7 +9,9 @@ import Sidebar, { NAV_ITEMS } from "../../components/owner/Sidebar";
 import { Menu, Building2, Home, User } from "lucide-react";
 import { useUnreadCount } from "../../hooks/useUnreadCount"; // ← import hook
 
-const API = "http://localhost:8080";
+import { getApiBase } from "../../config/apiBase";
+
+const API = getApiBase();
 const FILTERS = ["Semua", "Belum dibaca", "Sudah dibaca"];
 
 const GRADIENTS = [

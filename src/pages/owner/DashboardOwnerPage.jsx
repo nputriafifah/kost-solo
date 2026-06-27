@@ -1,17 +1,24 @@
 import { useEffect, useState } from "react";
 import {
-  Plus, LogOut, Building2, Home,
-  BarChart3, TrendingUp, User, ChevronRight,
-  BedDouble, Eye,
-  MessageSquare, Settings,
+  Plus,
+  LogOut,
+  Building2,
+  Home,
+  BarChart3,
+  TrendingUp,
+  User,
+  ChevronRight,
+  BedDouble,
+  Eye,
+  MessageSquare,
+  Settings,
   Menu,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import Sidebar, { NAV_ITEMS } from "../../components/owner/Sidebar";
+import { getApiBase } from "../../config/apiBase";   // <-- pindah ke sini
 
-// ─── CONSTANTS ────────────────────────────────────────────────────────────────
-
-const API = "https://atapbackend.netlify.app";
+const API = getApiBase();
 
 const STATUS_CONFIG = {
   PENDING:  { label: "Menunggu Review", bg: "bg-amber-50",   text: "text-amber-600",  dot: "bg-amber-400"  },
