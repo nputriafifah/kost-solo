@@ -91,7 +91,7 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
           body: JSON.stringify({ phone: formattedPhone }),
         });
         const json = await res.json();
-        if (!res.ok) throw new Error(json.error);
+        if (!res.ok) throw new Error(json.detail || json.error || "Gagal mendaftar");
         setSuccess("OTP dikirim...");
         setTimeout(() => navigate("/verify-otp", { state: { role: "pemilik", phone: formattedPhone } }), 800);
         return;
@@ -141,7 +141,7 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
           body: JSON.stringify({ name: form.name, email: form.email, password: form.password }),
         });
         const json = await res.json();
-        if (!res.ok) throw new Error(json.error);
+        if (!res.ok) throw new Error(json.detail || json.error || "Gagal mendaftar");
         setSuccess("OTP dikirim ke email...");
         setTimeout(() => navigate("/verify-otp", { state: { role: "pencari", email: form.email } }), 800);
         return;
@@ -162,7 +162,7 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
           }),
         });
         const json = await res.json();
-        if (!res.ok) throw new Error(json.error);
+        if (!res.ok) throw new Error(json.detail || json.error || "Gagal mendaftar");
         setSuccess("OTP dikirim...");
         setTimeout(() => navigate("/verify-otp", { state: { role: "pemilik", phone: formattedPhone } }), 800);
         return;
@@ -300,19 +300,6 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
           </Field>
         )}
 
-        {/* LUPA PASSWORD */}
-        {role === "pencari" && isLogin && (
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={() => navigate("/forgot-password")}
-              className="text-xs text-indigo-600 hover:underline"
-            >
-              Lupa password?
-            </button>
-          </div>
-        )}
-
         {/* USER CONFIRM PASSWORD */}
         {role === "pencari" && !isLogin && (
           <Field label="Konfirmasi Password" icon={<Lock size={15} />}>
@@ -382,11 +369,53 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
                 <X size={16} />
               </button>
             </div>
-            <div className="text-sm text-slate-600 space-y-2 max-h-60 overflow-y-auto mb-4">
-              <p>1. Data harus benar.</p>
-              <p>2. Tidak boleh fake account.</p>
-              <p>3. Tanggung jawab user.</p>
-              <p>4. Bisa berubah sewaktu-waktu.</p>
+            <div className="text-sm text-slate-600 space-y-3 max-h-72 overflow-y-auto mb-4 pr-1">
+              <p className="text-slate-500">
+                Dengan membuat akun dan menggunakan Atap, kamu menyetujui ketentuan berikut.
+              </p>
+
+              <div>
+                <p className="font-semibold text-slate-700">1. Akun &amp; Data</p>
+                <ul className="list-disc pl-5 space-y-1 mt-1">
+                  <li>Data yang kamu daftarkan harus benar, akurat, dan milikmu sendiri.</li>
+                  <li>Dilarang membuat akun palsu, menyamar sebagai orang/pihak lain, atau menyalahgunakan akun orang lain.</li>
+                  <li>Kamu bertanggung jawab menjaga kerahasiaan kata sandi dan seluruh aktivitas pada akunmu.</li>
+                </ul>
+              </div>
+
+              <div>
+                <p className="font-semibold text-slate-700">2. Penggunaan Layanan</p>
+                <ul className="list-disc pl-5 space-y-1 mt-1">
+                  <li>Atap adalah platform yang mempertemukan pencari kost dengan pemilik kost.</li>
+                  <li>Dilarang menggunakan layanan untuk tujuan melanggar hukum, menipu, atau merugikan pihak lain.</li>
+                  <li>Dilarang mengunggah konten yang menyesatkan, melanggar hak orang lain, atau mengandung SARA/pornografi.</li>
+                </ul>
+              </div>
+
+              <div>
+                <p className="font-semibold text-slate-700">3. Listing &amp; Transaksi</p>
+                <ul className="list-disc pl-5 space-y-1 mt-1">
+                  <li>Pemilik wajib memastikan informasi kost (foto, harga, fasilitas, ketersediaan) benar dan terkini.</li>
+                  <li>Kesepakatan sewa-menyewa terjadi langsung antara pencari dan pemilik. Atap tidak menjadi pihak dalam perjanjian tersebut.</li>
+                  <li>Atap tidak bertanggung jawab atas kerugian yang timbul dari transaksi atau komunikasi antar pengguna.</li>
+                </ul>
+              </div>
+
+              <div>
+                <p className="font-semibold text-slate-700">4. Privasi</p>
+                <ul className="list-disc pl-5 space-y-1 mt-1">
+                  <li>Data pribadimu kami kelola sesuai Kebijakan Privasi.</li>
+                  <li>Kami dapat menggunakan email/kontakmu untuk verifikasi akun dan keperluan layanan.</li>
+                </ul>
+              </div>
+
+              <div>
+                <p className="font-semibold text-slate-700">5. Perubahan Ketentuan</p>
+                <ul className="list-disc pl-5 space-y-1 mt-1">
+                  <li>Atap dapat menonaktifkan akun yang melanggar ketentuan ini.</li>
+                  <li>Syarat &amp; ketentuan dapat berubah sewaktu-waktu, dan perubahan berlaku sejak dipublikasikan.</li>
+                </ul>
+              </div>
             </div>
             <button
               type="button"

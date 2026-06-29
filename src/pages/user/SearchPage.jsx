@@ -268,6 +268,8 @@ body { font-family:'Outfit',sans-serif; color:var(--text-primary); background:va
 .sp-card { background:var(--bg-secondary); border-radius:14px; border:1px solid var(--border-color); overflow:hidden; cursor:pointer; transition:box-shadow .15s, transform .15s, border-color .15s; }
 .sp-card:hover { box-shadow:0 6px 24px rgba(79,70,229,.1); transform:translateY(-1px); }
 .sp-card.highlighted { border-color:#4F46E5; box-shadow:0 0 0 2px #EEF2FF; }
+.sp-focus-clear { display:inline-flex; align-items:center; gap:4px; padding:6px 12px; border:1px solid #C7D2FE; border-radius:999px; background:#EEF2FF; color:#4F46E5; font-family:'Outfit',sans-serif; font-size:12px; font-weight:700; cursor:pointer; transition:background .15s; }
+.sp-focus-clear:hover { background:#E0E7FF; }
 .sp-card-inner { display:flex; gap:12px; padding:12px; }
 .sp-card-img-wrap { position:relative; flex-shrink:0; }
 .sp-card-img { width:108px; height:108px; border-radius:10px; object-fit:cover; }
@@ -316,6 +318,12 @@ export default function SearchPage() {
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [view, setView] = useState("map");
   const [activePinId, setActivePinId] = useState(null);
+  const [focusedId, setFocusedId] = useState(null);
+
+  const handlePinClick = useCallback((id) => {
+    setFocusedId((prev) => (prev === id ? null : id));
+    setActivePinId(id);
+  }, []);
 
   const [selectedGenders, setSelectedGenders] = useState([]);
   const [minPrice, setMinPrice] = useState("");
@@ -451,6 +459,8 @@ export default function SearchPage() {
   const priceFiltered = minPrice || maxPrice;
   const activeSortLabel = SORT_OPTIONS.find((o) => o.value === sort)?.label;
   const hasResults = searched && !loading && results.length > 0;
+  const focusedItem = focusedId != null ? results.find((r) => r.id === focusedId) : null;
+  const displayResults = focusedItem ? [focusedItem] : results;
   const areaFiltered = Boolean(areaKabupaten || areaKecamatan);
   const areaChipLabel = areaKecamatan
     ? areaKecamatan
@@ -743,7 +753,13 @@ export default function SearchPage() {
               )}
               {hasResults && (
                 <div className="sp-result-header">
-                  <p className="sp-result-count"><strong>{results.length}</strong> hunian ditemukan</p>
+                  {focusedItem ? (
+                    <button type="button" className="sp-focus-clear" onClick={() => { setFocusedId(null); setActivePinId(null); }}>
+                      <ArrowLeft size={14} /> Tampilkan semua ({results.length})
+                    </button>
+                  ) : (
+                    <p className="sp-result-count"><strong>{results.length}</strong> hunian ditemukan</p>
+                  )}
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <span className="sp-sort-label">{activeSortLabel}</span>
                     <div className="sp-view-toggle sp-mobile-view-toggle" style={{ position: "static", boxShadow: "none", background: "var(--bg-tertiary)", borderRadius: 999 }}>
@@ -754,7 +770,7 @@ export default function SearchPage() {
                 </div>
               )}
 
-              {hasResults && results.map((item) => {
+              {hasResults && displayResults.map((item) => {
             const g = (item.gender || "").toLowerCase();
             const genderBadgeClass = g === "putri" ? "sp-badge-gender-putri" : g === "putra" ? "sp-badge-gender-putra" : g === "campur" ? "sp-badge-gender-campur" : "";
             return (
@@ -809,7 +825,7 @@ export default function SearchPage() {
               <SearchSplitMap
                 results={results}
                 activePinId={activePinId}
-                onPinClick={(id) => setActivePinId((prev) => (prev === id ? null : id))}
+                onPinClick={handlePinClick}
               />
             </div>
           )}
