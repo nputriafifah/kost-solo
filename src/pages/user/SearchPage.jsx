@@ -12,7 +12,7 @@ import { getApiBase, resolveMediaUrl } from "../../config/apiBase";
 import { buildAreaSearchQuery, formatPublicLocation } from "../../utils/publicLocation";
 import { GENDER_OPTIONS } from "../../constants/listing";
 import { KABUPATEN_OPTIONS, getKecamatanOptions } from "../../constants/soloRegions";
-import { CAMPUS_PRESETS, QUICK_KECAMATAN } from "../../constants/searchLocations";
+import { QUICK_KECAMATAN } from "../../constants/searchLocations";
 import SearchSplitMap from "../../components/user/SearchSplitMap";
 import UserNavbar, { USER_NAVBAR_CSS } from "../../components/user/UserNavbar";
 import UserBottomNav, { USER_BOTTOM_NAV_CSS } from "../../components/user/UserBottomNav";
@@ -92,9 +92,9 @@ function DropdownPortal({ anchorRef, children, onClose }) {
 const HISTORY_KEY = "atap_search_history";
 // Trending → aksi nyata (filter kampus / area), bukan teks q mentah yang tak match
 const TRENDS = [
-  { label: "Kost dekat UNS", type: "campus", id: "uns" },
-  { label: "Kost dekat UMS", type: "campus", id: "ums" },
   { label: "Kost Jebres", type: "area", kabupaten: "Kota Surakarta", kecamatan: "Jebres" },
+  { label: "Kost Laweyan", type: "area", kabupaten: "Kota Surakarta", kecamatan: "Laweyan" },
+  { label: "Kost Banjarsari", type: "area", kabupaten: "Kota Surakarta", kecamatan: "Banjarsari" },
   { label: "Kost Kartasura", type: "area", kabupaten: "Kab. Sukoharjo", kecamatan: "Kartasura" },
 ];
 const SORT_OPTIONS = [
@@ -394,14 +394,6 @@ export default function SearchPage() {
     setAreaKecamatan("");
   };
 
-  const applyCampusFilter = (preset) => {
-    clearLocationFilters();
-    setCampusPreset(preset.id);
-    setQuery("");
-    queryRef.current = "";
-    doSearch("", { lat: preset.lat, lng: preset.lng, radiusKm: preset.radiusKm });
-  };
-
   const applyAreaFilter = (kabupaten, kecamatan) => {
     setCampusPreset(null);
     setAreaKabupaten(kabupaten);
@@ -413,10 +405,7 @@ export default function SearchPage() {
   };
 
   const handleTrendClick = (t) => {
-    if (t.type === "campus") {
-      const preset = CAMPUS_PRESETS.find((p) => p.id === t.id);
-      if (preset) applyCampusFilter(preset);
-    } else if (t.type === "area") {
+    if (t.type === "area") {
       applyAreaFilter(t.kabupaten, t.kecamatan);
     } else {
       setQuery(t.q || "");
@@ -528,16 +517,6 @@ export default function SearchPage() {
                   <ArrowUpDown size={13} />{activeSortLabel}<ChevronDown size={13} />
                 </button>
               </div>
-              {CAMPUS_PRESETS.map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  className={`sp-chip${campusPreset === preset.id ? " filtered" : ""}`}
-                  onClick={() => applyCampusFilter(preset)}
-                >
-                  <MapPin size={12} /> {preset.label}
-                </button>
-              ))}
               <div ref={areaAnchorRef}>
                 <button
                   type="button"

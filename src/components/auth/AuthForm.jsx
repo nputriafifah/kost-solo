@@ -162,9 +162,32 @@ export default function AuthForm({ role, isLogin, setIsLogin, onBack }) {
           }),
         });
         const json = await res.json();
-        if (!res.ok) throw new Error(json.detail || json.error || "Gagal mendaftar");
-        setSuccess("OTP dikirim...");
-        setTimeout(() => navigate("/verify-otp", { state: { role: "pemilik", phone: formattedPhone } }), 800);
+        if (!res.ok) {
+          const detail = json.details?.fieldErrors
+            ? Object.values(json.details.fieldErrors).flat().join(", ")
+            : null;
+          throw new Error(detail || json.detail || json.error || "Gagal mendaftar");
+        }
+
+        // BE: login owner pakai OTP WhatsApp (request-otp), bukan OTP email saat register
+        const otpRes = await fetch(`${getApiBase()}/auth/owner/request-otp`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: formattedPhone }),
+        });
+        const otpJson = await otpRes.json();
+        if (!otpRes.ok) {
+          throw new Error(
+            otpJson.error ||
+              "Akun berhasil dibuat, tapi OTP WhatsApp gagal dikirim. Silakan masuk dan minta OTP ulang."
+          );
+        }
+
+        setSuccess("Akun dibuat. OTP dikirim ke WhatsApp...");
+        setTimeout(
+          () => navigate("/verify-otp", { state: { role: "pemilik", phone: formattedPhone } }),
+          800
+        );
         return;
       }
 
